@@ -243,7 +243,8 @@ class DrupalAPCCache implements DrupalCacheInterface {
    */
   protected function deletePrefix($prefix) {
     if (class_exists('APCIterator')) {
-      $iterator = new APCIterator('user', '/^\Q' . $this->binKey() . $prefix . '\E/', APC_ITER_KEY);
+      $escapedKey = preg_quote($this->binKey() . $prefix, '/');
+      $iterator = new APCIterator('user', '/^' . $escapedKey . '/', APC_ITER_KEY);
       foreach ($iterator as $key => $data) {
         apc_delete($key);
        }
@@ -293,7 +294,8 @@ class DrupalAPCCache implements DrupalCacheInterface {
 
   function isEmpty() {
     if (class_exists('APCIterator')) {
-      $iterator = new APCIterator('user', '/^\Q' . $this->binKey() . '\E/', APC_ITER_KEY);
+      $escapedKey = preg_quote($this->binKey(), '/');
+      $iterator = new APCIterator('user', '/^' . $escapedKey . '/', APC_ITER_KEY);
       return 0 === $iterator->getTotalCount();
     }
     return TRUE;

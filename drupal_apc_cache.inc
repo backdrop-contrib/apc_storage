@@ -414,10 +414,10 @@ class DrupalAPCCache implements DrupalCacheInterface {
         }
       }
       elseif (!$response['success']) {
-        drush_log('APC could not flush cache(s) because ' . $apc_node . ' returned code ' . $response['message'], 'error');
+        drush_log('APC could not flush cache(s) because ' . $uri . ' returned code ' . $response['message'], 'error');
       }
       else {
-        drush_log("APC-Remote $apc_node: {$response['message']}", 'success');
+        drush_log("APC-Remote $uri: {$response['message']}", 'success');
       }
     }
   }

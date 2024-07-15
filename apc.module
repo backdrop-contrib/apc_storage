@@ -1,23 +1,31 @@
 <?php
+
+/**
+ * @file
+ * Hook implementations for the Alternative PHP Cache module.
+ */
+
+// phpcs:disable SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator.NullCoalesceOperatorNotUsed
+
 /**
  * Implements hook_xmlrpc().
  */
 function apc_xmlrpc() {
-  $methods[] =  array(
-    'apc_drush_flush', // Method name.
-    'apc_drush_flush', // Callback.
+  $methods[] = array(
+    'apc_drush_flush',
+    'apc_drush_flush',
     array(
-      'array', // Return variable.
-      'array', // Input variable.
+      'array',
+      'array',
     ),
-    t('XMLRPC callback to enable cache clear from Drush/CLI.'), // Description
+    t('XMLRPC callback to enable cache clear from Drush/CLI.'),
   );
 
   return $methods;
 }
 
 /**
- * XMLRPC callback to enable cache clear from Drush/CLI.
+ * XMLRPC callback to clear the cache from Drush/CLI.
  */
 function apc_drush_flush($variables) {
   $cron_key = isset($variables['cron_key']) ? $variables['cron_key'] : NULL;
@@ -45,9 +53,7 @@ function apc_drush_flush($variables) {
 }
 
 /**
- * Implementation of hook_init().
- *
- * Used for displaying the APC stats for debug purposes.
+ * Implements hook_init().
  */
 function apc_init() {
   global $user;
@@ -62,28 +68,22 @@ function apc_init() {
 }
 
 /**
- * @file
- * This integrates the drupal APC cache module.
- */
-
-/**
- * Implementation of hook_permission().
+ * Implements hook_permission().
  */
 function apc_permission() {
   return array(
-    'access apc statistics' =>  array(
-      'title' => t('Access apc statistics'),
-      'description' => t('Allows access to the statistics reports of APC.'),
+    'access apc statistics' => array(
+      'title' => t('Access APC statistics'),
+      'description' => t('Allows access to the APC statistics reports.'),
     ),
   );
 }
 
 /**
- * See apc_init() which registers this function as a shutdown function.
- * Displays apc stats in the footer.
+ * Shutdown function: Displays APC stats in the footer.
  */
 function apc_shutdown() {
-  global $apc_statistics;
+  global $_apc_statistics;
 
   // Don't call theme() during shutdown if the registry has been rebuilt (such
   // as when enabling/disabling modules on admin/build/modules) as things break.
@@ -106,11 +106,11 @@ function apc_shutdown() {
     }
   }
 
-  if (isset($apc_statistics) && is_array($apc_statistics)) {
+  if (isset($_apc_statistics) && is_array($_apc_statistics)) {
     print '<div id="apc-devel"><h2>' . t('APC statistics') . '</h2>';
     $rows = array();
 
-    foreach ($apc_statistics as $row) {
+    foreach ($_apc_statistics as $row) {
       if (is_array($row[2])) {
         $row[2] = implode(',<br />', $row[2]);
       }

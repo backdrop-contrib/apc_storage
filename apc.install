@@ -1,11 +1,19 @@
 <?php
 
 /**
+ * @file
+ * Install, update, and uninstall hooks for the Alternative PHP Cache module.
+ */
+
+// phpcs:disable SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator.NullCoalesceOperatorNotUsed
+
+/**
  * Implements hook_requirements().
  */
 function apc_requirements($phase) {
   $requirements = array();
-  // Ensure translations don't break at install time
+
+  // Ensure translations don't break at install time.
   $t = get_t();
 
   // Test APC.

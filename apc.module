@@ -35,49 +35,28 @@ function apc_permission() {
 }
 
 /**
- * Implements hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter() for system_performance_settings().
  */
 function apc_form_system_performance_settings_alter(&$form, $form_state) {
-  $form['clear_cache']['clear']['#submit'][] = 'apc_clear_user_cache';
-  $form['clear_cache']['clear']['#submit'][] = 'apc_clear_opcode_cache';
+  if (extension_loaded('apcu')) {
+    $form['clear_cache']['clear']['#submit'][] = 'apc_clear_apcu_cache';
 
-  $form['clear_cache']['apc_user'] = array(
-    '#type' => 'submit',
-    '#value' => t('Clear APC user cache'),
-    '#submit' => array('apc_clear_user_cache'),
-  );
-
-  if (!extension_loaded('apcu')) {
-    $form['clear_cache']['apc_opcode'] = array(
+    $form['clear_cache']['apcu_cache'] = array(
       '#type' => 'submit',
-      '#value' => t('Clear APC opcode cache'),
-      '#submit' => array('apc_clear_opcode_cache'),
+      '#value' => t('Clear APCu cache'),
+      '#submit' => array('apc_clear_apcu_cache'),
     );
   }
 }
 
 /**
- * Helper function to clear user cache.
+ * Submission form handler for system_performance_settings().
  */
-function apc_clear_user_cache() {
-  if (apc_clear_cache('user')) {
-    drupal_set_message(t('Cleared APC user cache.'));
-  }
-  else {
-    drupal_set_message(t('Unable to clear APC user cache.'), 'error');
-  }
-}
-
-/**
- * Helper function to clear opcode cache.
- */
-function apc_clear_opcode_cache() {
-  if (apc_clear_cache()) {
-    drupal_set_message(t('Cleared APC opcode cache.'));
-  }
-  else {
-    drupal_set_message(t('Unable to clear APC opcode cache.'), 'error');
-  }
+function apc_clear_apcu_cache() {
+  // apcu_clear_cache() always return TRUE; that is why we show a single message
+  // without checking the return value.
+  apcu_clear_cache();
+  drupal_set_message(t('APCu cache has been cleared.'));
 }
 
 /**

@@ -40,11 +40,11 @@ function apc_drush_flush($variables) {
   }
   else {
     foreach ($clears as $bin => $cids) {
-      $cache = _cache_get_object($bin);
       foreach ($cids as $serialized_cid => $wildcard) {
-        $cache->clear(unserialize($serialized_cid), $wildcard);
+        cache_clear_all(unserialize($serialized_cid), $bin, $wildcard);
       }
     }
+
     return array(
       'success' => TRUE,
       'message' => t('APC all requested flushes done.'),

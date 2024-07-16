@@ -209,23 +209,19 @@ class DrupalAPCCache implements DrupalCacheInterface {
    *   load.
    */
   protected function prepareItem($cache) {
-    global $user;
-
     if (!isset($cache->data)) {
       return FALSE;
     }
 
-    $temporary = $cache->expire != CACHE_PERMANENT;
     $cache_lifetime = variable_get('cache_lifetime', 0);
-    $expired = (isset($user->cache) && $user->cache > $cache->created);
+    $expired = isset($_SESSION['cache_expiration'][$this->bin]) && $_SESSION['cache_expiration'][$this->bin] > $cache->created;
+    $expires = $cache->expire != CACHE_PERMANENT;
 
-    // If enforcing a minimum cache lifetime, validate that the data is
-    // currently valid for the currently logged-in user. $user->cache is set by
-    // _drupal_session_read().
-    // If the data is permanent, or we are not enforcing a minimum cache
-    // lifetime, always return the cached data.
-    if ($temporary && $cache_lifetime && $expired) {
-      // This cache data is too old and thus not valid for us; ignore it.
+    // If the cached data is temporary and subject to a per-user minimum
+    // lifetime, compare the cache entry timestamp with the user session
+    // cache_expiration timestamp. If the cache entry is too old, ignore it.
+    if ($expires && $cache_lifetime && $expired) {
+      // Ignore cache data that is too old and thus not valid for this user.
       return FALSE;
     }
 

@@ -380,13 +380,19 @@ class DrupalAPCCache implements DrupalCacheInterface {
     global $base_url;
 
     if (!module_exists('apc')) {
-      drush_log('You need to enable the APC module for remote cache clearing to work. Run drush pm-enable apc.', 'error');
+      drush_log(
+        dt('You need to enable the APC module for remote cache clearing to work. Run drush pm-enable apc.'),
+        'error'
+      );
       return;
     }
 
     if (!empty(self::$remoteRequests)) {
       if ($base_url == 'http://' . basename(conf_path())) {
-        drush_log('$base_url might not be set correctly. Try using the -l/--uri option for Drush.', 'warning');
+        drush_log(
+          dt('$base_url might not be set correctly. Try using the -l/--uri option for Drush.'),
+          'warning'
+        );
       }
 
       // Optimize '*' clears.
@@ -409,10 +415,19 @@ class DrupalAPCCache implements DrupalCacheInterface {
       $response = xmlrpc($uri, $args);
 
       if ($response === FALSE) {
-        drush_log('apc.clear_cache: ' . xmlrpc_error_msg() . ' (' . xmlrpc_errno() . ')', 'error');
+        drush_log(
+          dt(
+            'apc.clear_cache: %err_msg (%err_no)',
+            array('%err_msg' => xmlrpc_error(), '%err_no' => xmlrpc_errno())
+          ),
+          'error'
+        );
       }
       else {
-        drush_log("apc.clear_cache: The cache has been cleared.", 'success');
+        drush_log(
+          dt("apc.clear_cache: The cache has been cleared."),
+          'success'
+        );
       }
     }
   }

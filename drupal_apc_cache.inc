@@ -87,7 +87,7 @@ class DrupalAPCCache implements DrupalCacheInterface {
    *
    * @var array
    */
-  protected static $remoteClears = array();
+  protected static $remoteRequests = array();
 
   /**
    * Gets the prefix to use for the cache bin.
@@ -140,9 +140,9 @@ class DrupalAPCCache implements DrupalCacheInterface {
     // If we do not have a configured prefix we use the HTTP_HOST.
     if (empty($prefix) && isset($_SERVER['HTTP_HOST'])) {
       // Provide a fallback for multisite. This is on purpose not inside the
-      // getPrefixForBin() function in order to decouple the unified prefix
-      // variable logic and custom module related security logic, that is not
-      // necessary for all backends.
+      // getPrefixSettingsForBin() function in order to decouple the unified
+      // prefix variable logic and custom module related security logic, which
+      // is not necessary for all backends.
       $prefix = $_SERVER['HTTP_HOST'] . '::';
     }
     else {
@@ -331,7 +331,7 @@ class DrupalAPCCache implements DrupalCacheInterface {
     if ($this->drush) {
       // APC uses a separate storage for CLI. Send these requests to the server,
       // via XMLRPC.
-      self::$remoteClears[$this->bin][serialize($cid)] = $wildcard;
+      self::$remoteRequests[$this->bin][serialize($cid)] = $wildcard;
       return;
     }
 
@@ -384,22 +384,23 @@ class DrupalAPCCache implements DrupalCacheInterface {
       return;
     }
 
-    if (!empty(self::$remoteClears)) {
+    if (!empty(self::$remoteRequests)) {
       // Optimize '*' clears.
       $star = serialize('*');
-      foreach (self::$remoteClears as $bin => $clears) {
-        if (!empty($clears[$star])) {
-          self::$remoteClears[$bin] = array($star => TRUE);
+
+      foreach (self::$remoteRequests as $bin => $cids) {
+        if (!empty($cids[$star])) {
+          self::$remoteRequests[$bin] = array($star => TRUE);
         }
       }
+
       $args = array(
-        'apc_drush_flush' => array(
-          array(
-            'clears' => self::$remoteClears,
-            'cron_key' => variable_get('cron_key', 'drupal'),
-          ),
+        'apc.clear_cache' => array(
+          variable_get('cron_key', 'drupal'),
+          self::$remoteRequests,
         ),
       );
+
       $uri = $base_url . '/xmlrpc.php';
       $response = xmlrpc($uri, $args);
 

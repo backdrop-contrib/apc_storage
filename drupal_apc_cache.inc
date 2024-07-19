@@ -264,20 +264,19 @@ class DrupalAPCCache implements DrupalCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public function set($cid, $data, $expire = CACHE_PERMANENT, array $headers = NULL) {
+  public function set($cid, $data, $expire = CACHE_PERMANENT) {
     // Add set to statistics.
     $GLOBALS['_apc_statistics'][] = array('set', $this->bin, $cid);
 
     // Create new cache object.
     $cache = new stdClass();
     $cache->cid = $cid;
-    // APC will serialize any structure we give itself.
-    $cache->serialized = 0;
     $cache->created = REQUEST_TIME;
     $cache->expire = $expire;
-    $cache->headers = $headers;
-
     $cache->data = $data;
+
+    // APCu will serialize any structure we give itself.
+    $cache->serialized = 0;
 
     // What kind of expiration is being used.
     switch ($expire) {

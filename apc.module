@@ -67,7 +67,7 @@ function apc_xmlrpc() {
     'apc.clear_cache',
     'apc_clear_cache',
     array(
-      'array',
+      'boolean',
       'string',
       'array',
     ),
@@ -84,12 +84,9 @@ function apc_xmlrpc() {
  */
 function apc_clear_cache($key, $bins = array()) {
   if (empty($key) || variable_get('cron_key', 'drupal') != $key) {
-    watchdog('apc', 'An invalid key was passed to apc_clear_cache().', array(), WATCHDOG_ERROR);
+    watchdog('apc', 'An invalid auth key was passed to apc_clear_cache().', array(), WATCHDOG_ERROR);
 
-    return array(
-      'success' => FALSE,
-      'message' => t('Invalid key for apc.clear_cache.'),
-    );
+    return xmlrpc_error(-32602, t('Invalid auth key for apc.clear_cache.'));
   }
 
   // Clear the APCu cache.
@@ -100,10 +97,7 @@ function apc_clear_cache($key, $bins = array()) {
     }
   }
 
-  return array(
-    'success' => TRUE,
-    'message' => t('The cache has been cleared.'),
-  );
+  return TRUE;
 }
 
 /**

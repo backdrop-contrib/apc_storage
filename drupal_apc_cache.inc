@@ -385,6 +385,10 @@ class DrupalAPCCache implements DrupalCacheInterface {
     }
 
     if (!empty(self::$remoteRequests)) {
+      if ($base_url == 'http://' . basename(conf_path())) {
+        drush_log('$base_url might not be set correctly. Try using the -l/--uri option for Drush.', 'warning');
+      }
+
       // Optimize '*' clears.
       $star = serialize('*');
 
@@ -405,16 +409,10 @@ class DrupalAPCCache implements DrupalCacheInterface {
       $response = xmlrpc($uri, $args);
 
       if ($response === FALSE) {
-        drush_log('xmlrpc() error: (' . xmlrpc_errno() . ') ' . xmlrpc_error_msg(), 'error');
-        if ($base_url == 'http://' . basename(conf_path())) {
-          drush_log('The base_url might not be set correctly try using the -l/--uri option for drush.', 'warning');
-        }
-      }
-      elseif (!$response['success']) {
-        drush_log('APC could not flush cache(s) because ' . $uri . ' returned code ' . $response['message'], 'error');
+        drush_log('apc.clear_cache: ' . xmlrpc_error_msg() . ' (' . xmlrpc_errno() . ')', 'error');
       }
       else {
-        drush_log("APC-Remote $uri: {$response['message']}", 'success');
+        drush_log("apc.clear_cache: The cache has been cleared.", 'success');
       }
     }
   }

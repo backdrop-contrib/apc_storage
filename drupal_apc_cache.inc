@@ -97,7 +97,7 @@ class DrupalAPCCache implements DrupalCacheInterface {
    *
    * @return string
    *   The prefix to use for the cache bin, or an empty string if no prefix has
-   *   been set.
+   *   been set or the prefix is not a string.
    */
   protected static function getPrefixSettingForBin($bin) {
     $prefixes = variable_get('apc_cache_prefix', '');
@@ -108,47 +108,30 @@ class DrupalAPCCache implements DrupalCacheInterface {
     }
 
     if (is_string($prefixes)) {
-      // $prefixes can be a string. In this case, the same prefix is used for
-      // all the cache bins.
+      // $prefixes can be a string used for all the cache bins.
       return $prefixes;
     }
 
     if (is_array($prefixes)) {
-      if (isset($prefixes[$bin])) {
+      if (isset($prefixes[$bin]) && $prefixes[$bin] !== TRUE) {
         if ($prefixes[$bin] === FALSE) {
           // If $prefixes[$bin] is FALSE, no prefix is used for that cache bin,
-          // whatever the default prefix is.
+          // whichever value is used for $prefixes['default'].
           return '';
         }
-        else {
+
+        if (is_string($prefixes[$bin])) {
           // If $prefixes[$bin] is set and not FALSE, that value is used for the
           // cache bin.
           return $prefixes[$bin];
         }
       }
-      else {
-        if (isset($prefixes['default'])) {
-          if ($prefixes['default'] === FALSE) {
-            // For $prefixes['default'], FALSE means no prefix is used.
-            return '';
-          }
-          elseif (is_string($prefixes['default'])) {
-            return $prefixes['default'];
-          }
-          else {
-            // Ignore any value which is neither a string nor a Boolean value.
-            return '';
-          }
-        }
-        else {
-          return '';
-        }
+      elseif (isset($prefixes['default']) && is_string($prefixes['default'])) {
+        return $prefixes['default'];
       }
     }
-    else {
-      // Ignore any value which is neither a string nor an array.
-      return '';
-    }
+
+    return '';
   }
 
   public function __construct($bin) {

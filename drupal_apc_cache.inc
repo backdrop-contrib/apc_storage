@@ -100,33 +100,54 @@ class DrupalAPCCache implements DrupalCacheInterface {
    *   been set.
    */
   protected static function getPrefixSettingForBin($bin) {
-    $prefixes = variable_get('cache_prefix', '');
+    $prefixes = variable_get('apc_cache_prefix', '');
+
+    // @todo Remove the following lines in the 7.x-2.x branch.
+    if (empty($prefixes)) {
+      $prefixes = variable_get('cache_prefix', '');
+    }
 
     if (is_string($prefixes)) {
-      // Variable can be a string, which then considered as a default behavior.
+      // $prefixes can be a string. In this case, the same prefix is used for
+      // all the cache bins.
       return $prefixes;
     }
 
-    if (isset($prefixes[$bin])) {
-      if (FALSE !== $prefixes[$bin]) {
-        // If entry is set and not FALSE, an explicit prefix is set for the bin.
-        return $prefixes[$bin];
+    if (is_array($prefixes)) {
+      if (isset($prefixes[$bin])) {
+        if ($prefixes[$bin] === FALSE) {
+          // If $prefixes[$bin] is FALSE, no prefix is used for that cache bin,
+          // whatever the default prefix is.
+          return '';
+        }
+        else {
+          // If $prefixes[$bin] is set and not FALSE, that value is used for the
+          // cache bin.
+          return $prefixes[$bin];
+        }
       }
       else {
-        // If we have an explicit false, it means no prefix whatever is the
-        // default configuration.
-        return '';
+        if (isset($prefixes['default'])) {
+          if ($prefixes['default'] === FALSE) {
+            // For $prefixes['default'], FALSE means no prefix is used.
+            return '';
+          }
+          elseif (is_string($prefixes['default'])) {
+            return $prefixes['default'];
+          }
+          else {
+            // Ignore any value which is neither a string nor a Boolean value.
+            return '';
+          }
+        }
+        else {
+          return '';
+        }
       }
     }
     else {
-      // Key is not set, we can safely rely on default behavior.
-      if (isset($prefixes['default']) && FALSE !== $prefixes['default']) {
-        return $prefixes['default'];
-      }
-      else {
-        // When default is not set or an explicit FALSE, this means no prefix.
-        return '';
-      }
+      // Ignore any value which is neither a string nor an array.
+      return '';
     }
   }
 

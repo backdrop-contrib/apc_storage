@@ -2,51 +2,8 @@
 
 /**
  * @file
- * Functions and classes for the APC cache backend.
+ * Contains DrupalApcCache.
  */
-
-/**
- * Dummy functions to prevent errors if APC is not installed.
- */
-if (!function_exists('apc_fetch')) {
-
-  /**
-   * Replacement for apc_fetch() which always return FALSE.
-   *
-   * @param string $key
-   *   The key used to store the value.
-   * @param bool &$success
-   *   A variable set to FALSE.
-   *
-   * @return false
-   *   The value has not been fetched.
-   */
-  function apc_fetch($key, &$success = NULL) {
-    if ($success) {
-      $success = FALSE;
-    }
-
-    return FALSE;
-  }
-
-  /**
-   * Replacement for apc_store() which always return FALSE.
-   *
-   * @param string $key
-   *   The key used to store the value.
-   * @param mixed $var
-   *   The value to store.
-   * @param int $ttl
-   *   The time to live in seconds.
-   *
-   * @return false
-   *   The value has not been stored.
-   */
-  function apc_store($key, $var, $ttl = 0) {
-    return FALSE;
-  }
-
-}
 
 /**
  * Statistics about the APC cache.
@@ -59,7 +16,7 @@ $_apc_statistics = array();
  * This is a Drupal cache implementation which uses the APC extension to store
  * cached data.
  */
-class DrupalAPCCache implements DrupalCacheInterface {
+class DrupalApcCache implements DrupalCacheInterface {
 
   /**
    * The cache bin.
@@ -196,7 +153,8 @@ class DrupalAPCCache implements DrupalCacheInterface {
     $GLOBALS['_apc_statistics'][] = array('get', $this->bin, array($cid));
 
     // Fetch the data.
-    $cache = apc_fetch($this->key($cid));
+    $cache = apcu_fetch($this->key($cid));
+
     return $this->prepareItem($cache);
   }
 
@@ -208,7 +166,7 @@ class DrupalAPCCache implements DrupalCacheInterface {
    * @param object $cache
    *   An item loaded from cache_get() or cache_get_multiple().
    *
-   * @return mixed
+   * @return false|object
    *   The item with unserialized data, or FALSE if there is no valid item to
    *   load.
    */
@@ -236,31 +194,23 @@ class DrupalAPCCache implements DrupalCacheInterface {
    * {@inheritdoc}
    */
   public function getMultiple(&$cids) {
-    $keys = array();
-
-    if (!$cids) {
-      return $keys;
-    }
-
-    // We need to search the cache with the proper keys and be able to get the
-    // original $cid back.
-    foreach ($cids as $cid) {
-      $keys[$this->key($cid)] = $cid;
-    }
-
-    $fetch = apc_fetch(array_keys($keys));
     $cache = array();
-    if (!empty($fetch)) {
-      foreach ($fetch as $key => $data) {
-        $cache[$keys[$key]] = $this->prepareItem($data);
-      }
-    }
-    unset($fetch);
+    $keys = array();
 
     // Add a get to our statistics.
     $GLOBALS['_apc_statistics'][] = array('get', $this->bin, $cids);
 
-    $cids = array_diff($cids, array_keys($cache));
+    if (!$cids) {
+      return $cache;
+    }
+
+    foreach ($cids as $cid) {
+      $data = apcu_fetch($this->key($cid), $success);
+
+      if ($success) {
+        $cache[$cid] = $this->prepareItem($data);
+      }
+    }
 
     return $cache;
   }
@@ -279,28 +229,28 @@ class DrupalAPCCache implements DrupalCacheInterface {
     $cache->expire = $expire;
     $cache->data = $data;
 
-    // APCu will serialize any structure we give itself.
+    // Cache values stored in APCu do not need to be serialized, as APCu does
+    // that.
     $cache->serialized = 0;
 
-    // What kind of expiration is being used.
     switch ($expire) {
       case CACHE_PERMANENT:
-        $set_result = apc_store($this->key($cid), $cache);
+        $ttl = 0;
         break;
 
       case CACHE_TEMPORARY:
-        if (variable_get('cache_lifetime', 0) > 0) {
-          $set_result = apc_store($this->key($cid), $cache, variable_get('cache_lifetime', 0));
-        }
-        else {
-          $set_result = apc_store($this->key($cid), $cache);
-        }
+        // For apcu_store(), using 0 as TTL means the stored data will never
+        // expire. The minimum lifetime is one second.
+        $cache_lifetime = variable_get('cache_lifetime', 0);
+        $ttl = $cache_lifetime > 0 ? $cache_lifetime : 1;
         break;
 
       default:
-        $set_result = apc_store($this->key($cid), $cache, $expire - time());
+        $ttl = $expire - time();
         break;
     }
+
+    apcu_store($this->key($cid), $cache, $ttl);
   }
 
   /**
@@ -310,13 +260,10 @@ class DrupalAPCCache implements DrupalCacheInterface {
    *   The prefix for the cache IDs to delete.
    */
   protected function deletePrefix($prefix) {
-    if (class_exists('APCIterator')) {
-      $escapedKey = preg_quote($this->binKey() . $prefix, '/');
-      $iterator = new APCIterator('user', '/^' . $escapedKey . '/', APC_ITER_KEY);
-
-      foreach ($iterator as $key => $data) {
-        apc_delete($key);
-      }
+    if (class_exists('APCUIterator')) {
+      $escaped_key = preg_quote($this->binKey() . $prefix, '/');
+      $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
+      apcu_delete($iterator);
     }
   }
 
@@ -355,11 +302,11 @@ class DrupalAPCCache implements DrupalCacheInterface {
       }
       elseif (is_array($cid)) {
         foreach ($cid as $entry) {
-          apc_delete($this->key($entry));
+          apcu_delete($this->key($entry));
         }
       }
       else {
-        apc_delete($this->key($cid));
+        apcu_delete($this->key($cid));
       }
     }
   }
@@ -368,11 +315,13 @@ class DrupalAPCCache implements DrupalCacheInterface {
    * {@inheritdoc}
    */
   public function isEmpty() {
-    if (class_exists('APCIterator')) {
-      $escapedKey = preg_quote($this->binKey(), '/');
-      $iterator = new APCIterator('user', '/^' . $escapedKey . '/', APC_ITER_KEY);
-      return 0 === $iterator->getTotalCount();
+    if (class_exists('APCUIterator')) {
+      $escaped_key = preg_quote($this->binKey(), '/');
+      $iterator = new APCUIterator('/^' . $escaped_key . '/', APC_ITER_KEY);
+
+      return $iterator->getTotalCount() === 0;
     }
+
     return TRUE;
   }
 
@@ -384,7 +333,7 @@ class DrupalAPCCache implements DrupalCacheInterface {
 
     if (!module_exists('apc')) {
       drush_log(
-        dt('You need to enable the APC module for remote cache clearing to work. Run drush pm-enable apc.'),
+        dt('You need to enable the Alternative PHP Cache module for remote cache clearing to work. Run drush pm-enable apc.'),
         'error'
       );
       return;

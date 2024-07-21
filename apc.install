@@ -11,60 +11,57 @@
  * Implements hook_requirements().
  */
 function apc_requirements($phase) {
-  $requirements = array();
-
   // Ensure translations don't break at install time.
   $t = get_t();
 
-  // Test APC.
-  $apc_enabled = (function_exists('apc_cache_info') && ($cache = @apc_cache_info('user', TRUE)));
-
-  if (extension_loaded('apcu')) {
-    $version = phpversion('apcu');
-    $name = $t('APCu');
-    $description = $t('APC needs APCu version >=4.0.2.');
-
-    $meets_version = version_compare($version, '4.0.2') >= 0;
-
-    // APCu reports cache info with keys that differ from APC.
-    // This has been fixed upstream, but has not made it into a release.
-    // @see https://github.com/krakjoe/apcu/issues/41
-    // @see https://github.com/krakjoe/apcu/pull/42
-    $cache['num_entries'] = isset($cache['num_entries']) ? $cache['num_entries'] : $cache['nentries'];
-    $cache['start_time'] = isset($cache['start_time']) ? $cache['start_time'] : $cache['stime'];
-
-  }
-  else {
-    $version = phpversion('apc');
-    $name = $t('APC');
-    $description = $t('APC needs version >=3.1.1.');
-
-    $meets_version = version_compare($version, '3.1.1') >= 0;
-  }
-
   $requirements['apc'] = array(
-    'title' => $name,
-    'value' => $apc_enabled ? ($meets_version ? $version : $description) : $t('Not available'),
-    'severity' => $apc_enabled && $meets_version ? ($cache['num_entries'] ? REQUIREMENT_OK : REQUIREMENT_WARNING) : REQUIREMENT_ERROR,
+    'title' => $t('APCu extension'),
   );
 
-  if ($apc_enabled) {
-    $requirements['apc']['description'] = $t('!name has been running for !duration. Currently caching !num_entries entries (!memory_size).',
-      array(
-        '!name' => $name,
-        '!duration' => format_interval(time() - $cache['start_time']),
-        '!num_entries' => $cache['num_entries'],
-        '!memory_size' => format_size($cache['mem_size']),
-      )
-    );
+  if (extension_loaded('apcu')) {
+    $apcu_version = phpversion('apcu');
+    $required_version_installed = version_compare($apcu_version, '5.0.0') >= 0;
+
+    if (!$required_version_installed) {
+      $requirements['apc']['description'] = $t(
+        'The Alternative PHP Cache module needs the APCu extension version 5.0.0 or higher; version %apcu_version is currently installed.',
+        array('%apcu_version' => $apcu_version)
+      );
+      $requirements['apc']['severity'] = REQUIREMENT_ERROR;
+
+      return $requirements;
+    }
+
+    if (apcu_enabled() && $phase == 'runtime') {
+      $cache = apcu_cache_info(TRUE);
+      $num_entries = isset($cache['num_entries']) ? $cache['num_entries'] : 0;
+      $start_time = isset($cache['start_time']) ? $cache['start_time'] : time();
+      $mem_size = isset($cache['mem_size']) ? $cache['mem_size'] : 0;
+
+      $requirements['apc']['description'] = $t(
+        'The APCu extension has been running for !duration. It contains !num_entries entries and uses !memory_size of memory.',
+        array(
+          '!duration' => format_interval(time() - $start_time),
+          '!num_entries' => $num_entries,
+          '!memory_size' => format_size($mem_size),
+        )
+      );
+      $requirements['apc']['severity'] = REQUIREMENT_INFO;
+    }
+    elseif (!apcu_enabled()) {
+      $severity = drupal_is_cli() ? REQUIREMENT_INFO : REQUIREMENT_ERROR;
+      $requirements['apc']['description'] = $t(
+        'The Alternative PHP Cache module needs the APCu extension to be enabled.'
+      );
+      $requirements['apc']['severity'] = $severity;
+    }
   }
   else {
-    $requirements['apc']['description'] = $t('The APC module needs the <a href="!apc_link">APC</a> or the <a href="!apcu_link">APCu</a> extension.',
-      array(
-        '!apc_link' => 'http://www.php.net/apc',
-        '!apcu_link' => 'https://github.com/krakjoe/apcu',
-      )
+    $requirements['apc']['description'] = $t(
+      'The Alternative PHP Cache module needs the <a href="!apcu_link">APCu</a> extension.',
+      array('!apcu_link' => 'https://www.php.net/apcu')
     );
+    $requirements['apc']['severity'] = REQUIREMENT_ERROR;
   }
 
   return $requirements;

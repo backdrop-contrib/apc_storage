@@ -38,7 +38,7 @@ class ApcCacheTestCase extends DrupalWebTestCase {
     parent::setUp(func_get_args());
 
     variable_set("cache_flush_{$this->defaultBin}", 0);
-    variable_set("cache_class_{$this->defaultBin}", 'DrupalAPCCache');
+    variable_set("cache_class_{$this->defaultBin}", 'DrupalApcCache');
   }
 
   /**
@@ -281,7 +281,7 @@ class ApcCacheClearCase extends ApcCacheTestCase {
   /**
    * {@inheritdoc}
    */
-  protected protected function setUp() {
+  protected function setUp() {
     $this->defaultValue = $this->randomName(10);
 
     parent::setUp();

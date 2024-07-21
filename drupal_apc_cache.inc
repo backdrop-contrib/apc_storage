@@ -6,14 +6,14 @@
  */
 
 /**
- * Statistics about the APC cache.
+ * Statistics about the APCu cache.
  */
 $_apc_statistics = array();
 
 /**
- * APC cache implementation.
+ * APCu cache implementation.
  *
- * This is a Drupal cache implementation which uses the APC extension to store
+ * This is a Drupal cache implementation which uses the APCu extension to store
  * cached data.
  */
 class DrupalApcCache implements DrupalCacheInterface {

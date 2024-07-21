@@ -116,11 +116,8 @@ class DrupalApcCache implements DrupalCacheInterface {
     if ($test_prefix = drupal_valid_test_ua()) {
       $prefix = $test_prefix . '::' . $prefix;
     }
-    elseif (isset($GLOBALS['drupal_test_info']['test_run_id'])) {
-      $prefix = $GLOBALS['drupal_test_info']['test_run_id'] . '::' . $prefix;
-    }
 
-    $this->prefix = "apc_$prefix";
+    $this->prefix = "apc_cache_$prefix";
   }
 
   /**

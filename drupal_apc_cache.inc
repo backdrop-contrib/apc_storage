@@ -195,7 +195,6 @@ class DrupalApcCache implements DrupalCacheInterface {
    */
   public function getMultiple(&$cids) {
     $cache = array();
-    $keys = array();
 
     // Add a get to our statistics.
     $GLOBALS['_apc_statistics'][] = array('get', $this->bin, $cids);
@@ -211,6 +210,8 @@ class DrupalApcCache implements DrupalCacheInterface {
         $cache[$cid] = $this->prepareItem($data);
       }
     }
+
+    $cids = array_diff($cids, array_keys($cache));
 
     return $cache;
   }

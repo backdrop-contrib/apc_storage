@@ -5,6 +5,8 @@
  * Contains DrupalApcCache.
  */
 
+// phpcs:disable SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator.NullCoalesceOperatorNotUsed
+
 /**
  * Statistics about the APCu cache.
  */
@@ -152,10 +154,7 @@ class DrupalApcCache implements DrupalCacheInterface {
     // Add a get to our statistics.
     $GLOBALS['_apc_statistics'][] = array('get', $this->bin, array($cid));
 
-    // Fetch the data.
-    $cache = apcu_fetch($this->key($cid));
-
-    return $this->prepareItem($cache);
+    return $this->prepareItem(apcu_fetch($this->key($cid)));
   }
 
   /**
@@ -171,23 +170,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    *   load.
    */
   protected function prepareItem($cache) {
-    if (!isset($cache->data)) {
-      return FALSE;
-    }
-
-    $cache_lifetime = variable_get('cache_lifetime', 0);
-    $expired = isset($_SESSION['cache_expiration'][$this->bin]) && $_SESSION['cache_expiration'][$this->bin] > $cache->created;
-    $expires = $cache->expire != CACHE_PERMANENT;
-
-    // If the cached data is temporary and subject to a per-user minimum
-    // lifetime, compare the cache entry timestamp with the user session
-    // cache_expiration timestamp. If the cache entry is too old, ignore it.
-    if ($expires && $cache_lifetime && $expired) {
-      // Ignore cache data that is too old and thus not valid for this user.
-      return FALSE;
-    }
-
-    return $cache;
+    return isset($cache->data) ? $cache->data : FALSE;
   }
 
   /**

@@ -8,11 +8,6 @@
 // phpcs:disable SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator.NullCoalesceOperatorNotUsed
 
 /**
- * Statistics about the APCu cache.
- */
-$_apc_statistics = array();
-
-/**
  * APCu cache implementation.
  *
  * This is a Drupal cache implementation which uses the APCu extension to store
@@ -35,18 +30,11 @@ class DrupalApcCache implements DrupalCacheInterface {
   protected $prefix;
 
   /**
-   * Whether the class is used by Drush.
-   *
-   * @var bool
-   */
-  protected $drush;
-
-  /**
-   * Requests to clear the cache to send via XMLRPC to the server.
+   * Requests to clear the cache to send via XML-RPC to the server.
    *
    * @var array
    */
-  protected static $remoteRequests = array();
+  protected static $pendingRequests = array();
 
   /**
    * Gets the prefix to use for the cache bin.
@@ -97,7 +85,6 @@ class DrupalApcCache implements DrupalCacheInterface {
     global $databases;
 
     $this->bin = $bin;
-    $this->drush = (drupal_is_cli() && function_exists('drush_log'));
 
     // First we determine the prefix from a setting.
     $prefix = self::getPrefixSettingForBin($this->bin);
@@ -274,10 +261,11 @@ class DrupalApcCache implements DrupalCacheInterface {
    * {@inheritdoc}
    */
   public function clear($cid = NULL, $wildcard = FALSE) {
-    if ($this->drush) {
-      // APC uses a separate storage for CLI. Send these requests to the server,
-      // via XMLRPC.
-      self::$remoteRequests[$this->bin][serialize($cid)] = $wildcard;
+    if (drupal_is_cli()) {
+      // APCu uses a separate storage for CLI. Store these requests to be sent
+      // to the server via XML-RPC.
+      self::$pendingRequests[$this->bin][serialize($cid)] = $wildcard;
+
       return;
     }
 
@@ -322,62 +310,16 @@ class DrupalApcCache implements DrupalCacheInterface {
   }
 
   /**
-   * Flushes the remote cache.
+   * Retrieves the requests that should be sent to the server via XML-RPC.
+   *
+   * @return array
+   *   An array of requests.
+   *   The array contains a key for each bin which must be cleared. The value
+   *   for those keys is an array of cache IDs, whose value is TRUE if the cache
+   *   ID is a wildcard string or FALSE otherwise.
    */
-  public static function remoteFlush() {
-    global $base_url;
-
-    if (!module_exists('apc')) {
-      drush_log(
-        dt('You need to enable the Alternative PHP Cache module for remote cache clearing to work. Run drush pm-enable apc.'),
-        'error'
-      );
-      return;
-    }
-
-    if (!empty(self::$remoteRequests)) {
-      if ($base_url == 'http://' . basename(conf_path())) {
-        drush_log(
-          dt('$base_url might not be set correctly. Try using the -l/--uri option for Drush.'),
-          'warning'
-        );
-      }
-
-      // Optimize '*' clears.
-      $star = serialize('*');
-
-      foreach (self::$remoteRequests as $bin => $cids) {
-        if (!empty($cids[$star])) {
-          self::$remoteRequests[$bin] = array($star => TRUE);
-        }
-      }
-
-      $args = array(
-        'apc.clear_cache' => array(
-          variable_get('cron_key', 'drupal'),
-          self::$remoteRequests,
-        ),
-      );
-
-      $uri = $base_url . '/xmlrpc.php';
-      $response = xmlrpc($uri, $args);
-
-      if ($response === FALSE) {
-        drush_log(
-          dt(
-            'apc.clear_cache: %err_msg (%err_no)',
-            array('%err_msg' => xmlrpc_error(), '%err_no' => xmlrpc_errno())
-          ),
-          'error'
-        );
-      }
-      else {
-        drush_log(
-          dt("apc.clear_cache: The cache has been cleared."),
-          'success'
-        );
-      }
-    }
+  public static function pendingRequests() {
+    return self::$pendingRequests;
   }
 
 }

@@ -94,22 +94,37 @@ class DrupalApcCache implements DrupalCacheInterface {
   }
 
   public function __construct($bin) {
+    global $databases;
+
     $this->bin = $bin;
     $this->drush = (drupal_is_cli() && function_exists('drush_log'));
 
     // First we determine the prefix from a setting.
     $prefix = self::getPrefixSettingForBin($this->bin);
 
-    // If we do not have a configured prefix we use the HTTP_HOST.
-    if (empty($prefix) && isset($_SERVER['HTTP_HOST'])) {
-      // Provide a fallback for multisite. This is on purpose not inside the
-      // getPrefixSettingsForBin() function in order to decouple the unified
-      // prefix variable logic and custom module related security logic, which
-      // is not necessary for all backends.
-      $prefix = $_SERVER['HTTP_HOST'] . '::';
+    // As fallback for a multisite installation, use the database connection
+    // information to generate a prefix.
+    if (empty($prefix) && isset($databases) && is_array($databases)) {
+      $db_info = '';
+
+      if (isset($databases['default']['default']) && is_array($databases['default']['default'])) {
+        if (isset($databases['default']['default']['host'])) {
+          $db_info .= $databases['default']['default']['prefix'];
+        }
+        if (isset($databases['default']['default']['database'])) {
+          $db_info .= $databases['default']['default']['database'];
+        }
+        if (isset($databases['default']['default']['prefix'])) {
+          $db_info .= serialize($databases['default']['default']['prefix']);
+        }
+      }
+
+      $hash = substr(hash('sha256', $db_info, TRUE), 0, 16);
+      $prefix = drupal_base64_encode($hash);
     }
-    else {
-      $prefix = $prefix . '::';
+
+    if (!empty($prefix) && substr($prefix, -2) !== '::') {
+      $prefix .= '::';
     }
 
     // When we are in testing mode we add the test prefix.
@@ -117,7 +132,7 @@ class DrupalApcCache implements DrupalCacheInterface {
       $prefix = $test_prefix . '::' . $prefix;
     }
 
-    $this->prefix = "apc_cache_$prefix";
+    $this->prefix = empty($prefix) ? 'apc_cache::' : "apc_cache_$prefix";
   }
 
   /**

@@ -66,3 +66,10 @@ function apc_requirements($phase) {
 
   return $requirements;
 }
+
+/**
+ * Clear the APCu storage since the prefix used for the cache bins has changed.
+ */
+function apc_update_7101() {
+  apcu_clear_cache();
+}

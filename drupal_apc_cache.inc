@@ -144,16 +144,6 @@ class DrupalApcCache implements DrupalCacheInterface {
   }
 
   /**
-   * Gets the key to use for the cache bin in APC calls.
-   *
-   * @return string
-   *   The key to use for the cache bin.
-   */
-  private function binKey() {
-    return $this->prefix . $this->bin . '::';
-  }
-
-  /**
    * Gets the key to use in APC calls.
    *
    * @param string $cid
@@ -163,8 +153,14 @@ class DrupalApcCache implements DrupalCacheInterface {
    *   The key which can be used in APC calls to avoid conflicts with other
    *   keys.
    */
-  private function key($cid) {
-    return $this->binKey() . $cid;
+  protected function keyName($cid = NULL) {
+    $key_name = $this->prefix . $this->bin;
+
+    if (!is_null($cid)) {
+      $key_name .= '::' . $cid;
+    }
+
+    return $key_name;
   }
 
   /**
@@ -174,7 +170,7 @@ class DrupalApcCache implements DrupalCacheInterface {
     // Add a get to our statistics.
     $GLOBALS['_apc_statistics'][] = array('get', $this->bin, array($cid));
 
-    return $this->prepareItem(apcu_fetch($this->key($cid)));
+    return $this->prepareItem(apcu_fetch($this->keyName($cid)));
   }
 
   /**
@@ -207,7 +203,7 @@ class DrupalApcCache implements DrupalCacheInterface {
     }
 
     foreach ($cids as $cid) {
-      $data = apcu_fetch($this->key($cid), $success);
+      $data = apcu_fetch($this->keyName($cid), $success);
 
       if ($success) {
         $cache[$cid] = $this->prepareItem($data);
@@ -254,7 +250,7 @@ class DrupalApcCache implements DrupalCacheInterface {
         break;
     }
 
-    apcu_store($this->key($cid), $cache, $ttl);
+    apcu_store($this->keyName($cid), $cache, $ttl);
   }
 
   /**
@@ -265,7 +261,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    */
   protected function deletePrefix($prefix) {
     if (class_exists('APCUIterator')) {
-      $escaped_key = preg_quote($this->binKey() . $prefix, '/');
+      $escaped_key = preg_quote($this->keyName($prefix), '/');
       $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
       apcu_delete($iterator);
     }
@@ -307,11 +303,11 @@ class DrupalApcCache implements DrupalCacheInterface {
       }
       elseif (is_array($cid)) {
         foreach ($cid as $entry) {
-          apcu_delete($this->key($entry));
+          apcu_delete($this->keyName($entry));
         }
       }
       else {
-        apcu_delete($this->key($cid));
+        apcu_delete($this->keyName($cid));
       }
     }
   }
@@ -321,7 +317,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    */
   public function isEmpty() {
     if (class_exists('APCUIterator')) {
-      $escaped_key = preg_quote($this->binKey(), '/');
+      $escaped_key = preg_quote($this->keyName(), '/');
       $iterator = new APCUIterator('/^' . $escaped_key . '/', APC_ITER_KEY);
 
       return $iterator->getTotalCount() === 0;

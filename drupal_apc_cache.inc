@@ -259,19 +259,12 @@ class DrupalApcCache implements DrupalCacheInterface {
    * @param string $prefix
    *   The prefix for the cache IDs to delete.
    */
-  protected function deletePrefix($prefix) {
+  protected function deleteKeys($prefix = '') {
     if (class_exists('APCUIterator')) {
       $escaped_key = preg_quote($this->keyName($prefix), '/');
       $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
       apcu_delete($iterator);
     }
-  }
-
-  /**
-   * Flushes all cache items in a bin.
-   */
-  protected function flush() {
-    $this->deletePrefix('');
   }
 
   /**
@@ -290,15 +283,15 @@ class DrupalApcCache implements DrupalCacheInterface {
     $GLOBALS['_apc_statistics'][] = array('clear', $this->bin, $cid, (int) $wildcard);
 
     if (empty($cid)) {
-      $this->flush();
+      $this->deleteKeys();
     }
     else {
       if ($wildcard) {
         if ($cid == '*') {
-          $this->flush();
+          $this->deleteKeys();
         }
         else {
-          $this->deletePrefix($cid);
+          $this->deleteKeys($cid);
         }
       }
       elseif (is_array($cid)) {

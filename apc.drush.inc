@@ -11,18 +11,26 @@
 function apc_drush_exit() {
   global $base_url;
 
-  if (!module_exists('apc')) {
-    drush_log(
-      dt('You need to enable the Alternative PHP Cache module for remote cache clearing to work. Run drush pm-enable apc.'),
-      'error'
-    );
-    return;
-  }
-
   if (class_exists('DrupalApcCache')) {
     $requests = DrupalApcCache::pendingRequests();
 
-    if (!empty($requests)) {
+    if (!empty($requests) && is_array($requests)) {
+      if (!function_exists('module_exists')) {
+        // Drupal bootstrap did not reach the DRUPAL_BOOTSTRAP_VARIABLES phase,
+        // or module_exists() would be defined. This means it is not possible to
+        // check if the Alternative PHP Cache module is available.
+        // Exit silently.
+        return;
+      }
+
+      if (!module_exists('apc')) {
+        drush_log(
+          dt('You need to enable the Alternative PHP Cache module to clear the cache on the server.'),
+          'error'
+        );
+        return;
+      }
+
       $star = serialize('*');
 
       foreach (array_keys($requests) as $key) {
@@ -54,7 +62,7 @@ function apc_drush_exit() {
 
         if ($base_url == 'http://' . basename(conf_path())) {
           drush_log(
-            dt('$base_url might not be set correctly. Try using the -l/--uri option for Drush.'),
+            dt('$base_url might not be set correctly.'),
             'warning'
           );
         }

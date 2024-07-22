@@ -53,10 +53,14 @@ function apc_form_system_performance_settings_alter(&$form, $form_state) {
  * Submission form handler for system_performance_settings().
  */
 function apc_clear_apcu_cache() {
-  // apcu_clear_cache() always return TRUE; that is why we show a single message
-  // without checking the return value.
-  apcu_clear_cache();
-  drupal_set_message(t('APCu cache has been cleared.'));
+  $iterator = new APCUIterator("/^apc_cache_/", APC_ITER_KEY);
+
+  if (apcu_delete($iterator)) {
+    drupal_set_message(t('The APCu cache has been cleared.'));
+  }
+  else {
+    drupal_set_message(t('The APCu cache could not be cleared.'), 'error');
+  }
 }
 
 /**

@@ -16,6 +16,13 @@
 class DrupalApcCache implements DrupalCacheInterface {
 
   /**
+   * Requests to clear the cache to send via XML-RPC to the server.
+   *
+   * @var array
+   */
+  protected static $pendingRequests = array();
+
+  /**
    * The cache bin.
    *
    * @var string
@@ -30,23 +37,9 @@ class DrupalApcCache implements DrupalCacheInterface {
   protected $prefix;
 
   /**
-   * Requests to clear the cache to send via XML-RPC to the server.
-   *
-   * @var array
+   * Sets the prefix to use for the cache bin.
    */
-  protected static $pendingRequests = array();
-
-  /**
-   * Gets the prefix to use for the cache bin.
-   *
-   * @param string $bin
-   *   The cache bin.
-   *
-   * @return string
-   *   The prefix to use for the cache bin, or an empty string if no prefix has
-   *   been set or the prefix is not a string.
-   */
-  protected static function getPrefixSettingForBin($bin) {
+  protected function setBinPrefix() {
     $prefixes = variable_get('apc_cache_prefix', '');
 
     // @todo Remove the following lines in the 7.x-2.x branch.
@@ -56,47 +49,59 @@ class DrupalApcCache implements DrupalCacheInterface {
 
     if (is_string($prefixes)) {
       // $prefixes can be a string used for all the cache bins.
-      return $prefixes;
+      $this->prefix = $prefixes;
+      return;
     }
 
     if (is_array($prefixes)) {
-      if (isset($prefixes[$bin]) && $prefixes[$bin] !== TRUE) {
-        if ($prefixes[$bin] === FALSE) {
-          // If $prefixes[$bin] is FALSE, no prefix is used for that cache bin,
-          // whichever value is used for $prefixes['default'].
-          return '';
+      if (isset($prefixes[$this->bin]) && $prefixes[$this->bin] !== TRUE) {
+        if ($prefixes[$this->bin] === FALSE) {
+          // If $prefixes[$this->bin] is FALSE, no prefix is used for that cache
+          // bin, whichever value is used for $prefixes['default'].
+          $this->prefix = '';
+          return;
         }
 
-        if (is_string($prefixes[$bin])) {
-          // If $prefixes[$bin] is set and not FALSE, that value is used for the
-          // cache bin.
-          return $prefixes[$bin];
+        if (is_string($prefixes[$this->bin])) {
+          // If $prefixes[$this->bin] is set and not FALSE, that value is used
+          // for the cache bin.
+          $this->prefix = $prefixes[$this->bin];
+          return;
         }
       }
       elseif (isset($prefixes['default']) && is_string($prefixes['default'])) {
-        return $prefixes['default'];
+        $this->prefix = $prefixes['default'];
+        return;
       }
     }
-
-    return '';
   }
 
-  public function __construct($bin) {
+  /**
+   * Adds the database prefix to the bin prefix.
+   *
+   * This method checks if the $prefix property is empty and if the global
+   * $databases variable is set and is an array. If these conditions are met,
+   * it generates a prefix based on the database connection information.
+   *
+   * The generated prefix is an SHA-256 hash of the concatenated values of the
+   * 'host', 'database', and 'prefix' keys from the 'default' array in the
+   * 'default' array of the $databases variable.
+   *
+   * If the generated prefix is not empty and does not end with '::', the
+   * '::' string is appended to the prefix.
+   *
+   * If the site is in testing mode, the generated prefix is prepended with the
+   * value returned by drupal_valid_test_ua().
+   */
+  protected function addDatabasePrefix() {
     global $databases;
 
-    $this->bin = $bin;
-
-    // First we determine the prefix from a setting.
-    $prefix = self::getPrefixSettingForBin($this->bin);
-
-    // As fallback for a multisite installation, use the database connection
-    // information to generate a prefix.
-    if (empty($prefix) && isset($databases) && is_array($databases)) {
+    if (empty($this->prefix) && isset($databases) && is_array($databases)) {
       $db_info = '';
 
       if (isset($databases['default']['default']) && is_array($databases['default']['default'])) {
         if (isset($databases['default']['default']['host'])) {
-          $db_info .= $databases['default']['default']['prefix'];
+          $db_info .= $databases['default']['default']['host'];
         }
         if (isset($databases['default']['default']['database'])) {
           $db_info .= $databases['default']['default']['database'];
@@ -107,19 +112,35 @@ class DrupalApcCache implements DrupalCacheInterface {
       }
 
       $hash = substr(hash('sha256', $db_info, TRUE), 0, 16);
-      $prefix = drupal_base64_encode($hash);
+      $this->prefix = drupal_base64_encode($hash);
     }
 
-    if (!empty($prefix) && substr($prefix, -2) !== '::') {
-      $prefix .= '::';
+    if (!empty($this->prefix) && substr($this->prefix, -2) !== '::') {
+      $this->prefix .= '::';
     }
 
-    // When we are in testing mode we add the test prefix.
+    // In testing mode, add the test prefix.
     if ($test_prefix = drupal_valid_test_ua()) {
-      $prefix = $test_prefix . '::' . $prefix;
+      $this->prefix = $test_prefix . '::' . $this->prefix;
     }
+  }
 
-    $this->prefix = empty($prefix) ? 'apc_cache::' : "apc_cache_$prefix";
+  /**
+   * Adds the module prefix to the bin prefix.
+   *
+   * This method checks if the $prefix property is empty and if so, sets it to
+   * 'apc_cache::'. Otherwise, it prepends 'apc_cache_' to the $prefix property.
+   */
+  protected function addModulePrefix() {
+    $this->prefix = empty($this->prefix) ? 'apc_cache::' : "apc_cache_{$this->prefix}";
+  }
+
+  public function __construct($bin) {
+    $this->bin = $bin;
+
+    $this->setBinPrefix();
+    $this->addDatabasePrefix();
+    $this->addModulePrefix();
   }
 
   /**

@@ -23,6 +23,12 @@ class DrupalApcCache implements DrupalCacheInterface {
   protected static $pendingRequests = array();
 
   /**
+   * The list of all the operations done to the cache.
+   *
+   * @var array
+   */
+  protected static $operations = array();
+  /**
    * The cache bin.
    *
    * @var string
@@ -167,8 +173,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    * {@inheritdoc}
    */
   public function get($cid) {
-    // Add a get to our statistics.
-    $GLOBALS['_apc_statistics'][] = array('get', $this->bin, array($cid));
+    $this->operations(array('get()', $this->bin, array($cid)));
 
     return $this->prepareItem(apcu_fetch($this->keyName($cid)));
   }
@@ -196,7 +201,7 @@ class DrupalApcCache implements DrupalCacheInterface {
     $cache = array();
 
     // Add a get to our statistics.
-    $GLOBALS['_apc_statistics'][] = array('get', $this->bin, $cids);
+    $this->operations(array('getMultiple()', $this->bin, $cids));
 
     if (!$cids) {
       return $cache;
@@ -220,7 +225,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    */
   public function set($cid, $data, $expire = CACHE_PERMANENT) {
     // Add set to statistics.
-    $GLOBALS['_apc_statistics'][] = array('set', $this->bin, $cid);
+    $this->operations(array('set()', $this->bin, $cid));
 
     // Create new cache object.
     $cache = new stdClass();
@@ -259,7 +264,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    * @param string $prefix
    *   The prefix for the cache IDs to delete.
    */
-  protected function deleteKeys($prefix = '') {
+  protected function deleteKeys($prefix = NULL) {
     if (class_exists('APCUIterator')) {
       $escaped_key = preg_quote($this->keyName($prefix), '/');
       $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
@@ -280,7 +285,7 @@ class DrupalApcCache implements DrupalCacheInterface {
     }
 
     // Add a get to our statistics.
-    $GLOBALS['_apc_statistics'][] = array('clear', $this->bin, $cid, (int) $wildcard);
+    $this->operations(array('clear()', $this->bin, $cid, (int) $wildcard));
 
     if (empty($cid)) {
       $this->deleteKeys();
@@ -330,6 +335,23 @@ class DrupalApcCache implements DrupalCacheInterface {
    */
   public static function pendingRequests() {
     return self::$pendingRequests;
+  }
+
+  /**
+   * Adds a new operation to the list of operations, or returns the list.
+   *
+   * @param array|null $new_operation
+   *   The new operation to add.
+   *
+   * @return array
+   *   The list of cache operations.
+   */
+  public static function operations($new_operation = NULL) {
+    if (!is_null($new_operation)) {
+      self::$operations[] = $new_operation;
+    }
+
+    return self::$operations;
   }
 
 }

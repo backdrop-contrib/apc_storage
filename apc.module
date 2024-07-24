@@ -74,13 +74,18 @@ function apc_form_system_performance_settings_alter(&$form, $form_state) {
  * Submission form handler for system_performance_settings().
  */
 function apc_clear_apcu_cache() {
-  $iterator = new APCUIterator("/^apc_cache_/", APC_ITER_KEY);
+  if (apcu_enabled()) {
+    $iterator = new APCUIterator("/^apc_cache_/", APC_ITER_KEY);
 
-  if (apcu_delete($iterator)) {
-    drupal_set_message(t('The APCu cache has been cleared.'));
+    if (apcu_delete($iterator)) {
+      drupal_set_message(t('The APCu cache has been cleared.'));
+    }
+    else {
+      drupal_set_message(t('The APCu cache could not be cleared.'), 'error');
+    }
   }
   else {
-    drupal_set_message(t('The APCu cache could not be cleared.'), 'error');
+    drupal_set_message(t('APCu is not enabled.'), 'warning');
   }
 }
 

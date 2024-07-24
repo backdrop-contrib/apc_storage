@@ -175,7 +175,17 @@ class DrupalApcCache implements DrupalCacheInterface {
   public function get($cid) {
     $this->operations(array('get()', $this->bin, array($cid)));
 
-    return $this->prepareItem(apcu_fetch($this->keyName($cid)));
+    if (apcu_enabled()) {
+      $data = apcu_fetch($this->keyName($cid), $success);
+      if (!$success) {
+        return FALSE;
+      }
+
+      return $this->prepareItem($data);
+    }
+    else {
+      return FALSE;
+    }
   }
 
   /**
@@ -207,15 +217,17 @@ class DrupalApcCache implements DrupalCacheInterface {
       return $cache;
     }
 
-    foreach ($cids as $cid) {
-      $data = apcu_fetch($this->keyName($cid), $success);
+    if (apcu_enabled()) {
+      foreach ($cids as $cid) {
+        $data = apcu_fetch($this->keyName($cid), $success);
 
-      if ($success) {
-        $cache[$cid] = $this->prepareItem($data);
+        if ($success) {
+          $cache[$cid] = $this->prepareItem($data);
+        }
       }
-    }
 
-    $cids = array_diff($cids, array_keys($cache));
+      $cids = array_diff($cids, array_keys($cache));
+    }
 
     return $cache;
   }
@@ -227,35 +239,37 @@ class DrupalApcCache implements DrupalCacheInterface {
     // Add set to statistics.
     $this->operations(array('set()', $this->bin, $cid));
 
-    // Create new cache object.
-    $cache = new stdClass();
-    $cache->cid = $cid;
-    $cache->created = REQUEST_TIME;
-    $cache->expire = $expire;
-    $cache->data = $data;
+    if (apcu_enabled()) {
+      // Create new cache object.
+      $cache = new stdClass();
+      $cache->cid = $cid;
+      $cache->created = REQUEST_TIME;
+      $cache->expire = $expire;
+      $cache->data = $data;
 
-    // Cache values stored in APCu do not need to be serialized, as APCu does
-    // that.
-    $cache->serialized = 0;
+      // Cache values stored in APCu do not need to be serialized, as APCu does
+      // that.
+      $cache->serialized = 0;
 
-    switch ($expire) {
-      case CACHE_PERMANENT:
-        $ttl = 0;
-        break;
+      switch ($expire) {
+        case CACHE_PERMANENT:
+          $ttl = 0;
+          break;
 
-      case CACHE_TEMPORARY:
-        // For apcu_store(), using 0 as TTL means the stored data will never
-        // expire. The minimum lifetime is one second.
-        $cache_lifetime = variable_get('cache_lifetime', 0);
-        $ttl = $cache_lifetime > 0 ? $cache_lifetime : 1;
-        break;
+        case CACHE_TEMPORARY:
+          // For apcu_store(), using 0 as TTL means the stored data will never
+          // expire. The minimum lifetime is one second.
+          $cache_lifetime = variable_get('cache_lifetime', 0);
+          $ttl = $cache_lifetime > 0 ? $cache_lifetime : 1;
+          break;
 
-      default:
-        $ttl = $expire - time();
-        break;
+        default:
+          $ttl = $expire - time();
+          break;
+      }
+
+      apcu_store($this->keyName($cid), $cache, $ttl);
     }
-
-    apcu_store($this->keyName($cid), $cache, $ttl);
   }
 
   /**
@@ -265,7 +279,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    *   The prefix for the cache IDs to delete.
    */
   protected function deleteKeys($prefix = NULL) {
-    if (class_exists('APCUIterator')) {
+    if (apcu_enabled() && class_exists('APCUIterator')) {
       $escaped_key = preg_quote($this->keyName($prefix), '/');
       $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
       apcu_delete($iterator);
@@ -314,7 +328,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    * {@inheritdoc}
    */
   public function isEmpty() {
-    if (class_exists('APCUIterator')) {
+    if (apcu_enabled() && class_exists('APCUIterator')) {
       $escaped_key = preg_quote($this->keyName(), '/');
       $iterator = new APCUIterator('/^' . $escaped_key . '/', APC_ITER_KEY);
 

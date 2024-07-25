@@ -273,6 +273,18 @@ class DrupalApcCache implements DrupalCacheInterface {
   }
 
   /**
+   * Deletes a cache item identified by the given cache ID.
+   *
+   * @param string $cid
+   *   The cache ID of the item to delete.
+   */
+  protected function deleteKey($cid) {
+    if (apcu_enabled()) {
+      apcu_delete($this->keyName($cid));
+    }
+  }
+
+  /**
    * Deletes all the cache IDs matching the given prefix.
    *
    * @param string $prefix
@@ -315,11 +327,11 @@ class DrupalApcCache implements DrupalCacheInterface {
       }
       elseif (is_array($cid)) {
         foreach ($cid as $entry) {
-          apcu_delete($this->keyName($entry));
+          $this->deleteKey($entry);
         }
       }
       else {
-        apcu_delete($this->keyName($cid));
+        $this->deleteKey($cid);
       }
     }
   }

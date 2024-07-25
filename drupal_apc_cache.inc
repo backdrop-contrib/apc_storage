@@ -280,6 +280,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    */
   protected function deleteKey($cid) {
     if (apcu_enabled()) {
+      $this->operations(array('deleteKey()', $this->bin, $cid));
       apcu_delete($this->keyName($cid));
     }
   }
@@ -292,6 +293,8 @@ class DrupalApcCache implements DrupalCacheInterface {
    */
   protected function deleteKeys($prefix = NULL) {
     if (apcu_enabled() && class_exists('APCUIterator')) {
+      $this->operations(array('deleteKeys()', $this->bin, $prefix));
+
       $escaped_key = preg_quote($this->keyName($prefix), '/');
       $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
       apcu_delete($iterator);
@@ -309,9 +312,6 @@ class DrupalApcCache implements DrupalCacheInterface {
 
       return;
     }
-
-    // Add a get to our statistics.
-    $this->operations(array('clear()', $this->bin, $cid, (int) $wildcard));
 
     if (empty($cid)) {
       $this->deleteKeys();
@@ -373,7 +373,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    *   The list of cache operations.
    */
   public static function operations($new_operation = NULL) {
-    if (!is_null($new_operation)) {
+    if (!is_null($new_operation) && is_array($new_operation)) {
       self::$operations[] = $new_operation;
     }
 

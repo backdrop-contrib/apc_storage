@@ -36,20 +36,18 @@ class ApcCacheTestCase extends DrupalWebTestCase {
    */
   protected function setUp() {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $modules = func_get_args();
+      $args = func_get_args();
+      $modules = array('apc');
 
       // Allow the child classes to require their own modules.
-      if (isset($modules[0])) {
-        if (is_array($modules[0])) {
-          $modules = $modules[0];
-          array_unshift($modules, 'apc');
+      if (isset($args[0])) {
+        if (is_array($args[0])) {
+          $modules = $args[0];
         }
-        elseif (is_string($modules[0])) {
-          $modules = array('apc', $modules[0]);
+        elseif (is_string($args[0])) {
+          $modules = array($args[0]);
         }
-      }
-      else {
-        $modules = array('apc');
+        array_unshift($modules, 'apc');
       }
 
       parent::setUp($modules);

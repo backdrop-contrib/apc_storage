@@ -28,6 +28,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    * @var array
    */
   protected static $operations = array();
+
   /**
    * The cache bin.
    *

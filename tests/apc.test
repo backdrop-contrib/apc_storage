@@ -35,10 +35,36 @@ class ApcCacheTestCase extends DrupalWebTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    parent::setUp(func_get_args());
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      $modules = func_get_args();
 
-    variable_set("cache_flush_{$this->defaultBin}", 0);
-    variable_set("cache_class_{$this->defaultBin}", 'DrupalApcCache');
+      // Allow the child classes to require their own modules.
+      if (isset($modules[0])) {
+        if (is_array($modules[0])) {
+          $modules = $modules[0];
+          array_unshift($modules, 'apc');
+        }
+        elseif (is_string($modules[0])) {
+          $modules = array('apc', $modules[0]);
+        }
+      }
+      else {
+        $modules = array('apc');
+      }
+
+      parent::setUp($modules);
+
+      $this->defaultBin = 'cache_apc';
+      $this->defaultCid = 'test_temporary';
+      $this->defaultValue = 'CacheTest';
+
+      variable_set("cache_flush_{$this->defaultBin}", 0);
+      variable_set("cache_class_{$this->defaultBin}", 'DrupalApcCache');
+    }
+    else {
+      // If the APCu extension is not available, disable the tests.
+      $this->setup = FALSE;
+    }
   }
 
   /**

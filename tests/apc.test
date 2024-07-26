@@ -11,27 +11,18 @@
 class ApcCacheTestCase extends DrupalWebTestCase {
 
   /**
+   * The modules to enable.
+   *
+   * @var array
+   */
+  protected $modules = array('apc');
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp() {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $args = func_get_args();
-      $modules = array('apc');
-
-      // Allow the child classes to require their own modules.
-      if (isset($args[0])) {
-        if (is_array($args[0])) {
-          $modules = $args[0];
-        }
-        elseif (is_string($args[0])) {
-          $modules = array($args[0]);
-        }
-
-        array_unshift($modules, 'apc');
-      }
-
-      parent::setUp($modules);
-
+      parent::setUp($this->modules);
       variable_set('cache_flush_cache_apc', 0);
       variable_set('cache_class_cache_apc', 'DrupalApcCache');
     }
@@ -39,6 +30,16 @@ class ApcCacheTestCase extends DrupalWebTestCase {
       // If the APCu extension is not available, disable the tests.
       $this->setup = FALSE;
     }
+  }
+
+  /**
+   * Adds modules to the list of modules to enable.
+   *
+   * @param array $modules
+   *   The modules to enable.
+   */
+  protected function setModules(...$modules) {
+    $this->modules = array_unique(array_merge($this->modules, $modules));
   }
 
   /**

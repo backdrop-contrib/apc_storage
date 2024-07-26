@@ -94,27 +94,6 @@ class ApcCacheTestCase extends DrupalWebTestCase {
     $this->assertFalse(cache_get($cid, $bin), $message);
   }
 
-  /**
-   * Perform the general wipe.
-   *
-   * @param string $bin
-   *   The bin to perform the wipe on.
-   */
-  protected function generalWipe($bin) {
-    cache_clear_all(NULL, $bin);
-  }
-
-  /**
-   * Sets up the lifetime settings for caching.
-   *
-   * @param int $time
-   *   The time in seconds the cache should minimal live.
-   */
-  protected function setupLifetime($time) {
-    variable_set('cache_lifetime', $time);
-    variable_set('cache_flush', 0);
-  }
-
 }
 
 /**

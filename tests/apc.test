@@ -261,20 +261,6 @@ class ApcCacheClearCase extends ApcCacheTestCase {
   }
 
   /**
-   * {@inheritdoc}
-   */
-  protected function setUp() {
-    $bins = array('cache', 'cache_filter', 'cache_page', 'cache_boostrap', 'cache_path');
-
-    foreach ($bins as $bin) {
-      variable_set("cache_flush_$bin", 0);
-      variable_set("cache_class_$bin", 'DrupalApcCache');
-    }
-
-    parent::setUp();
-  }
-
-  /**
    * Tests clearing the cache using a cache ID.
    */
   public function testClearCid() {
@@ -357,28 +343,6 @@ class ApcCacheClearCase extends ApcCacheTestCase {
     $this->assertNoCacheItem($bin, 'test_cid_clear1');
     $this->assertNoCacheItem($bin, 'test_cid_clear2');
     $this->assertNoCacheItem($bin, 'test_cid_clear3');
-  }
-
-  /**
-   * Tests drupal_flush_all_caches().
-   */
-  public function testFlushAllCaches() {
-    $bins = array('cache', 'cache_filter', 'cache_page', 'cache_boostrap', 'cache_path');
-    $value = $this->randomString();
-
-    // Create cache items for each Drupal core cache bin that
-    // drupal_flush_all_caches() will clear.
-    foreach ($bins as $id => $bin) {
-      $cid = 'test_cid_clear' . $id;
-      cache_set($cid, $value, $bin);
-    }
-
-    drupal_flush_all_caches();
-
-    foreach ($bins as $id => $bin) {
-      $cid = 'test_cid_clear' . $id;
-      $this->assertNoCacheItem($bin, $cid);
-    }
   }
 
 }

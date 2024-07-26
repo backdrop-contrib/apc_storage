@@ -348,10 +348,6 @@ class ApcCacheClearCase extends ApcCacheTestCase {
     $this->assertNoCacheItem($bin, 'test_cid_clear2');
     $this->assertCacheItem($bin, 'test_cid_clear3', $value3);
 
-    // Set the cache clear threshold to 2 to confirm that the full bin is
-    // cleared when the threshold is exceeded.
-    variable_set('cache_clear_threshold', 2);
-
     cache_set('test_cid_clear1', $value1, $bin);
     cache_set('test_cid_clear2', $value2, $bin);
     $this->assertCacheItem($bin, 'test_cid_clear1', $value1);

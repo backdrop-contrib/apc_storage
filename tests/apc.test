@@ -358,7 +358,7 @@ class ApcCacheIsEmptyCase extends ApcCacheTestCase {
 
     // Remove the cached data.
     cache_clear_all('test_temporary', $bin);
-    $this->assertCacheRemoved(t('The cache item was removed.'), 'test_temporary', $bin);
+    $this->assertNoCacheItem($bin, 'test_temporary');
     $this->assertTrue(cache_is_empty($bin), t('The cache bin is empty.'));
   }
 

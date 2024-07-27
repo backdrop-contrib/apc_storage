@@ -11,6 +11,13 @@
 class ApcCacheTestCase extends DrupalWebTestCase {
 
   /**
+   * The cache bins to enable.
+   *
+   * @var array
+   */
+  protected $cacheBins = array('apc_cache');
+
+  /**
    * The modules to enable.
    *
    * @var array
@@ -18,18 +25,13 @@ class ApcCacheTestCase extends DrupalWebTestCase {
   protected $modules = array('apc');
 
   /**
-   * {@inheritdoc}
+   * Adds cache bins to the list of cache bins that are stored on APCu.
+   *
+   * @param string ...$bins
+   *   The cache bins to add.
    */
-  protected function setUp() {
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      parent::setUp($this->modules);
-      variable_set('cache_flush_cache_apc', 0);
-      variable_set('cache_class_cache_apc', 'DrupalApcCache');
-    }
-    else {
-      // If the APCu extension is not available, disable the tests.
-      $this->setup = FALSE;
-    }
+  protected function setCacheBins(...$bins) {
+    $this->cacheBins = array_unique(array_merge($this->cacheBins, $bins));
   }
 
   /**
@@ -40,6 +42,24 @@ class ApcCacheTestCase extends DrupalWebTestCase {
    */
   protected function setModules(...$modules) {
     $this->modules = array_unique(array_merge($this->modules, $modules));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      parent::setUp($this->modules);
+
+      foreach ($this->cacheBins as $bin) {
+        variable_set("cache_flush_$bin", 0);
+        variable_set("cache_class_$bin", 'DrupalApcuCache');
+      }
+    }
+    else {
+      // If the APCu extension is not available, disable the tests.
+      $this->setup = FALSE;
+    }
   }
 
   /**

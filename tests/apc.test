@@ -131,12 +131,67 @@ class ApcCacheTestCase extends DrupalWebTestCase {
     $this->assertFalse(cache_get($cid, $bin), $message);
   }
 
+  /**
+   * Asserts two or more cache items exist.
+   *
+   * @param string $bin
+   *   The cache bin.
+   * @param array $cids
+   *   An array containing the cache IDs to retrieve.
+   * @param array $values
+   *   An array whose keys are cache IDs and whose values are the expected
+   *   values. If a value is irrelevant, use NULL.
+   */
+  protected function assertCacheItems($bin, $cids, $values) {
+    $items = cache_get_multiple($cids, $bin);
+
+    foreach ($values as $cid => $value) {
+      $this->assertTrue(
+        isset($items[$cid]),
+        t('@cache_id was found in the cache.', array('@cache_id' => $cid))
+      );
+
+      $this->assertTrue(
+        is_object($items[$cid]) && isset($items[$cid]->data),
+        t('@cache_id was correctly stored in the cache.', array('@cache_id' => $cid)));
+
+      if (!is_null($value) && is_object($items[$cid]) && isset($items[$cid]->data)) {
+        $this->assertIdentical(
+          $items[$cid]->data,
+          $value,
+          t('@cache_id was correctly stored in the cache.', array('@cache_id' => $cid))
+        );
+      }
+    }
+  }
+
+  /**
+   * Asserts two or more cache items do not exist.
+   *
+   * @param string $bin
+   *   The cache bin.
+   * @param array $cids
+   *   An array containing the cache IDs to retrieve.
+   * @param array $non_existent_cids
+   *   An array containing the cache IDs that should not exist.
+   */
+  protected function assertNoCacheItems($bin, $cids, $non_existent_cids) {
+    $items = cache_get_multiple($cids, $bin);
+
+    foreach ($non_existent_cids as $cid) {
+      $this->assertFalse(
+        isset($items[$cid]),
+        t('@cache_id was not found in the cache.', array('@cache_id' => $cid))
+      );
+    }
+  }
+
 }
 
 /**
  * Tests saving and retrieving data.
  */
-class ApcCacheSaveCase extends ApcCacheTestCase {
+class ApcCacheSaveAndRetrieveCase extends ApcCacheTestCase {
 
   /**
    * {@inheritdoc}
@@ -144,7 +199,7 @@ class ApcCacheSaveCase extends ApcCacheTestCase {
   public static function getInfo() {
     return array(
       'name' => 'Save cache test',
-      'description' => 'Verifies the cached items are correctly stored.',
+      'description' => 'Verifies the cached items are correctly saved and the retrieved values are correct.',
       'group' => 'Alternative PHP Cache',
     );
   }
@@ -152,7 +207,7 @@ class ApcCacheSaveCase extends ApcCacheTestCase {
   /**
    * Tests retrieving data.
    */
-  protected function testRetrievingData() {
+  protected function testRetrieveData() {
     $bin = 'cache_apc';
     $values = array(
       'boolean' => TRUE,
@@ -184,52 +239,25 @@ class ApcCacheSaveCase extends ApcCacheTestCase {
     }
   }
 
-}
-
-/**
- * Tests cache_get_multiple().
- */
-class ApcCacheGetMultipleUnitTest extends ApcCacheTestCase {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Fetch multiple cache items',
-      'description' => 'Verifies that multiple values are retrieved correctly.',
-      'group' => 'Alternative PHP Cache',
-    );
-  }
-
   /**
    * Tests cache_get_multiple().
    */
-  public function testCacheMultiple() {
+  public function testRetrieveMultipleValue() {
     $bin = 'cache_apc';
+    $cids = array(
+      $this->randomName(16) => $this->randomString(10),
+      $this->randomName(16) => $this->randomString(10),
+    );
 
-    $item1 = $this->randomName(10);
-    $item2 = $this->randomName(10);
-    cache_set('item1', $item1, $bin);
-    cache_set('item2', $item2, $bin);
-    $this->assertCacheItem($bin, 'item1', $item1);
-    $this->assertCacheItem($bin, 'item2', $item2);
+    foreach ($cids as $cid => $value) {
+      cache_set($cid, $value, $bin);
+    }
 
-    // Fetch both records from the database with cache_get_multiple().
-    $item_ids = array('item1', 'item2');
-    $items = cache_get_multiple($item_ids, $bin);
-    $this->assertEqual($items['item1']->data, $item1, t('Item1 was correctly stored in the cache.'));
-    $this->assertEqual($items['item2']->data, $item2, t('Item2 was correctly stored in the cache.'));
+    $this->assertCacheItems($bin, $cids);
 
-    // Remove one item from the cache.
-    cache_clear_all('item2', $bin);
-
-    // Confirm that only one item is returned by cache_get_multiple().
-    $item_ids = array('item1', 'item2');
-    $items = cache_get_multiple($item_ids, $bin);
-    $this->assertEqual($items['item1']->data, $item1, t('Item1 was correctly stored in the cache.'));
-    $this->assertFalse(isset($items['item2']), t('Item2 was not present in the cache.'));
-    $this->assertTrue(count($items) == 1, t('Only an entry was retrieved from the cache.'));
+    $cids = array_keys($cids);
+    cache_clear_all($cids[1], $bin);
+    $this->assertNoCacheItems($bin, $cids, array($cids[1], 'item3'));
   }
 
 }

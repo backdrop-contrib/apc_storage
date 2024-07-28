@@ -88,16 +88,12 @@ class ApcCacheTestCase extends DrupalWebTestCase {
    *   The cache ID.
    * @param string $value
    *   The value the cache should contain, or NULL if the value is not relevant.
-   * @param string $message
-   *   The message to display, or NULL to use the default one.
    */
-  protected function assertCacheItem($bin, $cid, $value = NULL, $message = '') {
-    if (is_null($message)) {
-      $message = t(
-        '@cache_id was correctly stored in the item.',
-        array('@cache_id' => $cid)
-      );
-    }
+  protected function assertCacheItem($bin, $cid, $value = NULL) {
+    $message = t(
+      '@cache_id was correctly stored in the cache.',
+      array('@cache_id' => $cid)
+    );
 
     $item = cache_get($cid, $bin);
     $this->assertTrue(
@@ -117,16 +113,12 @@ class ApcCacheTestCase extends DrupalWebTestCase {
    *   The cache bin.
    * @param string $cid
    *   The cache ID.
-   * @param string $message
-   *   The message to display, or NULL to use the default one.
    */
-  protected function assertNoCacheItem($bin, $cid, $message = '') {
-    if (is_null($message)) {
-      $message = t(
-        '@cache_id was not found in the cache.',
-        array('@cache_id' => $cid)
-      );
-    }
+  protected function assertNoCacheItem($bin, $cid) {
+    $message = t(
+      '@cache_id was not found in the cache.',
+      array('@cache_id' => $cid)
+    );
 
     $this->assertFalse(cache_get($cid, $bin), $message);
   }

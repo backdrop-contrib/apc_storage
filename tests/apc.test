@@ -54,10 +54,27 @@ class ApcCacheTestCase extends DrupalWebTestCase {
       foreach ($this->cacheBins as $bin) {
         variable_set("cache_flush_$bin", 0);
         variable_set("cache_class_$bin", 'DrupalApcuCache');
+
+        $obj = _cache_get_object($bin);
+
+        if (!($obj instanceof DrupalAPCCache)) {
+          $error = t('The cache class %class for %bin is not DrupalAPCCache.',
+            array(
+              '%bin' => $bin,
+              '%class' => get_class($obj),
+            )
+          );
+
+          $this->fail($error);
+          $this->setup = FALSE;
+        }
+
       }
     }
     else {
-      // If the APCu extension is not available, disable the tests.
+      $error = t('The APCu extension is not loaded or APCu is not enabled for the current environment.');
+
+      $this->fail($error);
       $this->setup = FALSE;
     }
   }

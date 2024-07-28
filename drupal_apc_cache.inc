@@ -163,7 +163,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    * {@inheritdoc}
    */
   public function get($cid) {
-    $this->operations(array('get()', $this->bin, array($cid)));
+    $this->addOperation(array('get()', $this->bin, array($cid)));
 
     if (apcu_enabled()) {
       $data = apcu_fetch($this->keyName($cid), $success);
@@ -202,7 +202,7 @@ class DrupalApcCache implements DrupalCacheInterface {
     $cache = array();
 
     // Add a get to our statistics.
-    $this->operations(array('getMultiple()', $this->bin, $cids));
+    $this->addOperation(array('getMultiple()', $this->bin, $cids));
 
     if (!$cids) {
       return $cache;
@@ -228,7 +228,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    */
   public function set($cid, $data, $expire = CACHE_PERMANENT) {
     // Add set to statistics.
-    $this->operations(array('set()', $this->bin, $cid));
+    $this->addOperation(array('set()', $this->bin, $cid));
 
     if (apcu_enabled()) {
       // Create new cache object.
@@ -271,7 +271,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    */
   protected function deleteKey($cid) {
     if (apcu_enabled()) {
-      $this->operations(array('deleteKey()', $this->bin, $cid));
+      $this->addOperation(array('deleteKey()', $this->bin, $cid));
       apcu_delete($this->keyName($cid));
     }
   }
@@ -284,7 +284,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    */
   protected function deleteKeys($prefix = NULL) {
     if (apcu_enabled() && class_exists('APCUIterator')) {
-      $this->operations(array('deleteKeys()', $this->bin, $prefix));
+      $this->addOperation(array('deleteKeys()', $this->bin, $prefix));
 
       $escaped_key = preg_quote($this->keyName($prefix), '/');
       $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
@@ -355,20 +355,25 @@ class DrupalApcCache implements DrupalCacheInterface {
   }
 
   /**
-   * Adds a new operation to the list of operations, or returns the list.
-   *
-   * @param array|null $new_operation
-   *   The new operation to add.
+   * Retrieves the list of operations done on the cache.
    *
    * @return array
    *   The list of cache operations.
    */
-  public static function operations($new_operation = NULL) {
+  public static function operations() {
+    return self::$operations;
+  }
+
+  /**
+   * Adds a new operation to the list of operations.
+   *
+   * @param array $new_operation
+   *   The new operation to add.
+   */
+  protected function addOperation($new_operation) {
     if (is_array($new_operation)) {
       self::$operations[] = $new_operation;
     }
-
-    return self::$operations;
   }
 
 }

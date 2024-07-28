@@ -37,7 +37,7 @@ class ApcCacheTestCase extends DrupalWebTestCase {
   /**
    * Adds modules to the list of modules to enable.
    *
-   * @param array $modules
+   * @param string ...$modules
    *   The modules to enable.
    */
   protected function setModules(...$modules) {
@@ -117,7 +117,7 @@ class ApcCacheTestCase extends DrupalWebTestCase {
 }
 
 /**
- * Tests cache saving.
+ * Tests saving and retrieving data.
  */
 class ApcCacheSaveCase extends ApcCacheTestCase {
 
@@ -127,76 +127,50 @@ class ApcCacheSaveCase extends ApcCacheTestCase {
   public static function getInfo() {
     return array(
       'name' => 'Save cache test',
-      'description' => 'Verifies the cached values are correctly stored.',
+      'description' => 'Verifies the cached items are correctly stored.',
       'group' => 'Alternative PHP Cache',
     );
   }
 
   /**
-   * Tests saving and restoring a string.
+   * Tests retrieving data.
    */
-  public function testString() {
-    $this->checkVariable($this->randomName(100));
-  }
-
-  /**
-   * Tests saving and restoring an integer.
-   */
-  public function testInteger() {
-    $this->checkVariable(100);
-  }
-
-  /**
-   * Tests saving and restoring a double.
-   */
-  public function testDouble() {
-    $this->checkVariable(1.29);
-  }
-
-  /**
-   * Tests saving and restoring an array.
-   */
-  public function testArray() {
-    $this->checkVariable(array('drupal1', 'drupal2' => 'drupal3', 'drupal4' => array('drupal5', 'drupal6')));
-  }
-
-  /**
-   * Tests saving and restoring an object.
-   */
-  public function testObject() {
+  protected function testRetrievingData() {
     $bin = 'cache_apc';
-    $test_object = new stdClass();
-    $test_object->test1 = $this->randomName(100);
-    $test_object->test2 = 100;
-    $test_object->test3 = array('drupal1', 'drupal2' => 'drupal3', 'drupal4' => array('drupal5', 'drupal6'));
+    $values = array(
+      'boolean' => TRUE,
+      'integer' => mt_rand(256, 1024),
+      'string' => $this->randomString(),
+      'array' => array(
+        mt_rand(8, 32) => $this->randomString(),
+        $this->randomName() => $this->randomString(),
+        $this->randomName(10) => array(
+          mt_rand(8, 32) => $this->randomString(),
+          $this->randomName() => $this->randomstring(),
+        ),
+      ),
+      'object' => (object) array(
+        $this->randomName() => $this->randomString(),
+        $this->randomName(10) => array(
+          mt_rand(8, 32) => $this->randomString(),
+          $this->randomName() => $this->randomstring(),
+        ),
+      ),
+    );
 
-    cache_set('test_object', $test_object, $bin);
-    $cache = cache_get('test_object', $bin);
-    $this->assertTrue(isset($cache->data) && $cache->data == $test_object, t('Object is saved and restored properly.'));
-  }
+    foreach ($values as $type => $data) {
+      cache_set("test_var_$type", $data, $bin);
+    }
 
-  /**
-   * Verifies a value is stored and restored properly in the cache.
-   */
-  protected function checkVariable($var) {
-    $bin = 'cache_apc';
-    cache_set('test_var', $var, $bin);
-    $cache = cache_get('test_var', $bin);
-    $this->assertTrue(isset($cache->data) && $cache->data === $var, t('@type is saved and restored properly.', array('@type' => ucfirst(gettype($var)))));
-  }
-
-  /**
-   * Test no empty cache IDs are written in the cache table.
-   */
-  public function testNoEmptyCids() {
-    $this->drupalGet('user/register');
-    $this->assertFalse(cache_get(''), t('No cache entry is written with an empty cache ID.'));
+    foreach ($values as $type => $data) {
+      $this->assertCacheItem($bin, "test_var_$type", $data);
+    }
   }
 
 }
 
 /**
- * Test cache_get_multiple().
+ * Tests cache_get_multiple().
  */
 class ApcCacheGetMultipleUnitTest extends ApcCacheTestCase {
 

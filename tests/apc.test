@@ -237,8 +237,8 @@ class ApcCacheSaveAndRetrieveCase extends ApcCacheTestCase {
   public function testRetrieveMultipleValue() {
     $bin = 'cache_apc';
     $cids = array(
-      $this->randomName(16) => $this->randomString(10),
-      $this->randomName(16) => $this->randomString(10),
+      $this->randomName(16) => $this->randomString(16),
+      $this->randomName(16) => $this->randomString(32),
     );
 
     foreach ($cids as $cid => $value) {
@@ -271,9 +271,9 @@ class ApcCacheClearCase extends ApcCacheTestCase {
   }
 
   /**
-   * Tests clearing the cache using a cache ID.
+   * Tests clearing the cache using a single cache ID without using wildcards.
    */
-  public function testClearCid() {
+  public function testClearWithCid() {
     $bin = 'cache_apc';
     $value = $this->randomString();
     cache_set('test_cid_clear', $value, $bin);
@@ -282,52 +282,68 @@ class ApcCacheClearCase extends ApcCacheTestCase {
     cache_clear_all('test_cid_clear', $bin);
     $this->assertNoCacheItem($bin, 'test_cid_clear');
 
-    $value1 = $this->randomString();
-    $value2 = $this->randomString();
+    $value1 = $this->randomString(16);
+    $value2 = $this->randomString(16);
     cache_set('test_cid_clear1', $value1, $bin);
     cache_set('test_cid_clear2', $value2, $bin);
     $this->assertCacheItem($bin, 'test_cid_clear1', $value1);
     $this->assertCacheItem($bin, 'test_cid_clear2', $value2);
 
+    // Since TRUE is not passed as third argument for to cache_clear_all(), *
+    // does not mean "all the cache items", but it is the literal value for the
+    // cache ID.
     cache_clear_all('*', $bin);
+    // The item whose cache ID is * does not exist. The other items still exist
+    // because they have not been cleared.
     $this->assertCacheItem($bin, 'test_cid_clear1', $value1);
     $this->assertCacheItem($bin, 'test_cid_clear2', $value2);
   }
 
   /**
-   * Tests clearing the cache using wildcard.
+   * Tests clearing the cache using wildcards.
    */
-  public function testClearWildcard() {
+  public function testClearWithWildcard() {
     $bin = 'cache_apc';
+    $item3 = $this->randomName(16);
 
     $value1 = $this->randomString();
     $value2 = $this->randomString();
+    $value3 = $this->randomString(16);
     cache_set('test_cid_clear1', $value1, $bin);
     cache_set('test_cid_clear2', $value2, $bin);
+    cache_set($item3, $value3, $bin);
     $this->assertCacheItem($bin, 'test_cid_clear1', $value1);
     $this->assertCacheItem($bin, 'test_cid_clear2', $value2);
+    $this->assertCacheItem($bin, $item3, $value3);
 
     cache_clear_all('*', $bin, TRUE);
     $this->assertNoCacheItem($bin, 'test_cid_clear1');
     $this->assertNoCacheItem($bin, 'test_cid_clear2');
+    $this->assertNoCacheItem($bin, $item3);
 
-    $value1 = $this->randomString();
-    $value2 = $this->randomString();
+    $value1 = $this->randomString(16);
+    $value2 = $this->randomString(16);
     cache_set('test_cid_clear1', $value1, $bin);
     cache_set('test_cid_clear2', $value2, $bin);
     $this->assertCacheItem($bin, 'test_cid_clear1', $value1);
     $this->assertCacheItem($bin, 'test_cid_clear2', $value2);
+    $this->assertNoCacheItem($bin, $item3);
 
     cache_clear_all('test_', $bin, TRUE);
     $this->assertNoCacheItem($bin, 'test_cid_clear1');
     $this->assertNoCacheItem($bin, 'test_cid_clear2');
+
+    // $item3 has been already deleted by the previous call to
+    // cache_clear_all('*', $bin, TRUE). The following assertion cannot fail.
+    $this->assertNoCacheItem($bin, $item3);
   }
 
   /**
-   * Tests clearing the cache using an array.
+   * Tests clearing the cache passing more cache IDs.
    */
-  public function testClearArray() {
+  public function testClearWithCids() {
     $bin = 'cache_apc';
+    $item3 = $this->randomName(16);
 
     $value1 = $this->randomString();
     $value2 = $this->randomString();
@@ -337,22 +353,24 @@ class ApcCacheClearCase extends ApcCacheTestCase {
     cache_set('test_cid_clear3', $value3, $bin);
     $this->assertCacheItem($bin, 'test_cid_clear1', $value1);
     $this->assertCacheItem($bin, 'test_cid_clear2', $value2);
-    $this->assertCacheItem($bin, 'test_cid_clear3', $value3);
+    $this->assertCacheItem($bin, $item3, $value3);
 
     cache_clear_all(array('test_cid_clear1', 'test_cid_clear2'), $bin);
     $this->assertNoCacheItem($bin, 'test_cid_clear1');
     $this->assertNoCacheItem($bin, 'test_cid_clear2');
-    $this->assertCacheItem($bin, 'test_cid_clear3', $value3);
+    $this->assertCacheItem($bin, $item3, $value3);
 
+    $value1 = $this->randomString(16);
+    $value2 = $this->randomString(16);
     cache_set('test_cid_clear1', $value1, $bin);
     cache_set('test_cid_clear2', $value2, $bin);
     $this->assertCacheItem($bin, 'test_cid_clear1', $value1);
     $this->assertCacheItem($bin, 'test_cid_clear2', $value2);
 
-    cache_clear_all(array('test_cid_clear1', 'test_cid_clear2', 'test_cid_clear3'), $bin);
+    cache_clear_all(array('test_cid_clear1', 'test_cid_clear2', $item3), $bin);
     $this->assertNoCacheItem($bin, 'test_cid_clear1');
     $this->assertNoCacheItem($bin, 'test_cid_clear2');
-    $this->assertNoCacheItem($bin, 'test_cid_clear3');
+    $this->assertNoCacheItem($bin, $item3);
   }
 
 }
@@ -378,16 +396,16 @@ class ApcCacheIsEmptyCase extends ApcCacheTestCase {
    */
   public function testIsEmpty() {
     $bin = 'cache_apc';
-    $value = $this->randomString();
 
-    cache_clear_all('*', $bin);
-    $this->assertTrue(cache_is_empty($bin), t('The cache bin is empty'));
+    cache_set('test_temporary', $this->randomString(), $bin);
+    cache_clear_all('*', $bin, TRUE);
+    $this->assertTrue(cache_is_empty($bin), t('The cache bin is empty.'));
 
+    $value = $this->randomString(16);
     cache_set('test_temporary', $value, $bin);
     $this->assertCacheItem($bin, 'test_temporary', $value);
     $this->assertFalse(cache_is_empty($bin), t('The cache bin is not empty.'));
 
-    // Remove the cached data.
     cache_clear_all('test_temporary', $bin);
     $this->assertNoCacheItem($bin, 'test_temporary');
     $this->assertTrue(cache_is_empty($bin), t('The cache bin is empty.'));

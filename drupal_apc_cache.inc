@@ -137,7 +137,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    * 'apc_cache::'. Otherwise, it prepends 'apc_cache_' to the $prefix property.
    */
   protected function addModulePrefix() {
-    $this->prefix = empty($this->prefix) ? 'apc_cache::' : "apc_cache_$this->prefix";
+    $this->prefix = empty($this->prefix) ? 'apc_cache::' : "apc_cache::$this->prefix";
   }
 
   public function __construct($bin) {
@@ -159,10 +159,10 @@ class DrupalApcCache implements DrupalCacheInterface {
    *   keys.
    */
   protected function keyName($cid = NULL) {
-    $key_name = $this->prefix . $this->bin;
+    $key_name = $this->prefix . $this->bin . '::';
 
     if (!is_null($cid)) {
-      $key_name .= '::' . $cid;
+      $key_name .= $cid;
     }
 
     return $key_name;

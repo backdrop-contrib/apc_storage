@@ -73,3 +73,27 @@ function apc_requirements($phase) {
 function apc_update_7101() {
   apcu_clear_cache();
 }
+
+/**
+ * Delete the APCu keys starting with apc_cache_ as they are no longer used.
+ */
+function apc_update_7102() {
+  $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
+
+  if ($apcu_enabled && class_exists('APCUIterator')) {
+    $iterator = new APCUIterator('/^apc_cache_/', APC_ITER_KEY);
+    apcu_delete($iterator);
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function apc_uninstall() {
+  $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
+
+  if ($apcu_enabled && class_exists('APCUIterator')) {
+    $iterator = new APCUIterator('/^apc_cache::/', APC_ITER_KEY);
+    apcu_delete($iterator);
+  }
+}

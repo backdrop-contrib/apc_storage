@@ -130,22 +130,13 @@ class DrupalApcCache implements DrupalCacheInterface {
     }
   }
 
-  /**
-   * Adds the module prefix to the bin prefix.
-   *
-   * This method checks if the $prefix property is empty and if so, sets it to
-   * 'apc_cache::'. Otherwise, it prepends 'apc_cache_' to the $prefix property.
-   */
-  protected function addModulePrefix() {
-    $this->prefix = empty($this->prefix) ? 'apc_cache::' : "apc_cache::$this->prefix";
-  }
-
   public function __construct($bin) {
     $this->bin = $bin;
 
     $this->setBinPrefix();
     $this->addDatabasePrefix();
-    $this->addModulePrefix();
+
+    $this->prefix = empty($this->prefix) ? 'apc_cache::' : "apc_cache::$this->prefix";
   }
 
   /**

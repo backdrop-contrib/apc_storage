@@ -73,12 +73,10 @@ class DrupalApcCache implements DrupalCacheInterface {
           // If $prefixes[$this->bin] is set and not FALSE, that value is used
           // for the cache bin.
           $this->prefix = $prefixes[$this->bin];
-          return;
         }
       }
       elseif (isset($prefixes['default']) && is_string($prefixes['default'])) {
         $this->prefix = $prefixes['default'];
-        return;
       }
     }
   }
@@ -139,7 +137,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    * 'apc_cache::'. Otherwise, it prepends 'apc_cache_' to the $prefix property.
    */
   protected function addModulePrefix() {
-    $this->prefix = empty($this->prefix) ? 'apc_cache::' : "apc_cache_{$this->prefix}";
+    $this->prefix = empty($this->prefix) ? 'apc_cache::' : "apc_cache_$this->prefix";
   }
 
   public function __construct($bin) {
@@ -178,6 +176,7 @@ class DrupalApcCache implements DrupalCacheInterface {
 
     if (apcu_enabled()) {
       $data = apcu_fetch($this->keyName($cid), $success);
+
       if (!$success) {
         return FALSE;
       }
@@ -374,7 +373,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    *   The list of cache operations.
    */
   public static function operations($new_operation = NULL) {
-    if (!is_null($new_operation) && is_array($new_operation)) {
+    if (is_array($new_operation)) {
       self::$operations[] = $new_operation;
     }
 

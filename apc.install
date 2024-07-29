@@ -87,6 +87,13 @@ function apc_update_7102() {
 }
 
 /**
+ * Rebuild the code registry, as a class file has been moved.
+ */
+function apc_update_7103() {
+  registry_rebuild();
+}
+
+/**
  * Implements hook_uninstall().
  */
 function apc_uninstall() {

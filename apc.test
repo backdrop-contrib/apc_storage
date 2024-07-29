@@ -234,7 +234,7 @@ class ApcCacheSaveAndRetrieveCase extends ApcCacheTestCase {
   /**
    * Tests cache_get_multiple().
    */
-  public function testRetrieveMultipleValue() {
+  public function testRetrieveMultipleValues() {
     $bin = 'cache_apc';
     $values = array(
       $this->randomName(16) => $this->randomString(16),

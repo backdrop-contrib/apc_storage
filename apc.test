@@ -147,7 +147,7 @@ class ApcCacheTestCase extends DrupalWebTestCase {
         is_object($items[$cid]) && isset($items[$cid]->data),
         format_string('@cache_id was correctly stored in the cache.', array('@cache_id' => $cid)));
 
-      if (!is_null($value) && is_object($items[$cid]) && isset($items[$cid]->data)) {
+      if (!is_null($value) && isset($items[$cid]->data)) {
         $this->assertIdentical(
           $items[$cid]->data,
           $value,
@@ -197,37 +197,58 @@ class ApcCacheSaveAndRetrieveCase extends ApcCacheTestCase {
   }
 
   /**
-   * Tests retrieving data.
+   * Stores the test data in cache.
+   *
+   * @param array &$values
+   *   The stored data, indexed by ID.
+   * @param $cids
+   *   The cache IDs of the stored data.
    */
-  protected function testRetrieveData() {
+  private function storeTestData(&$values, &$cids) {
     $bin = 'cache_apc';
+    $cids = array();
     $values = array(
-      'boolean' => TRUE,
-      'integer' => mt_rand(256, 1024),
-      'string' => $this->randomString(),
-      'array' => array(
-        mt_rand(8, 32) => $this->randomString(),
+      $this->randomName() => TRUE,
+      $this->randomName() => mt_rand(256, 1024),
+      $this->randoname() => mt_rand(256, 1024) / (float) mt_rand(32, 128),
+      $this->randomName() => $this->randomString(),
+      $this->randomName() => array(
         $this->randomName() => $this->randomString(),
-        $this->randomName(10) => array(
-          mt_rand(8, 32) => $this->randomString(),
-          $this->randomName() => $this->randomstring(),
+        $this->randomName(16) => array(
+          $this->randomName() => TRUE,
+          $this->randomName() => mt_rand(256, 1024),
+          $this->randoname() => mt_rand(256, 1024) / (float) mt_rand(32, 128),
         ),
       ),
-      'object' => (object) array(
+      $this->randomName() => (object) array(
         $this->randomName() => $this->randomString(),
-        $this->randomName(10) => array(
-          mt_rand(8, 32) => $this->randomString(),
-          $this->randomName() => $this->randomstring(),
+        $this->randomName() => mt_rand(8, 128),
+        $this->randoname() => mt_rand(256, 1024) / (float) mt_rand(32, 128),
+        $this->randomName(16) => array(
+          $this->randomName() => TRUE,
+          $this->randomName() => mt_rand(256, 1024),
+          $this->randoname() => mt_rand(256, 1024) / (float) mt_rand(32, 128),
         ),
       ),
     );
 
-    foreach ($values as $type => $data) {
-      cache_set("test_var_$type", $data, $bin);
-    }
+    foreach ($values as $id => $data) {
+      $cids[] = "test_var_$id";
 
-    foreach ($values as $type => $data) {
-      $this->assertCacheItem($bin, "test_var_$type", $data);
+      cache_set("test_var_$id", $data, $bin);
+    }
+  }
+
+  /**
+   * Tests retrieving data.
+   */
+  protected function testRetrieveData() {
+    $bin = 'cache_apc';
+
+    $this->storeTestData($values, $cids);
+
+    foreach ($cids as $cid) {
+      $this->assertCacheItem($bin, $cid, $values[$cid]);
     }
   }
 
@@ -236,20 +257,12 @@ class ApcCacheSaveAndRetrieveCase extends ApcCacheTestCase {
    */
   public function testRetrieveMultipleValues() {
     $bin = 'cache_apc';
-    $values = array(
-      $this->randomName(16) => $this->randomString(16),
-      $this->randomName(16) => $this->randomString(32),
-    );
-    $cids = array_keys($values);
 
-    foreach ($values as $cid => $value) {
-      cache_set($cid, $value, $bin);
-    }
-
+    $this->storeTestData($values, $cids);
     $this->assertCacheItems($bin, $cids, $values);
 
     cache_clear_all($cids[1], $bin);
-    $this->assertNoCacheItems($bin, $cids, array($cids[1], 'item3'));
+    $this->assertNoCacheItems($bin, $cids, array($cids[1], 'item_' . $this->randomName()));
   }
 
 }

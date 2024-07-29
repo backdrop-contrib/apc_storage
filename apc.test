@@ -201,7 +201,7 @@ class ApcCacheSaveAndRetrieveCase extends ApcCacheTestCase {
    *
    * @param array &$values
    *   The stored data, indexed by ID.
-   * @param $cids
+   * @param array $cids
    *   The cache IDs of the stored data.
    */
   private function storeTestData(&$values, &$cids) {

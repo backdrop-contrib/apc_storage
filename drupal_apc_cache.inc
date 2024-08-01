@@ -89,7 +89,7 @@ class DrupalApcCache implements DrupalCacheInterface {
       return unpack("H*", "\0\4\3" . var_export((object) (array) $data, TRUE))[1];
     }
     elseif (is_object($data)) {
-      return unpack("H*", "\0\4\2" . var_export($data,TRUE))[1];
+      return unpack("H*", "\0\4\2" . var_export($data, TRUE))[1];
     }
     else {
       return unpack("H*", "\0\0\1" . var_export($data, TRUE))[1];

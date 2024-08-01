@@ -112,7 +112,7 @@ function apc_uninstall() {
   $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
 
   if ($apcu_enabled && class_exists('APCUIterator')) {
-    $iterator = new APCUIterator('/^apc_cache::/', APC_ITER_KEY);
+    $iterator = new APCUIterator('/^apc_cache::[a-zA-Z0-9-_]{20,}::[a-zA-Z0-9-_]{20,}/', APC_ITER_KEY);
     apcu_delete($iterator);
   }
 }

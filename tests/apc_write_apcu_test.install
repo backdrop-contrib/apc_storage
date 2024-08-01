@@ -1,0 +1,41 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall hooks for the Write APCu Test module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function apc_write_apcu_test_install() {
+  if (extension_loaded('apcu') && apcu_enabled()) {
+    $keys = array(
+      'apc_write_apcu_test',
+      'apc_cache',
+      'apc_cache::',
+      'apc_store::apc_cache',
+    );
+
+    // Write some values in APCu to test they are not cleared out when Drupal
+    // clears the cache.
+    foreach ($keys as $key) {
+      apcu_store($key, TRUE);
+    }
+
+    apcu_store('apc_write_apcu_test::keys', $keys);
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function apc_write_apcu_test_uninstall() {
+  if (extension_loaded('apcu') && apcu_enabled()) {
+    apcu_delete('apc_write_apcu_test');
+    apcu_delete('apc_cache');
+    apcu_delete('apc_cache::');
+    apcu_delete('apc_store::apc_cache');
+    apcu_delete('apc_write_apcu_test::count');
+  }
+}

@@ -425,3 +425,125 @@ class ApcCacheIsEmptyCase extends ApcCacheTestCase {
   }
 
 }
+
+/**
+ * Tests that values added in APCu from another module are not modified.
+ */
+class ApcCacheExternalValuesCase extends ApcCacheTestCase {
+
+  /**
+   * The APCu values stored by the Write APCu Test module.
+   *
+   * @var array
+   */
+  protected $externalValues = array();
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getInfo() {
+    return [
+      'name' => 'External values test',
+      'description' => 'Verifies that values added in APCu from other modules are not deleted nor changed.',
+      'group' => 'Alternative PHP Cache',
+    ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    $this->setModules('apc_write_apcu_test');
+    $this->setCacheBins(
+      'apc_write_apcu_test',
+      'apc_cache::',
+      'apc_store::apc_cache',
+      'apc_cache::' . $this->randomName(),
+      'apc_write_apcu_test' . $this->randomName()
+    );
+    parent::setUp();
+
+    if ($this->setup) {
+      $keys = apcu_fetch('apc_write_apcu_test::keys', $success);
+
+      if (!$success) {
+        $this->fail(format_string('@id was not found in APCu.', array('@id' => 'apc_write_apcu_test::keys')));
+        $this->setup = FALSE;
+
+        return;
+      }
+
+      $this->externalValues['apc_write_apcu_test'] = $keys;
+
+      foreach ($keys as $key) {
+        $value = apcu_fetch($key, $success);
+
+        if (!$success) {
+          $this->fail(format_string('@id was not found in APCu.', array('@id' => $key)));
+          $this->setup = FALSE;
+
+          return;
+        }
+
+        $this->externalValues[$key] = $value;
+      }
+    }
+  }
+
+  /**
+   * Asserts that the APCu values stored from the test module are correct.
+   */
+  protected function asserApcuValuesExist() {
+    foreach ($this->externalValues as $key => $value) {
+      $retrieved_value = apcu_fetch($key, $success);
+      $this->assertTrue(
+        $success,
+        format_string('@id was not removed from APCu.', array('@id' => $key))
+      );
+      $this->assertIdentical(
+        $retrieved_value,
+        $value,
+        format_string('The value for @id found in APCu was correct.', array('@id' => $key))
+      );
+    }
+  }
+
+  /**
+   * Writes some cache items and verifies other values are not overridden.
+   */
+  public function testWriteCache() {
+    $cids = array(
+      'test_temporary',
+      'test_' . $this->randomName(),
+      'apc_write_apcu_test::',
+      'apc_write_apcu_test',
+      'apc_cache::',
+    );
+
+    foreach ($this->cacheBins as $bin) {
+      foreach ($cids as $cid) {
+        cache_set($cid, $this->randomString(), $bin);
+      }
+    }
+
+    foreach ($this->cacheBins as $bin) {
+      foreach ($cids as $cid) {
+        $this->assertCacheItem($bin, $cid);
+      }
+    }
+
+    $this->assertApcuValuesExist();
+  }
+
+  /**
+   * Tests clearing the cache for all cache bins.
+   */
+  public function testClearingCache() {
+    foreach ($this->cacheBins as $bin) {
+      cache_clear_all('*', $bin, TRUE);
+    }
+
+    $this->assertApcuValuesExist();
+  }
+
+}

@@ -1,0 +1,5 @@
+name = Write APCu Test
+description = Support module for Alternative PHP Cache module testing.
+package = Testing
+core = 7.x
+hidden = TRUE

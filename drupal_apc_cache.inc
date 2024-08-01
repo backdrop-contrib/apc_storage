@@ -68,15 +68,32 @@ class DrupalApcCache implements DrupalCacheInterface {
    *   The hexadecimal representation of the binary data.
    */
   protected function binaryToHex($data) {
-    if (is_string($data) && empty($data)) {
-      return unpack("H*", drupal_random_bytes(4))[1];
-    }
+    if (is_array($data)) {
+      if (empty($data)) {
+        return unpack("H*", "\2\5\6")[1];
+      }
 
-    if (is_string($data)) {
-      return unpack("H*", $data)[1];
+      return unpack("H*", "\0\4\6" . serialize($data))[1];
     }
+    elseif (is_bool($data)) {
+      return $data ? "\3\0\5\1" : "\3\1\5\0";
+    }
+    elseif (is_string($data)) {
+      if ($data === '') {
+        return unpack("H*", "\2\1\4")[1];
+      }
 
-    return unpack("H*", serialize($data))[1];
+      return unpack("H*", "\0\0\4$data")[1];
+    }
+    elseif (is_object($data) && get_class($data) === 'stdClass') {
+      return unpack("H*", "\0\4\3" . var_export((object) (array) $data, TRUE))[1];
+    }
+    elseif (is_object($data)) {
+      return unpack("H*", "\0\4\2" . var_export($data,TRUE))[1];
+    }
+    else {
+      return unpack("H*", "\0\0\1" . var_export($data, TRUE))[1];
+    }
   }
 
   /**
@@ -138,25 +155,34 @@ class DrupalApcCache implements DrupalCacheInterface {
     global $databases;
 
     if (isset($databases) && is_array($databases)) {
-      $db_info = '';
+      $data = '';
 
       if (isset($databases['default']['default']) && is_array($databases['default']['default'])) {
         if (isset($databases['default']['default']['host'])) {
-          $db_info .= $databases['default']['default']['host'];
+          $data .= $this->binaryToHex($databases['default']['default']['host']);
         }
+
         if (isset($databases['default']['default']['database'])) {
-          $db_info .= $databases['default']['default']['database'];
+          $data .= $this->binaryToHex($databases['default']['default']['database']);
         }
+
         if (isset($databases['default']['default']['prefix'])) {
-          $db_info .= serialize($databases['default']['default']['prefix']);
+          $data .= $this->binaryToHex($databases['default']['default']['prefix']);
         }
       }
 
-      $this->prefixes[2] = $this->binaryToHex($db_info);
+      if (empty($data)) {
+        $data = $this->binaryToHex($data);
+      }
+
+      $this->prefixes[2] = $data;
     }
 
     if ($test_prefix = drupal_valid_test_ua()) {
       $this->prefixes[1] = $this->binaryToHex($test_prefix);
+    }
+    else {
+      $this->prefixes[1] = $this->binaryToHex('');
     }
   }
 

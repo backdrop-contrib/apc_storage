@@ -25,6 +25,26 @@ class ApcCacheTestCase extends DrupalWebTestCase {
   protected $modules = array('apc');
 
   /**
+   * Retrieves the cache bins to enable.
+   *
+   * @param bool $ignore_first
+   *   (optional) Whether to ignore the first cache bin, which is always
+   *   'apc_cache'. Defaults to FALSE.
+   *
+   * @return array
+   *   The cache bins to enable.
+   */
+  protected function getCacheBins($ignore_first = FALSE) {
+    $cache_bins = $this->cacheBins;
+
+    if ($ignore_first) {
+      array_shift($cache_bins);
+    }
+
+    return $cache_bins;
+  }
+
+  /**
    * Adds cache bins to the list of cache bins that are stored on APCu.
    *
    * @param string ...$bins
@@ -205,7 +225,8 @@ class ApcCacheSaveAndRetrieveCase extends ApcCacheTestCase {
    *   The cache IDs of the stored data.
    */
   private function storeTestData(&$values, &$cids) {
-    $bin = 'cache_apc';
+    $cache_bins = $this->getCacheBins();
+    $bin = $cache_bins[0];
     $cids = array();
     $values = array(
       $this->randomName() => TRUE,
@@ -243,7 +264,8 @@ class ApcCacheSaveAndRetrieveCase extends ApcCacheTestCase {
    * Tests retrieving data.
    */
   protected function testRetrieveData() {
-    $bin = 'cache_apc';
+    $cache_bins = $this->getCacheBins();
+    $bin = $cache_bins[0];
 
     $this->storeTestData($values, $cids);
 
@@ -256,7 +278,8 @@ class ApcCacheSaveAndRetrieveCase extends ApcCacheTestCase {
    * Tests cache_get_multiple().
    */
   public function testRetrieveMultipleValues() {
-    $bin = 'cache_apc';
+    $cache_bins = $this->getCacheBins();
+    $bin = $cache_bins[0];
 
     $this->storeTestData($values, $cids);
     $this->assertCacheItems($bin, $cids, $values);
@@ -287,7 +310,9 @@ class ApcCacheClearCase extends ApcCacheTestCase {
    * Tests clearing the cache using a single cache ID without using wildcards.
    */
   public function testClearWithCid() {
-    $bin = 'cache_apc';
+    $cache_bins = $this->getCacheBins();
+    $bin = $cache_bins[0];
+
     $value = $this->randomString();
     cache_set('test_cid_clear', $value, $bin);
     $this->assertCacheItem($bin, 'test_cid_clear', $value);
@@ -316,7 +341,8 @@ class ApcCacheClearCase extends ApcCacheTestCase {
    * Tests clearing the cache using wildcards.
    */
   public function testClearWithWildcard() {
-    $bin = 'cache_apc';
+    $cache_bins = $this->getCacheBins();
+    $bin = $cache_bins[0];
     $item3 = $this->randomName(16);
 
     $value1 = $this->randomString();
@@ -355,7 +381,8 @@ class ApcCacheClearCase extends ApcCacheTestCase {
    * Tests clearing the cache passing more cache IDs.
    */
   public function testClearWithCids() {
-    $bin = 'cache_apc';
+    $cache_bins = $this->getCacheBins();
+    $bin = $cache_bins[0];
     $item3 = $this->randomName(16);
 
     $value1 = $this->randomString();
@@ -408,7 +435,8 @@ class ApcCacheIsEmptyCase extends ApcCacheTestCase {
    * Tests clearing the cache using a cache ID.
    */
   public function testIsEmpty() {
-    $bin = 'cache_apc';
+    $cache_bins = $this->getCacheBins();
+    $bin = $cache_bins[0];
 
     cache_set('test_temporary', $this->randomString(), $bin);
     cache_clear_all('*', $bin, TRUE);
@@ -512,6 +540,7 @@ class ApcCacheExternalValuesCase extends ApcCacheTestCase {
    * Writes some cache items and verifies other values are not overridden.
    */
   public function testWriteCache() {
+    $cache_bins = $this->getCacheBins();
     $cids = array(
       'test_temporary',
       'test_' . $this->randomName(),
@@ -520,13 +549,13 @@ class ApcCacheExternalValuesCase extends ApcCacheTestCase {
       'apc_cache::',
     );
 
-    foreach ($this->cacheBins as $bin) {
+    foreach ($cache_bins as $bin) {
       foreach ($cids as $cid) {
         cache_set($cid, $this->randomString(), $bin);
       }
     }
 
-    foreach ($this->cacheBins as $bin) {
+    foreach ($cache_bins as $bin) {
       foreach ($cids as $cid) {
         $this->assertCacheItem($bin, $cid);
       }
@@ -539,7 +568,7 @@ class ApcCacheExternalValuesCase extends ApcCacheTestCase {
    * Tests clearing the cache for all cache bins.
    */
   public function testClearingCache() {
-    foreach ($this->cacheBins as $bin) {
+    foreach ($this->getCacheBins() as $bin) {
       cache_clear_all('*', $bin, TRUE);
     }
 

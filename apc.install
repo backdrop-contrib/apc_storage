@@ -31,7 +31,7 @@ function apc_requirements($phase) {
       return $requirements;
     }
 
-    $required_version_installed = version_compare($apcu_version, '5.0.0') >= 0;
+    $required_version_installed = version_compare($apcu_version, '5.0.0', '>=');
 
     if (!$required_version_installed) {
       $requirements['apc']['description'] = $t(

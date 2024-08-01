@@ -28,8 +28,8 @@ class ApcCacheTestCase extends DrupalWebTestCase {
    * Retrieves the cache bins to enable.
    *
    * @param bool $ignore_first
-   *   (optional) Whether to ignore the first cache bin, which is always
-   *   'apc_cache'. Defaults to FALSE.
+   *   (optional) Whether to ignore the first cache bin, which is the default
+   *   cache bin used from tests. Defaults to FALSE.
    *
    * @return array
    *   The cache bins to enable.

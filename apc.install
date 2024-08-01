@@ -94,6 +94,18 @@ function apc_update_7103() {
 }
 
 /**
+ * Delete the APCu keys starting with apc_cache:: to create the new keys.
+ */
+function apc_update_7104() {
+  $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
+
+  if ($apcu_enabled && class_exists('APCUIterator')) {
+    $iterator = new APCUIterator('/^apc_cache::/', APC_ITER_KEY);
+    apcu_delete($iterator);
+  }
+}
+
+/**
  * Implements hook_uninstall().
  */
 function apc_uninstall() {

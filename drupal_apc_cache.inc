@@ -37,11 +37,47 @@ class DrupalApcCache implements DrupalCacheInterface {
   protected $bin;
 
   /**
-   * The prefix to use for the cache bin.
+   * The strings used to build the name of the APCu keys for the cached data.
+   *
+   * @var array
+   */
+  protected $prefixes = array();
+
+  /**
+   * The part of the APCu key which identifies the cache bin.
    *
    * @var string
    */
-  protected $prefix;
+  protected $binPrefix;
+
+  /**
+   * The first part of the APCu key.
+   *
+   * @var string
+   */
+  protected $modulePrefix = 'apc_cache';
+
+  /**
+   * Converts binary data to a hexadecimal representation.
+   *
+   * @param mixed $data
+   *   The binary data to convert. If it is an empty string, a random 4-byte
+   *   string is generated.
+   *
+   * @return string
+   *   The hexadecimal representation of the binary data.
+   */
+  protected function binaryToHex($data) {
+    if (is_string($data) && empty($data)) {
+      return unpack("H*", drupal_random_bytes(4))[1];
+    }
+
+    if (is_string($data)) {
+      return unpack("H*", $data)[1];
+    }
+
+    return unpack("H*", serialize($data))[1];
+  }
 
   /**
    * Sets the prefix to use for the cache bin.
@@ -54,9 +90,9 @@ class DrupalApcCache implements DrupalCacheInterface {
       $prefixes = variable_get('cache_prefix', '');
     }
 
-    if (is_string($prefixes)) {
+    if (is_string($prefixes) && !empty($prefixes)) {
       // $prefixes can be a string used for all the cache bins.
-      $this->prefix = $prefixes;
+      $this->prefixes[0] = $this->binaryToHex($prefixes);
       return;
     }
 
@@ -65,18 +101,18 @@ class DrupalApcCache implements DrupalCacheInterface {
         if ($prefixes[$this->bin] === FALSE) {
           // If $prefixes[$this->bin] is FALSE, no prefix is used for that cache
           // bin, whichever value is used for $prefixes['default'].
-          $this->prefix = '';
+          $this->prefixes[0] = $this->binaryToHex('');
           return;
         }
 
         if (is_string($prefixes[$this->bin])) {
           // If $prefixes[$this->bin] is set and not FALSE, that value is used
           // for the cache bin.
-          $this->prefix = $prefixes[$this->bin];
+          $this->prefixes[0] = $this->binaryToHex($prefixes[$this->bin]);
         }
       }
       elseif (isset($prefixes['default']) && is_string($prefixes['default'])) {
-        $this->prefix = $prefixes['default'];
+        $this->prefixes[0] = $this->binaryToHex($prefixes['default']);
       }
     }
   }
@@ -101,7 +137,7 @@ class DrupalApcCache implements DrupalCacheInterface {
   protected function addDatabasePrefix() {
     global $databases;
 
-    if (empty($this->prefix) && isset($databases) && is_array($databases)) {
+    if (isset($databases) && is_array($databases)) {
       $db_info = '';
 
       if (isset($databases['default']['default']) && is_array($databases['default']['default'])) {
@@ -116,17 +152,11 @@ class DrupalApcCache implements DrupalCacheInterface {
         }
       }
 
-      $hash = substr(hash('sha256', $db_info, TRUE), 0, 16);
-      $this->prefix = drupal_base64_encode($hash);
+      $this->prefixes[2] = $this->binaryToHex($db_info);
     }
 
-    if (!empty($this->prefix) && substr($this->prefix, -2) !== '::') {
-      $this->prefix .= '::';
-    }
-
-    // In testing mode, add the test prefix.
     if ($test_prefix = drupal_valid_test_ua()) {
-      $this->prefix = $test_prefix . '::' . $this->prefix;
+      $this->prefixes[1] = $this->binaryToHex($test_prefix);
     }
   }
 
@@ -136,7 +166,9 @@ class DrupalApcCache implements DrupalCacheInterface {
     $this->setBinPrefix();
     $this->addDatabasePrefix();
 
-    $this->prefix = empty($this->prefix) ? 'apc_cache::' : "apc_cache::$this->prefix";
+    $data = $this->prefixes[0] . $this->bin;
+    $data = hash('sha256', $data, TRUE);
+    $this->binPrefix = drupal_base64_encode(substr($data, 0, 16));
   }
 
   /**
@@ -150,10 +182,13 @@ class DrupalApcCache implements DrupalCacheInterface {
    *   keys.
    */
   protected function keyName($cid = NULL) {
-    $key_name = $this->prefix . $this->bin . '::';
+    $key_name = $this->modulePrefix . '::' . $this->binPrefix . '::';
 
     if (!is_null($cid)) {
-      $key_name .= $cid;
+      $data = $this->prefixes[1] . $this->bin . $this->prefixes[2] . $cid;
+      $data = hash('sha256', $data, TRUE);
+      $data = drupal_base64_encode(substr($data, 0, 16));
+      $key_name .= $data;
     }
 
     return $key_name;

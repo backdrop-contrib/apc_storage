@@ -20,6 +20,17 @@ function apc_requirements($phase) {
 
   if (extension_loaded('apcu')) {
     $apcu_version = phpversion('apcu');
+
+    if ($apcu_version === FALSE) {
+      $severity = drupal_is_cli() ? REQUIREMENT_INFO : REQUIREMENT_ERROR;
+      $requirements['apc']['description'] = $t(
+        'The Alternative PHP Cache module needs the APCu extension to be enabled.'
+      );
+      $requirements['apc']['severity'] = $severity;
+
+      return $requirements;
+    }
+
     $required_version_installed = version_compare($apcu_version, '5.0.0') >= 0;
 
     if (!$required_version_installed) {

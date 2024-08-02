@@ -231,24 +231,24 @@ class ApcCacheSaveAndRetrieveCase extends ApcCacheTestCase {
     $values = array(
       $this->randomName() => TRUE,
       $this->randomName() => mt_rand(256, 1024),
-      $this->randoname() => mt_rand(256, 1024) / (float) mt_rand(32, 128),
+      $this->randomName() => mt_rand(256, 1024) / (float) mt_rand(32, 128),
       $this->randomName() => $this->randomString(),
       $this->randomName() => array(
         $this->randomName() => $this->randomString(),
         $this->randomName(16) => array(
           $this->randomName() => TRUE,
           $this->randomName() => mt_rand(256, 1024),
-          $this->randoname() => mt_rand(256, 1024) / (float) mt_rand(32, 128),
+          $this->randomName() => mt_rand(256, 1024) / (float) mt_rand(32, 128),
         ),
       ),
       $this->randomName() => (object) array(
         $this->randomName() => $this->randomString(),
         $this->randomName() => mt_rand(8, 128),
-        $this->randoname() => mt_rand(256, 1024) / (float) mt_rand(32, 128),
+        $this->randomName() => mt_rand(256, 1024) / (float) mt_rand(32, 128),
         $this->randomName(16) => array(
           $this->randomName() => TRUE,
           $this->randomName() => mt_rand(256, 1024),
-          $this->randoname() => mt_rand(256, 1024) / (float) mt_rand(32, 128),
+          $this->randomName() => mt_rand(256, 1024) / (float) mt_rand(32, 128),
         ),
       ),
     );
@@ -521,7 +521,7 @@ class ApcCacheExternalValuesCase extends ApcCacheTestCase {
   /**
    * Asserts that the APCu values stored from the test module are correct.
    */
-  protected function asserApcuValuesExist() {
+  protected function assertApcuValuesExist() {
     foreach ($this->externalValues as $key => $value) {
       $retrieved_value = apcu_fetch($key, $success);
       $this->assertTrue(

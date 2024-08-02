@@ -75,7 +75,7 @@ function apc_form_system_performance_settings_alter(&$form, $form_state) {
  */
 function apc_clear_apcu_cache() {
   if (apcu_enabled()) {
-    $iterator = new APCUIterator("/^apc_cache::/", APC_ITER_KEY);
+    $iterator = new APCUIterator("/^apc_cache::[a-zA-Z0-9-_]{20,}::[a-zA-Z0-9-_]{20,}/", APC_ITER_KEY);
 
     if (apcu_delete($iterator)) {
       drupal_set_message(t('The APCu cache has been cleared.'));

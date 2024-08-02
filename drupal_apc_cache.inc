@@ -428,12 +428,12 @@ class DrupalApcCache implements DrupalCacheInterface {
   /**
    * Adds a new operation to the list of operations.
    *
-   * @param array $new_operation
+   * @param array $operation
    *   The new operation to add.
    */
-  protected function addOperation($new_operation) {
-    if (is_array($new_operation)) {
-      self::$operations[] = $new_operation;
+  protected function addOperation($operation) {
+    if (variable_get('apc_show_debug', FALSE) && is_array($operation)) {
+      self::$operations[] = $operation;
     }
   }
 

@@ -21,7 +21,3 @@ tramp
 
 # Ignore the Visual Studio Code settings directory.
 /.vscode
-
-# Ignore the settings directory used by JetBrains IDEs.
-/.idea
-

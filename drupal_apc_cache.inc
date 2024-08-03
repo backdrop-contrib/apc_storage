@@ -100,11 +100,27 @@ class DrupalApcCache implements DrupalCacheInterface {
    * Sets the prefix to use for the cache bin.
    */
   protected function setBinPrefix() {
-    $prefixes = variable_get('apc_cache_prefix', '');
+    $default_empty_prefix = '';
+
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      $default_empty_prefix = apcu_fetch('apcu_cache::default_prefix', $success);
+
+      if (!$success) {
+        $default_empty_prefix = drupal_random_bytes(8);
+
+        if (!apcu_store('apcu_cache::default_prefix', $default_empty_prefix)) {
+          // Since it was not possible to store the value to use instead of the
+          // empty string, set $default_empty_prefix to an empty string.
+          $default_empty_prefix = '';
+        }
+      }
+    }
+
+    $prefixes = variable_get('apc_cache_prefix', $default_empty_prefix);
 
     // @todo Remove the following lines in the 7.x-2.x branch.
     if (empty($prefixes)) {
-      $prefixes = variable_get('cache_prefix', '');
+      $prefixes = variable_get('cache_prefix', $default_empty_prefix);
     }
 
     if (is_string($prefixes) && !empty($prefixes)) {
@@ -132,6 +148,10 @@ class DrupalApcCache implements DrupalCacheInterface {
         $this->prefixes[0] = $this->binaryToHex($prefixes['default']);
       }
     }
+
+    if (empty($prefixes)) {
+      $this->prefixes[0] = $this->binaryToHex('');
+    }
   }
 
   /**
@@ -153,6 +173,19 @@ class DrupalApcCache implements DrupalCacheInterface {
    */
   protected function addDatabasePrefix() {
     global $databases;
+    $default_empty_prefix = '';
+
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      $default_empty_prefix = apcu_fetch('apcu_cache::default_prefix', $success);
+
+      if (!$success) {
+        $default_empty_prefix = drupal_random_bytes(8);
+
+        if (!apcu_store('apcu_cache::default_prefix', $default_empty_prefix)) {
+          $default_empty_prefix = '';
+        }
+      }
+    }
 
     if (isset($databases) && is_array($databases)) {
       $data = '';
@@ -172,7 +205,7 @@ class DrupalApcCache implements DrupalCacheInterface {
       }
 
       if (empty($data)) {
-        $data = $this->binaryToHex($data);
+        $data = $this->binaryToHex($default_empty_prefix);
       }
 
       $this->prefixes[2] = $data;
@@ -182,7 +215,7 @@ class DrupalApcCache implements DrupalCacheInterface {
       $this->prefixes[1] = $this->binaryToHex($test_prefix);
     }
     else {
-      $this->prefixes[1] = $this->binaryToHex('');
+      $this->prefixes[1] = $this->binaryToHex($default_empty_prefix);
     }
   }
 
@@ -193,8 +226,7 @@ class DrupalApcCache implements DrupalCacheInterface {
     $this->addDatabasePrefix();
 
     $data = $this->prefixes[0] . $this->bin;
-    $data = hash('sha256', $data, TRUE);
-    $this->binPrefix = drupal_base64_encode(substr($data, 0, 16));
+    $this->binPrefix = drupal_base64_encode(hash('sha256', $data, TRUE));
   }
 
   /**
@@ -212,8 +244,7 @@ class DrupalApcCache implements DrupalCacheInterface {
 
     if (!is_null($cid)) {
       $data = $this->prefixes[1] . $this->bin . $this->prefixes[2] . $cid;
-      $data = hash('sha256', $data, TRUE);
-      $data = drupal_base64_encode(substr($data, 0, 16));
+      $data = drupal_base64_encode(hash('sha256', $data, TRUE));
       $key_name .= $data;
     }
 

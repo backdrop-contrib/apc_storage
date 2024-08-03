@@ -7,6 +7,46 @@
 
 // phpcs:disable SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator.NullCoalesceOperatorNotUsed
 
+
+/**
+ * Deletes APCu keys based on the provided patterns.
+ *
+ * It stores the list of keys to remove in a persistent variable, to be able to
+ * delete then later, in the case the APCu extension is not available.
+ *
+ * @param array $patterns
+ *  An associative array of patterns and their corresponding old patterns. Old
+ *  patterns are replaced by the new patterns, in the persistent variable.
+ */
+function _apc_delete_apcu_keys($patterns) {
+  $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
+  $apcu_keys_to_remove = variable_get('apc_apcu_keys_to_remove', array());
+
+  foreach ($patterns as $pattern => $old_pattern) {
+    if (!empty($old_pattern) && isset($apcu_keys_to_remove[$old_pattern])) {
+      unset($apcu_keys_to_remove[$old_pattern]);
+    }
+
+    $apcu_keys_to_remove[$pattern] = TRUE;
+  }
+
+  // Update the persistent variable, just in case an error does not allow the
+  // code to terminate.
+  variable_set('apc_apcu_keys_to_remove', $apcu_keys_to_remove);
+
+  if ($apcu_enabled && class_exists('APCUIterator')) {
+    foreach (array_keys($apcu_keys_to_remove) as $pattern) {
+      $pattern = '/^' . preg_quote($pattern, '/') . '/';
+      $iterator = new APCUIterator($pattern, APC_ITER_KEY);
+
+      apcu_delete($iterator);
+      unset($apcu_keys_to_remove[$pattern]);
+    }
+  }
+
+  variable_set('apc_apcu_keys_to_remove', $apcu_keys_to_remove);
+}
+
 /**
  * Implements hook_requirements().
  */
@@ -89,12 +129,7 @@ function apc_update_7101() {
  * Delete the APCu keys starting with apc_cache_ as they are no longer used.
  */
 function apc_update_7102() {
-  $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
-
-  if ($apcu_enabled && class_exists('APCUIterator')) {
-    $iterator = new APCUIterator('/^apc_cache_/', APC_ITER_KEY);
-    apcu_delete($iterator);
-  }
+  _apc_delete_apcu_keys(array('apc_cache_' => 'apc_cache_'));
 }
 
 /**
@@ -108,12 +143,7 @@ function apc_update_7103() {
  * Delete the APCu keys starting with apc_cache:: to create the new keys.
  */
 function apc_update_7104() {
-  $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
-
-  if ($apcu_enabled && class_exists('APCUIterator')) {
-    $iterator = new APCUIterator('/^apc_cache::/', APC_ITER_KEY);
-    apcu_delete($iterator);
-  }
+  _apc_delete_apcu_keys(array('apc_cache::' => ''));
 }
 
 /**
@@ -126,4 +156,7 @@ function apc_uninstall() {
     $iterator = new APCUIterator('/^apc_cache::[a-zA-Z0-9-_]{20,}::[a-zA-Z0-9-_]{20,}/', APC_ITER_KEY);
     apcu_delete($iterator);
   }
+
+  // Deleted all the persistent variables used by the module.
+  variable_del('apc_apcu_keys_to_remove');
 }

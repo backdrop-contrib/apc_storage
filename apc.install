@@ -7,7 +7,6 @@
 
 // phpcs:disable SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator.NullCoalesceOperatorNotUsed
 
-
 /**
  * Deletes APCu keys based on the provided patterns.
  *
@@ -15,8 +14,8 @@
  * delete then later, in the case the APCu extension is not available.
  *
  * @param array $patterns
- *  An associative array of patterns and their corresponding old patterns. Old
- *  patterns are replaced by the new patterns, in the persistent variable.
+ *   An associative array of patterns and their corresponding old patterns. Old
+ *   patterns are replaced by the new patterns, in the persistent variable.
  */
 function _apc_delete_apcu_keys($patterns) {
   $apcu_enabled = extension_loaded('apcu') && apcu_enabled();

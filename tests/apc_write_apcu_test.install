@@ -36,6 +36,6 @@ function apc_write_apcu_test_uninstall() {
     apcu_delete('apc_cache');
     apcu_delete('apc_cache::');
     apcu_delete('apc_store::apc_cache');
-    apcu_delete('apc_write_apcu_test::count');
+    apcu_delete('apc_write_apcu_test::keys');
   }
 }

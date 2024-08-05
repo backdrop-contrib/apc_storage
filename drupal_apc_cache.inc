@@ -343,7 +343,7 @@ class DrupalApcCache implements DrupalCacheInterface {
           // For apcu_store(), using 0 as TTL means the stored data will never
           // expire. The minimum lifetime is one second.
           $cache_lifetime = variable_get('cache_lifetime', 0);
-          $ttl = $cache_lifetime > 0 ? $cache_lifetime : 1;
+          $ttl = max(1, $cache_lifetime);
           break;
 
         default:

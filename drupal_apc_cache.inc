@@ -279,7 +279,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    *   load.
    */
   protected function prepareItem($cache) {
-    return isset($cache->data) ? $cache->data : FALSE;
+    return isset($cache->data) ? $cache : FALSE;
   }
 
   /**

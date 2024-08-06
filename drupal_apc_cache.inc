@@ -73,7 +73,9 @@ class DrupalApcCache implements DrupalCacheInterface {
     }
     elseif (is_string($data)) {
       if ($data === '') {
-        return unpack("H*", "\2\1\4")[1];
+        // If an empty string is an acceptable value for the caller, return an
+        // empty string.
+        return '';
       }
 
       return unpack("H*", "\0\0\4$data")[1];

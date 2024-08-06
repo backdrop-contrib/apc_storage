@@ -16,13 +16,6 @@
 class DrupalApcCache implements DrupalCacheInterface {
 
   /**
-   * Requests to clear the cache to send via XML-RPC to the server.
-   *
-   * @var array
-   */
-  protected static $pendingRequests = array();
-
-  /**
    * The list of all the operations done to the cache.
    *
    * @var array
@@ -388,14 +381,6 @@ class DrupalApcCache implements DrupalCacheInterface {
    * {@inheritdoc}
    */
   public function clear($cid = NULL, $wildcard = FALSE) {
-    if (drupal_is_cli()) {
-      // APCu uses a separate storage for CLI. Store these requests to be sent
-      // to the server via XML-RPC.
-      self::$pendingRequests[$this->bin][serialize($cid)] = $wildcard;
-
-      return;
-    }
-
     if (empty($cid)) {
       $this->deleteKeys();
     }
@@ -431,19 +416,6 @@ class DrupalApcCache implements DrupalCacheInterface {
     }
 
     return TRUE;
-  }
-
-  /**
-   * Retrieves the requests that should be sent to the server via XML-RPC.
-   *
-   * @return array
-   *   An array of requests.
-   *   The array contains a key for each bin which must be cleared. The value
-   *   for those keys is an array of cache IDs, whose value is TRUE if the cache
-   *   ID is a wildcard string or FALSE otherwise.
-   */
-  public static function pendingRequests() {
-    return self::$pendingRequests;
   }
 
   /**

@@ -2,4 +2,5 @@ name = Alternative PHP Cache
 description = Integrates the APCu extension with Drupal.
 package = Performance and scalability
 core = 7.x
+files[] = apc.test
 files[] = drupal_apc_cache.inc

@@ -851,13 +851,13 @@ class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
 
       if ($this->assertTrue(!empty($stored), $message)) {
         $cleared_cid = array_pop($stored);
-        $options = array('message' => '@bin/@cache_id has been removed by cache_clear_all().');
+        $options = array('message' => '@bin/@cache_id was removed by cache_clear_all().');
 
         cache_clear_all($cleared_cid, $bin);
 
         $this->assertNoCacheItem($bin, $cleared_cid, $options);
 
-        $options = array('message' => '@bin/@cache_id has been not been removed by cache_clear_all().');
+        $options = array('message' => '@bin/@cache_id was not removed by cache_clear_all().');
 
         foreach ($stored as $cid) {
           $this->assertCacheItem($bin, $cid, $options);
@@ -891,25 +891,23 @@ class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
       $message = 'New items have been stored in the cache.';
 
       if ($this->assertTrue(!empty($stored), $message)) {
-        $options = array('message' => '@bin/@cache_id has been not been removed by cache_clear_all().');
+        $options = array('message' => '@bin/@cache_id was not removed by cache_clear_all().');
 
         cache_clear_all('*', $bin);
 
-        // Since cache_clear_all() has not been called setting its last
-        // parameter to TRUE, '*' is the literal value for the cache ID. No
-        // cache item has been stored with that cache ID, so they all must still
-        // exist.
+        // Since cache_clear_all() was not called with TRUE as last parameter,
+        // '*' is the literal value for the cache ID. No cache item is stored
+        // with that cache ID, so all the cache items still exist.
         foreach ($stored as $cid) {
           $this->assertCacheItem($bin, $cid, $options);
         }
 
         cache_clear_all('*', $bin, TRUE);
 
-        $options = array('message' => '@bin/@cache_id has been removed by cache_clear_all().');
+        $options = array('message' => '@bin/@cache_id was removed by cache_clear_all().');
 
-        // Since cache_clear_all() has been called setting its last
-        // parameter to TRUE, '*' matches all the cache IDs stored for the bin.
-        // All the existing cache IDs are cleared.
+        // Since cache_clear_all() was called with TRUE as last parameter, all
+        // the cache items were removed.
         foreach ($stored as $cid) {
           $this->assertNoCacheItem($bin, $cid, $options);
         }
@@ -921,58 +919,52 @@ class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
    * Tests cache_clear_all() passing TRUE as last parameter.
    */
   public function testClearWildcard() {
+    $cache_id_prefixes = array('clear_first_time_by_wildcard_', 'clear_second_time_by_wildcard_');
     $stored = array();
 
     if ($this->skipTest) {
       return;
     }
 
-    // This test is temporarily disabled until an issue in the cache back-end
-    // class has not been fixed.
-    if (!$this->pass('This test is temporarily disabled.')) {
-      if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
-        $bin = $this->getCacheBins()[0];
+    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+      $bin = $this->getCacheBins()[0];
 
-        foreach (array('clear_by_wildcard_', 'no_clear_by_wildcard_') as $prefix) {
-          foreach ($this->storageData() as $id => $data) {
-            $cid = "$prefix$id";
+      foreach ($cache_id_prefixes as $prefix) {
+        foreach ($this->storageData() as $id => $data) {
+          $cid = "$prefix$id";
 
-            cache_set($cid, $data['value'], $bin);
+          cache_set($cid, $data['value'], $bin);
 
-            if ($this->assertCacheItem($bin, $cid, array('value' => $data['value']))) {
-              $stored[] = $cid;
-            }
+          if ($this->assertCacheItem($bin, $cid, array('value' => $data['value']))) {
+            $stored[] = $cid;
+          }
+        }
+      }
+
+      $message = 'New items were stored in the cache.';
+
+      if ($this->assertTrue(!empty($stored), $message)) {
+        cache_clear_all($cache_id_prefixes[0], $bin, TRUE);
+
+        foreach ($stored as $cid) {
+          if (strpos($cid, $cache_id_prefixes[0]) === 0) {
+            $options = array('message' => '@bin/@cache_id was removed by cache_clear_all().');
+
+            $this->assertNoCacheItem($bin, $cid, $options);
+          }
+          else {
+            $options = array('message' => '@bin/@cache_id was not removed by cache_clear_all().');
+
+            $this->assertCacheItem($bin, $cid, $options);
           }
         }
 
-        $message = 'New items have been stored in the cache.';
+        $options = array('message' => '@bin/@cache_id was removed by cache_clear_all().');
 
-        if ($this->assertTrue(!empty($stored), $message)) {
-          cache_clear_all('clear_by_wildcard_', $bin);
+        cache_clear_all($cache_id_prefixes[1], $bin, TRUE);
 
-          foreach ($stored as $cid) {
-            // Check the cache ID starts with 'clear_by_wildcard_' and has been
-            // removed.
-            if (strpos($cid, 'clear_by_wildcard_') === 0) {
-              $options = array('message' => '@bin/@cache_id has been removed by cache_clear_all().');
-
-              $this->assertNoCacheItem($bin, $cid, $options);
-            }
-            else {
-              $options = array('message' => '@bin/@cache_id has not been removed by cache_clear_all().');
-
-              $this->assertCacheItem($bin, $cid, $options);
-            }
-          }
-
-          $options = array('message' => '@bin/@cache_id has been removed by cache_clear_all().');
-
-          // Since cache_clear_all() has been called setting its last
-          // parameter to TRUE, '*' matches all the cache IDs stored for the
-          // bin. All the existing cache IDs are cleared.
-          foreach ($stored as $cid) {
-            $this->assertNoCacheItem($bin, $cid, $options);
-          }
+        foreach ($stored as $cid) {
+          $this->assertNoCacheItem($bin, $cid, $options);
         }
       }
     }

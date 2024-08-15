@@ -15,7 +15,7 @@
  *
  * @param array $patterns
  *   An associative array of patterns and their corresponding old patterns. Old
- *   patterns are replaced by the new patterns, in the persistent variable.
+ *   patterns are replaced by the new patterns.
  */
 function _apc_delete_apcu_keys($patterns) {
   $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
@@ -125,10 +125,10 @@ function apc_update_7101() {
 }
 
 /**
- * Delete the APCu keys starting with apc_cache_ as they are no longer used.
+ * Delete the APCu keys no longer used for the cache.
  */
 function apc_update_7102() {
-  _apc_delete_apcu_keys(array('apc_cache_' => 'apc_cache_'));
+  _apc_delete_apcu_keys(array('apc_cache_' => ''));
 }
 
 /**
@@ -139,17 +139,24 @@ function apc_update_7103() {
 }
 
 /**
- * Delete the APCu keys starting with apc_cache:: to create the new keys.
+ * Delete the APCu keys previously used for the cache.
  */
 function apc_update_7104() {
   _apc_delete_apcu_keys(array('apc_cache::' => ''));
 }
 
 /**
- * Delete the APCu keys starting with apc_cache:: to create the new keys.
+ * Delete the APCu keys previously used for the cache.
  */
 function apc_update_7105() {
-  _apc_delete_apcu_keys('apc_cache::[a-zA-Z0-9-_]{20,}::[a-zA-Z0-9-_]{20,}');
+  _apc_delete_apcu_keys(array('apc_cache::[a-zA-Z0-9-_]{20,}::[a-zA-Z0-9-_]{20,}' => ''));
+}
+
+/**
+ * Delete the cache items stored on APCu to avoid duplicate items.
+ */
+function apc_update_7106() {
+  _apc_delete_apcu_keys(array('apc_cache::' => 'apc_cache::[a-zA-Z0-9-_]{20,}::[a-zA-Z0-9-_]{20,}'));
 }
 
 /**
@@ -159,8 +166,10 @@ function apc_uninstall() {
   $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
 
   if ($apcu_enabled && class_exists('APCUIterator')) {
-    $iterator = new APCUIterator('/^apc_cache::[a-zA-Z0-9-_]{40,46}::[a-zA-Z0-9-_]{40,46}/', APC_ITER_KEY);
+    $iterator = new APCUIterator('/^apc_cache::[a-zA-Z0-9-_]{40,46}::[0-9a-f]{2,}/', APC_ITER_KEY);
     apcu_delete($iterator);
+
+    $iterator = new APCUIterator('/^apc_cache::()/', APC_ITER_KEY);
   }
 
   // Deleted all the persistent variables used by the module.

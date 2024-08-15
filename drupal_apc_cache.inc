@@ -51,48 +51,20 @@ class DrupalApcCache implements DrupalCacheInterface {
   protected $modulePrefix = 'apc_cache';
 
   /**
-   * Converts binary data to a hexadecimal representation.
+   * Converts a binary string to a hexadecimal representation.
    *
-   * @param mixed $data
-   *   The binary data to convert. If it is an empty string, a random 4-byte
-   *   string is generated.
+   * @param string $data
+   *   The binary string to convert.
    *
    * @return string
-   *   The hexadecimal representation of the binary data.
+   *   The hexadecimal representation of the binary string.
    */
   protected function binaryToHex($data) {
-    if (is_array($data)) {
-      if (empty($data)) {
-        return unpack("H*", "\2\5\6")[1];
-      }
-
-      return unpack("H*", "\0\4\6" . serialize($data))[1];
-    }
-    elseif (is_bool($data)) {
-      return $data ? "\3\0\5\1" : "\3\1\5\0";
-    }
-    elseif (is_string($data)) {
-      if ($data === '') {
-        // If an empty string is an acceptable value for the caller, return an
-        // empty string.
-        return '';
-      }
-
-      return unpack("H*", "\0\0\4$data")[1];
-    }
-    elseif (is_object($data) && get_class($data) === 'stdClass') {
-      return unpack("H*", "\0\4\3" . var_export((object) (array) $data, TRUE))[1];
-    }
-    elseif (is_object($data)) {
-      return unpack("H*", "\0\4\2" . var_export($data, TRUE))[1];
-    }
-    else {
-      return unpack("H*", "\0\0\1" . var_export($data, TRUE))[1];
-    }
+    return unpack('H*', $data)[1];
   }
 
   /**
-   * Sets the prefix to use for the cache bin.
+   * Sets the one of the strings used for the APCu storage key.
    */
   protected function setBinPrefix() {
     $default_empty_prefix = '';
@@ -105,7 +77,7 @@ class DrupalApcCache implements DrupalCacheInterface {
 
         if (!apcu_store('apcu_cache::default_prefix', $default_empty_prefix)) {
           // Since it was not possible to store the value to use instead of the
-          // empty string, set $default_empty_prefix to an empty string.
+          // empty string, set $default_empty_prefix back to an empty string.
           $default_empty_prefix = '';
         }
       }
@@ -150,24 +122,11 @@ class DrupalApcCache implements DrupalCacheInterface {
   }
 
   /**
-   * Adds the database prefix to the bin prefix.
-   *
-   * This method checks if the $prefix property is empty and if the global
-   * $databases variable is set and is an array. If these conditions are met,
-   * it generates a prefix based on the database connection information.
-   *
-   * The generated prefix is an SHA-256 hash of the concatenated values of the
-   * 'host', 'database', and 'prefix' keys from the 'default' array in the
-   * 'default' array of the $databases variable.
-   *
-   * If the generated prefix is not empty and does not end with '::', the
-   * '::' string is appended to the prefix.
-   *
-   * If the site is in testing mode, the generated prefix is prepended with the
-   * value returned by drupal_valid_test_ua().
+   * Sets two of the strings used for the APCu storage key.
    */
-  protected function addDatabasePrefix() {
+  protected function setDatabasePrefix() {
     global $databases;
+
     $default_empty_prefix = '';
 
     if (extension_loaded('apcu') && apcu_enabled()) {
@@ -177,33 +136,31 @@ class DrupalApcCache implements DrupalCacheInterface {
         $default_empty_prefix = drupal_random_bytes(8);
 
         if (!apcu_store('apcu_cache::default_prefix', $default_empty_prefix)) {
+          // Since it was not possible to store the value to use instead of the
+          // empty string, set $default_empty_prefix back to an empty string.
           $default_empty_prefix = '';
         }
       }
     }
 
     if (isset($databases) && is_array($databases)) {
-      $data = '';
+      $data = array();
 
       if (isset($databases['default']['default']) && is_array($databases['default']['default'])) {
         if (isset($databases['default']['default']['host'])) {
-          $data .= $this->binaryToHex($databases['default']['default']['host']);
+          $data['host'] = $databases['default']['default']['host'];
         }
 
         if (isset($databases['default']['default']['database'])) {
-          $data .= $this->binaryToHex($databases['default']['default']['database']);
+          $data['database'] = $databases['default']['default']['database'];
         }
 
         if (isset($databases['default']['default']['prefix'])) {
-          $data .= $this->binaryToHex($databases['default']['default']['prefix']);
+          $data['prefix'] = $databases['default']['default']['prefix'];
         }
       }
 
-      if (empty($data)) {
-        $data = $this->binaryToHex($default_empty_prefix);
-      }
-
-      $this->prefixes[2] = $data;
+      $this->prefixes[2] = $this->binaryToHex(serialize($data));
     }
 
     if ($test_prefix = drupal_valid_test_ua()) {
@@ -218,10 +175,11 @@ class DrupalApcCache implements DrupalCacheInterface {
     $this->bin = $bin;
 
     $this->setBinPrefix();
-    $this->addDatabasePrefix();
+    $this->setDatabasePrefix();
 
-    $data = $this->prefixes[0] . $this->bin;
-    $this->binPrefix = drupal_base64_encode(hash('sha256', $data, TRUE));
+    $data = $this->prefixes[0] . $this->bin . $this->prefixes[1];
+    $data = $this->prefixes[2] . hash('sha256', $data, TRUE);
+    $this->binPrefix = drupal_base64_encode($data);
   }
 
   /**
@@ -237,10 +195,8 @@ class DrupalApcCache implements DrupalCacheInterface {
   protected function keyName($cid = NULL) {
     $key_name = $this->modulePrefix . '::' . $this->binPrefix . '::';
 
-    if (!is_null($cid)) {
-      $data = $this->prefixes[1] . $this->bin . $this->prefixes[2] . $cid;
-      $data = drupal_base64_encode(hash('sha256', $data, TRUE));
-      $key_name .= $data;
+    if (!is_null($cid) && $cid != '') {
+      $key_name .= $this->binaryToHex($cid);
     }
 
     return $key_name;

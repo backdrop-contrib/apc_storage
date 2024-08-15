@@ -118,45 +118,17 @@ function apc_requirements($phase) {
 }
 
 /**
+ * Implements hook_last_removed().
+ */
+function apc_last_removed() {
+  return 7106;
+}
+
+/**
  * Clear the APCu storage since the prefix used for the cache bins has changed.
  */
-function apc_update_7101() {
+function apc_update_7200() {
   apcu_clear_cache();
-}
-
-/**
- * Delete the APCu keys no longer used for the cache.
- */
-function apc_update_7102() {
-  _apc_delete_apcu_keys(array('apc_cache_' => ''));
-}
-
-/**
- * Rebuild the code registry, as a class file has been moved.
- */
-function apc_update_7103() {
-  registry_rebuild();
-}
-
-/**
- * Delete the APCu keys previously used for the cache.
- */
-function apc_update_7104() {
-  _apc_delete_apcu_keys(array('apc_cache::' => ''));
-}
-
-/**
- * Delete the APCu keys previously used for the cache.
- */
-function apc_update_7105() {
-  _apc_delete_apcu_keys(array('apc_cache::[a-zA-Z0-9-_]{20,}::[a-zA-Z0-9-_]{20,}' => ''));
-}
-
-/**
- * Delete the cache items stored on APCu to avoid duplicate items.
- */
-function apc_update_7106() {
-  _apc_delete_apcu_keys(array('apc_cache::' => 'apc_cache::[a-zA-Z0-9-_]{20,}::[a-zA-Z0-9-_]{20,}'));
 }
 
 /**
@@ -167,9 +139,10 @@ function apc_uninstall() {
 
   if ($apcu_enabled && class_exists('APCUIterator')) {
     $iterator = new APCUIterator('/^apc_cache::[a-zA-Z0-9-_]{40,46}::[0-9a-f]{2,}/', APC_ITER_KEY);
-    apcu_delete($iterator);
 
-    $iterator = new APCUIterator('/^apc_cache::()/', APC_ITER_KEY);
+    // Delete all the APCu keys used by the module.
+    apcu_delete($iterator);
+    apcu_delete('apc_cache::default_prefix');
   }
 
   // Deleted all the persistent variables used by the module.

@@ -70,12 +70,12 @@ class DrupalApcCache implements DrupalCacheInterface {
     $default_empty_prefix = '';
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $default_empty_prefix = apcu_fetch('apcu_cache::default_prefix', $success);
+      $default_empty_prefix = apcu_fetch('apc_cache::default_prefix', $success);
 
       if (!$success) {
         $default_empty_prefix = drupal_random_bytes(8);
 
-        if (!apcu_store('apcu_cache::default_prefix', $default_empty_prefix)) {
+        if (!apcu_store('apc_cache::default_prefix', $default_empty_prefix)) {
           // Since it was not possible to store the value to use instead of the
           // empty string, set $default_empty_prefix back to an empty string.
           $default_empty_prefix = '';
@@ -130,12 +130,12 @@ class DrupalApcCache implements DrupalCacheInterface {
     $default_empty_prefix = '';
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $default_empty_prefix = apcu_fetch('apcu_cache::default_prefix', $success);
+      $default_empty_prefix = apcu_fetch('apc_cache::default_prefix', $success);
 
       if (!$success) {
         $default_empty_prefix = drupal_random_bytes(8);
 
-        if (!apcu_store('apcu_cache::default_prefix', $default_empty_prefix)) {
+        if (!apcu_store('apc_cache::default_prefix', $default_empty_prefix)) {
           // Since it was not possible to store the value to use instead of the
           // empty string, set $default_empty_prefix back to an empty string.
           $default_empty_prefix = '';

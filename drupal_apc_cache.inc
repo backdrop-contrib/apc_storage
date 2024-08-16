@@ -208,7 +208,7 @@ class DrupalApcCache implements DrupalCacheInterface {
   public function get($cid) {
     $this->addOperation(array('get()', $this->bin, array($cid)));
 
-    if (apcu_enabled()) {
+    if (extension_loaded('apcu') && apcu_enabled()) {
       $data = apcu_fetch($this->keyName($cid), $success);
 
       if (!$success) {
@@ -251,7 +251,7 @@ class DrupalApcCache implements DrupalCacheInterface {
       return $cache;
     }
 
-    if (apcu_enabled()) {
+    if (extension_loaded('apcu') && apcu_enabled()) {
       foreach ($cids as $cid) {
         $data = apcu_fetch($this->keyName($cid), $success);
 
@@ -273,7 +273,7 @@ class DrupalApcCache implements DrupalCacheInterface {
     // Add set to statistics.
     $this->addOperation(array('set()', $this->bin, $cid));
 
-    if (apcu_enabled()) {
+    if (extension_loaded('apcu') && apcu_enabled()) {
       // Create new cache object.
       $cache = new stdClass();
       $cache->cid = $cid;
@@ -313,7 +313,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    *   The cache ID of the item to delete.
    */
   protected function deleteKey($cid) {
-    if (apcu_enabled()) {
+    if (extension_loaded('apcu') && apcu_enabled()) {
       $this->addOperation(array('deleteKey()', $this->bin, $cid));
       apcu_delete($this->keyName($cid));
     }
@@ -326,7 +326,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    *   The prefix for the cache IDs to delete.
    */
   protected function deleteKeys($prefix = NULL) {
-    if (apcu_enabled() && class_exists('APCUIterator')) {
+    if (extension_loaded('apcu') && apcu_enabled() && class_exists('APCUIterator')) {
       $this->addOperation(array('deleteKeys()', $this->bin, $prefix));
 
       $escaped_key = preg_quote($this->keyName($prefix), '/');
@@ -366,7 +366,7 @@ class DrupalApcCache implements DrupalCacheInterface {
    * {@inheritdoc}
    */
   public function isEmpty() {
-    if (apcu_enabled() && class_exists('APCUIterator')) {
+    if (extension_loaded('apcu') && apcu_enabled() && class_exists('APCUIterator')) {
       $escaped_key = preg_quote($this->keyName(), '/');
       $iterator = new APCUIterator('/^' . $escaped_key . '/', APC_ITER_KEY);
 

@@ -17,7 +17,7 @@
  *   An associative array of patterns and their corresponding old patterns. Old
  *   patterns are replaced by the new patterns.
  */
-function _apc_delete_apcu_keys($patterns) {
+function _apc_delete_apcu_keys($patterns = array()) {
   $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
   $apcu_keys_to_remove = variable_get('apc_apcu_keys_to_remove', array());
 
@@ -41,9 +41,9 @@ function _apc_delete_apcu_keys($patterns) {
       apcu_delete($iterator);
       unset($apcu_keys_to_remove[$pattern]);
     }
-  }
 
-  variable_set('apc_apcu_keys_to_remove', $apcu_keys_to_remove);
+    variable_set('apc_apcu_keys_to_remove', $apcu_keys_to_remove);
+  }
 }
 
 /**
@@ -121,14 +121,18 @@ function apc_requirements($phase) {
  * Implements hook_last_removed().
  */
 function apc_last_removed() {
-  return 7106;
+  return 7107;
 }
 
 /**
  * Clear the APCu storage since the prefix used for the cache bins has changed.
  */
 function apc_update_7200() {
-  apcu_clear_cache();
+  _apc_delete_apcu_keys();
+
+  if (extension_loaded('apcu') && apcu_enabled()) {
+    apcu_clear_cache();
+  }
 }
 
 /**

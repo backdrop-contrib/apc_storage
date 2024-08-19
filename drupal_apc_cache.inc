@@ -67,27 +67,11 @@ class DrupalApcCache implements DrupalCacheInterface {
    * Sets the one of the strings used for the APCu storage key.
    */
   protected function setBinPrefix() {
-    $default_empty_prefix = '';
-
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      $default_empty_prefix = apcu_fetch('apc_cache::default_prefix', $success);
-
-      if (!$success) {
-        $default_empty_prefix = drupal_random_bytes(8);
-
-        if (!apcu_store('apc_cache::default_prefix', $default_empty_prefix)) {
-          // Since it was not possible to store the value to use instead of the
-          // empty string, set $default_empty_prefix back to an empty string.
-          $default_empty_prefix = '';
-        }
-      }
-    }
-
-    $prefixes = variable_get('apc_cache_prefix', $default_empty_prefix);
+    $prefixes = variable_get('apc_cache_prefix', '');
 
     // @todo Remove the following lines in the 7.x-2.x branch.
     if (empty($prefixes)) {
-      $prefixes = variable_get('cache_prefix', $default_empty_prefix);
+      $prefixes = variable_get('cache_prefix', '');
     }
 
     if (is_string($prefixes) && !empty($prefixes)) {
@@ -127,22 +111,6 @@ class DrupalApcCache implements DrupalCacheInterface {
   protected function setDatabasePrefix() {
     global $databases;
 
-    $default_empty_prefix = '';
-
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      $default_empty_prefix = apcu_fetch('apc_cache::default_prefix', $success);
-
-      if (!$success) {
-        $default_empty_prefix = drupal_random_bytes(8);
-
-        if (!apcu_store('apc_cache::default_prefix', $default_empty_prefix)) {
-          // Since it was not possible to store the value to use instead of the
-          // empty string, set $default_empty_prefix back to an empty string.
-          $default_empty_prefix = '';
-        }
-      }
-    }
-
     if (isset($databases) && is_array($databases)) {
       $data = array();
 
@@ -167,7 +135,7 @@ class DrupalApcCache implements DrupalCacheInterface {
       $this->prefixes[1] = $this->binaryToHex($test_prefix);
     }
     else {
-      $this->prefixes[1] = $this->binaryToHex($default_empty_prefix);
+      $this->prefixes[1] = $this->binaryToHex('');
     }
   }
 
@@ -192,10 +160,10 @@ class DrupalApcCache implements DrupalCacheInterface {
    *   The key which can be used in APC calls to avoid conflicts with other
    *   keys.
    */
-  protected function keyName($cid = NULL) {
+  protected function keyName($cid = '') {
     $key_name = $this->modulePrefix . '::' . $this->binPrefix . '::';
 
-    if (!is_null($cid) && $cid != '') {
+    if ($cid != '') {
       $key_name .= $this->binaryToHex($cid);
     }
 

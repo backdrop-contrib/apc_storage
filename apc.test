@@ -5,15 +5,17 @@
  * Test classes for the Alternative PHP Cache module.
  */
 
+// phpcs:disable SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator.NullCoalesceOperatorNotUsed
+
 /**
  * Methods and properties for all the test classes that write directly to APCu.
  */
-trait ApcTestTrait {
+trait ApcApcuTestTrait {
 
   /**
    * Whether the test should be skipped.
    *
-   * ApcTestTrait::checkRequirements() will set this property to TRUE if the
+   * ApcApcuTestTrait::checkRequirements() will set this property to TRUE if the
    * requirements for the test to run are not met.
    *
    * @var bool
@@ -295,14 +297,18 @@ trait ApcTestTrait {
    * @param string $key
    *   The prefix to search for in APCu keys, excluding the regular expression
    *   delimiters and the ^ anchor.
+   * @param array $options
+   *   An array of options, which can contain the following keys:
+   *     - message: A custom message to display upon assertion.
    *
    * @return bool
    *   TRUE if there are APCu keys matching the prefix, FALSE otherwise.
    */
-  protected function assertApcuKeysByPrefix($key) {
+  protected function assertApcuKeysByPrefix($key, $options = array()) {
     $escaped_key = preg_quote($key, '/');
     $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
-    $message = format_string('There are APCu keys matching @key.', array('@key' => $this->varExport("/^$escaped_key/")));
+    $message = isset($options['message']) ? $options['message'] : 'There are APCu keys matching @key.';
+    $message = format_string($message, array('@key' => $this->varExport("/^$escaped_key/")));
 
     return $this->assertTrue($iterator->getTotalCount() > 0, $message);
   }
@@ -313,14 +319,18 @@ trait ApcTestTrait {
    * @param string $key
    *   The prefix to search for in APCu keys, excluding the regular expression
    *   delimiters and the ^ anchor.
+   * @param array $options
+   *   An array of options, which can contain the following keys:
+   *     - message: A custom message to display upon assertion.
    *
    * @return bool
    *   TRUE if there are no APCu keys matching the prefix, FALSE otherwise.
    */
-  protected function assertNoApcuKeysByPrefix($key) {
+  protected function assertNoApcuKeysByPrefix($key, $options = array()) {
     $escaped_key = preg_quote($key, '/');
     $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
-    $message = format_string('There are no APCu keys matching @key.', array('@key' => $this->varExport("/^$escaped_key/")));
+    $message = isset($options['message']) ? $options['message'] : 'There are no APCu keys matching @key.';
+    $message = format_string($message, array('@key' => $this->varExport("/^$escaped_key/")));
 
     return $this->assertTrue($iterator->getTotalCount() === 0, $message);
   }
@@ -330,9 +340,9 @@ trait ApcTestTrait {
 /**
  * Base class for the test classes that write directly to APCu.
  */
-class ApcBaseTestCase extends DrupalUnitTestCase {
+class ApcApcuBaseTestCase extends DrupalUnitTestCase {
 
-  use ApcTestTrait;
+  use ApcApcuTestTrait;
 
   /**
    * {@inheritdoc}
@@ -355,7 +365,7 @@ class ApcBaseTestCase extends DrupalUnitTestCase {
 /**
  * Unit tests for reading and writing the APCu storage.
  */
-class ApcApcuStoreAndRetrieveTestCase extends ApcBaseTestCase {
+class ApcApcuStoreAndRetrieveTestCase extends ApcApcuBaseTestCase {
 
   /**
    * {@inheritdoc}
@@ -419,9 +429,8 @@ class ApcApcuStoreAndRetrieveTestCase extends ApcBaseTestCase {
       $message = 'New items were stored in APCu.';
 
       if ($this->assertTrue(!empty($stored), $message)) {
-        // Increase the TTL set by ApcTestTrait::storageData() by 2 seconds to
-        // be sure that non-permanent values are purged when the APCU storage is
-        // read.
+        // Halt the tests for 10 seconds, which is 2 seconds more than the
+        // maximum TTL set by ApcApcuTestTrait::storageData().
         $message = format_string('The test will be halted for @delay seconds.', array('@delay' => 10));
         $persistent_key_message = '@key persists and it was found.';
         $purgeable_key_message = '@key was purgeable and it was not found.';
@@ -453,6 +462,8 @@ class ApcApcuStoreAndRetrieveTestCase extends ApcBaseTestCase {
  * Methods and properties for all the cache test classes.
  */
 trait ApcCacheTestTrait {
+
+  use ApcApcuTestTrait;
 
   /**
    * The cache bins to store on APCu.
@@ -692,7 +703,6 @@ trait ApcCacheTestTrait {
  */
 class ApcCacheBaseTestCase extends DrupalUnitTestCase {
 
-  use ApcTestTrait;
   use ApcCacheTestTrait;
 
   /**
@@ -703,7 +713,7 @@ class ApcCacheBaseTestCase extends DrupalUnitTestCase {
 
     parent::setUp();
 
-    $conf['cache_backends'][] = drupal_get_path('module', 'apc') . '/' . 'drupal_apc_cache.inc';
+    $conf['cache_backends'][] = drupal_get_path('module', 'apc') . '/drupal_apc_cache.inc';
 
     foreach ($this->getCacheBins() as $cache_bin) {
       $conf["cache_class_$cache_bin"] = 'DrupalApcCache';
@@ -739,7 +749,6 @@ class ApcCacheBaseTestCase extends DrupalUnitTestCase {
  */
 class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
 
-  use ApcTestTrait;
   use ApcCacheTestTrait;
 
   /**
@@ -900,7 +909,6 @@ class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
  */
 class ApcCacheConflictingKeysTestCase extends ApcCacheBaseTestCase {
 
-  use ApcTestTrait;
   use ApcCacheTestTrait;
 
   /**
@@ -1150,8 +1158,9 @@ class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
       $message = 'New items were stored in the cache.';
 
       if ($this->assertTrue(!empty($stored), $message)) {
-        // Add 2 seconds to the maximum TTL ApcTestTrait::storageData() sets to
-        // be sure that non-permanent values are purged when the cache is read.
+        // Add 2 seconds to the maximum TTL ApcApcuTestTrait::storageData() sets
+        // to be sure that non-permanent values are purged when the cache is
+        // read.
         $message = format_string('The test will be halted for @delay seconds.', array('@delay' => 10));
 
         $this->pass($message);
@@ -1186,8 +1195,8 @@ class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
       foreach ($this->storageData() as $id => $data) {
         $cid = "store_retrieve_cache_item_$id";
 
-        // The TTL set by ApcTestTrait::storageData() is ignored. All the cache
-        // items are permanent.
+        // The TTL set by ApcApcuTestTrait::storageData() is ignored. All the
+        // cache items are permanent.
         if ($this->assertCacheItemSaved($bin, $cid, $data['value'])) {
           $stored[] = $cid;
         }
@@ -1227,10 +1236,10 @@ class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
       $message = 'New items were stored in the cache.';
 
       if ($this->assertTrue(!empty($stored), $message)) {
-        // 12 is the maximum TTL set by ApcTestTrait::storageData(), plus 2 to
-        // change the 0 TTL (which means a permanent cache item), plus 2 to be
-        // sure that all the cached items are purged when cache_get_multiple()
-        // is called.
+        // 12 is the maximum TTL set by ApcApcuTestTrait::storageData(), plus 2
+        // to make the permanent cache items ApcApcuTestTrait::storageData()
+        // returns purgeable, plus 2 to be sure that all the cached items are
+        // purged when cache_get_multiple() is called.
         $message = format_string('The test will be halted for @delay seconds.', array('@delay' => 12));
 
         $this->pass($message);

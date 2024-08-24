@@ -1,8 +1,7 @@
 # Alternative PHP Cache
 
 The Alternative PHP Cache module integrates the APCu extension with Drupal,
-either as cache backend (already implemented) or as lock backend (still to
-implement).
+either as cache backend or as lock backend.
 
 
 ## Table of contents
@@ -30,9 +29,13 @@ information, see
 ## Configuration
 
 The module has no menu or modifiable settings.
-Most of the configuration values are stored in the settings.php file. At least
-the following line must be added in the settings.php file to use this module as
-cache backend. (Correct the path if necessary.)
+Most of the configuration values are stored in the settings.php file.
+
+### Cache backend
+
+At least the following line must be added in the settings.php file to use this
+module as cache backend. (Replace `'sites/all/modules/apc'` with the path for
+the module, in the case the module is installed in a different directory.)
 
 ```php
 $conf['cache_backends'][] = 'sites/all/modules/apc/drupal_apc_cache.inc';
@@ -98,7 +101,24 @@ The Alternative PHP Cache module uses the database information to avoid
 conflicts in case of multi-site installations, but setting
 `$conf['apc_cache_prefix']` can help to further avoid conflicts.
 
-Finally, to enable debugging, add the following line.
+
+### Lock backend
+
+To use the lock backend implemented by the Alternative PHP Cache module, the
+following lines need to be added in the settings.php file. (Replace
+`'sites/all/modules/apc'` with the path for the module, in the case the module
+is installed in a different directory.)
+
+```php
+$conf['lock_inc'] = 'sites/all/modules/apc/drupal_apc_lock.inc';
+```
+
+Differently from cache backends, only a single lock backend can be used at time.
+The lock backend does not have settings.
+
+### Other settings
+
+To enable debugging, add the following line.
 
 ```php
 $conf['apc_show_debug'] = TRUE;

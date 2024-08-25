@@ -136,7 +136,7 @@ function apc_update_7200() {
 }
 
 /**
- * Rebuild the code registry to add the new lock backend class.
+ * Update the registry to include the new lock backend class.
  */
 function apc_update_7201() {
   registry_rebuild();

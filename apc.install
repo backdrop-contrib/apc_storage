@@ -125,7 +125,7 @@ function apc_last_removed() {
 }
 
 /**
- * Clear the APCu storage since the prefix used for the cache bins has changed.
+ * Clear the APCu storage to remove the keys using the old prefix.
  */
 function apc_update_7200() {
   _apc_delete_apcu_keys();
@@ -136,16 +136,26 @@ function apc_update_7200() {
 }
 
 /**
+ * Rebuild the code registry to add the new lock backend class.
+ */
+function apc_update_7201() {
+  registry_rebuild();
+}
+
+
+/**
  * Implements hook_uninstall().
  */
 function apc_uninstall() {
   $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
 
   if ($apcu_enabled && class_exists('APCUIterator')) {
-    $iterator = new APCUIterator('/^apc_cache::[a-zA-Z0-9-_]{40,46}::[0-9a-f]{2,}/', APC_ITER_KEY);
+    $cache_iterator = new APCUIterator('/^apc_cache::[a-zA-Z0-9-_]{40,46}::[0-9a-f]{2,}/', APC_ITER_KEY);
+    $lock_iterator = new APCUIterator('/^apc_lock::[a-zA-Z0-9-_]{40,46}/', APC_ITER_KEY);
 
     // Delete all the APCu keys used by the module.
-    apcu_delete($iterator);
+    apcu_delete($cache_iterator);
+    apcu_delete($lock_iterator);
     apcu_delete('apc_cache::default_prefix');
   }
 

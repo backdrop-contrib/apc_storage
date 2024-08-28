@@ -1029,9 +1029,9 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
     }
 
     if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
-      foreach ($this->getCacheBins(TRUE) as $bin) {
+      foreach ($this->getCacheBins() as $bin) {
         foreach ($this->storageData() as $id => $data) {
-          $key = $this->getLockKey($id);
+          $key = $this->getLockKey("$bin$id");
 
           if ($this->assertApcuKeySaved($key, $data['value'])) {
             $stored[$key] = $data;
@@ -1075,7 +1075,7 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
     }
 
     if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
-      foreach ($this->getCacheBins(TRUE) as $bin) {
+      foreach ($this->getCacheBins() as $bin) {
         foreach ($this->storageData() as $id => $data) {
           if ($this->assertCacheItemSaved($bin, $id, $data['value'])) {
             $data['bin'] = $bin;
@@ -1088,9 +1088,9 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
       $message = 'New items were stored in the cache.';
 
       if ($this->assertTrue(!empty($stored), $message)) {
-        foreach ($this->getCacheBins(TRUE) as $bin) {
+        foreach ($this->getCacheBins() as $bin) {
           foreach ($this->storageData() as $id => $data) {
-            $key = $this->getLockKey($id);
+            $key = $this->getLockKey("$bin$id");
 
             if ($this->assertApcuKeySaved($key, $data['value'])) {
               $count++;

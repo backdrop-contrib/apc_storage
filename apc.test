@@ -978,6 +978,26 @@ class ApcCacheConflictingKeysTestCase extends ApcCacheBaseTestCase {
 class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
 
   /**
+   * Returns the key name used for locks.
+   *
+   * This method uses code similar to the code in
+   * ApcCacheTestTrait::getLockKey(). It is duplicated here because including
+   * the drupal_apc_lock.inc file would cause an error about functions already
+   * defined.
+   */
+  protected function getLockKey($name) {
+    static $unique_id;
+
+    if (empty($unique_id)) {
+      $unique_id = drupal_random_bytes(32);
+    }
+
+    $hash = hash('sha256', $unique_id . $name, TRUE);
+
+    return 'apc_lock::' . drupal_base64_encode($hash);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public static function getInfo() {
@@ -992,12 +1012,14 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    $this->setCacheBins('apc_cache::', 'apc_cache::default_prefix::');
+    $this->setCacheBins('apc_cache', 'apc_cache::', 'apc_cache::default_prefix::', 'apc_lock', 'apc_lock::');
     parent::setUp();
   }
 
   /**
    * Tests that writing cache items does not change other APCu values.
+   *
+   * This test also verifies that locks stored in APCu are preserved.
    */
   public function testWriteFirstApcuValues() {
     $stored = array();
@@ -1009,7 +1031,7 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
     if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
       foreach ($this->getCacheBins(TRUE) as $bin) {
         foreach ($this->storageData() as $id => $data) {
-          $key = "$bin$id";
+          $key = $this->getLockKey($id);
 
           if ($this->assertApcuKeySaved($key, $data['value'])) {
             $stored[$key] = $data;
@@ -1042,6 +1064,8 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
 
   /**
    * Tests that writing APCu values does not change cache items.
+   *
+   * This test also verifies that locks stored in APCu are preserved.
    */
   public function testWriteFirstCacheItems() {
     $stored = array();
@@ -1066,7 +1090,7 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
       if ($this->assertTrue(!empty($stored), $message)) {
         foreach ($this->getCacheBins(TRUE) as $bin) {
           foreach ($this->storageData() as $id => $data) {
-            $key = "$bin$id";
+            $key = $this->getLockKey($id);
 
             if ($this->assertApcuKeySaved($key, $data['value'])) {
               $count++;

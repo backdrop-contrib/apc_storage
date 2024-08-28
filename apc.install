@@ -142,7 +142,6 @@ function apc_update_7201() {
   registry_rebuild();
 }
 
-
 /**
  * Implements hook_uninstall().
  */

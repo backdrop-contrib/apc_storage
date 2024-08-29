@@ -119,27 +119,27 @@ trait ApcApcuTestTrait {
   protected function storageData() {
     // Return a multiple of 3 items.
     // Avoid using NULL as value, since that fails tests.
-    yield $this->randomName() => array(
+    yield '_01_' . $this->randomName() => array(
       'value' => $this->randomString(),
       'ttl' => mt_rand(1, 6),
     );
-    yield $this->randomName() => array(
+    yield '_02_' . $this->randomName() => array(
       'value' => TRUE,
       'ttl' => 0,
     );
-    yield $this->randomName() => array(
+    yield '_03_' . $this->randomName() => array(
       'value' => FALSE,
       'ttl' => mt_rand(2, 8),
     );
-    yield $this->randomName() => array(
+    yield '_04_' . $this->randomName() => array(
       'value' => $this->randomFloat(),
       'ttl' => 0,
     );
-    yield $this->randomName() => array(
+    yield '_05_' . $this->randomName() => array(
       'value' => $this->randomInt(),
       'ttl' => mt_rand(2, 8),
     );
-    yield $this->randomName() => array(
+    yield '_06_' . $this->randomName() => array(
       'value' => array(
         $this->randomName() => $this->randomString(),
         $this->randomName() => $this->randomInt(),
@@ -150,15 +150,15 @@ trait ApcApcuTestTrait {
       ),
       'ttl' => mt_rand(1, 7),
     );
-    yield $this->randomName() => array(
+    yield '_07_' . $this->randomName() => array(
       'value' => $this->randomString(),
       'ttl' => mt_rand(1, 8),
     );
-    yield $this->randomName() => array(
+    yield '_08_' . $this->randomName() => array(
       'value' => FALSE,
       'ttl' => 0,
     );
-    yield $this->randomName() => array(
+    yield '_09_' . $this->randomName() => array(
       'value' => $this->randomFloat(),
       'ttl' => mt_rand(2, 6),
     );
@@ -212,10 +212,7 @@ trait ApcApcuTestTrait {
    *   TRUE if the key-value pair was stored, FALSE otherwise.
    */
   protected function assertApcuKeySaved($key, $value, $ttl = 0) {
-    $message = format_string(
-      '@key (@value) was stored in APCu.',
-      array('@key' => $this->varExport($key), '@value' => $this->varExport($value))
-    );
+    $message = format_string('@key was stored in APCu.', array('@key' => $this->varExport($key)));
 
     $result = apcu_store($key, $value, $ttl);
 
@@ -250,10 +247,7 @@ trait ApcApcuTestTrait {
 
     if ($this->assertTrue(apcu_exists($key), $message)) {
       if (array_key_exists('value', $options)) {
-        $message = format_string(
-          'The value for @key (@value) is the expected one.',
-          array('@key' => $this->varExport($key), '@value' => $this->varExport($options['value']))
-        );
+        $message = format_string('The value for @key is the expected one.', array('@key' => $this->varExport($key)));
 
         $retrieved = apcu_fetch($key, $success);
 
@@ -583,12 +577,8 @@ trait ApcCacheTestTrait {
       if ($this->assertTrue(is_object($item) && isset($item->data), $message)) {
         if (array_key_exists('value', $options)) {
           $value = $options['value'];
-          $args = array(
-            '@id' => $this->varExport("$bin/$cid"),
-            '@value' => $this->varExport($value),
-            '@retrieved' => $this->varExport($item->data),
-          );
-          $message = format_string('The value of @id (@retrieved) is the expected one (@value).', $args);
+          $args = array('@id' => $this->varExport("$bin/$cid"));
+          $message = format_string('The value of @id is the expected one.', $args);
 
           return $this->assertIdentical($item->data, $value, $message);
         }

@@ -34,19 +34,19 @@ Most of the configuration values are stored in the settings.php file.
 ### Cache backend
 
 At least the following line must be added in the settings.php file to use this
-module as cache backend. (Replace `'sites/all/modules/apc'` with the path for
-the module, in the case the module is installed in a different directory.)
+module as cache backend. (Replace *sites/all/modules/apc* with the path for the
+module, in the case the module is installed in a different directory.)
 
 ```php
-$conf['cache_backends'][] = 'sites/all/modules/apc/drupal_apc_cache.inc';
+$conf['cache_backends'][] = 'sites/all/modules/apc/includes/classes/apc_cache.inc';
 ```
 
 Then lines like the following ones must be added for each cache bin to store on
 APCu.
 
 ```php
-$conf['cache_class_cache'] = 'DrupalApcCache';
-$conf['cache_class_cache_bootstrap'] = 'DrupalApcCache';
+$conf['cache_class_cache'] = 'ApcCache';
+$conf['cache_class_cache_bootstrap'] = 'ApcCache';
 ```
 
 What follows `cache_class_` is the name of the cache bin. (In the given example,
@@ -60,10 +60,10 @@ cache, instead of setting each single cache bin, you can use the following line,
 which sets APCu as default backend for all the cache bins.
 
 ```php
-$conf['cache_default_class'] = 'DrupalApcCache';
+$conf['cache_default_class'] = 'ApcCache';
 ```
 
-When `DrupalAPCCache` is used for the *cache_page* bin, the following lines can
+When `ApcCache` is used for the *cache_page* bin, the following lines can
 be added to the settings.php file used for the site.
 
 ```php
@@ -72,14 +72,10 @@ $conf['page_cache_invoke_hooks'] = FALSE;
 ```
 
 In case of multi-site installations, you can use one of the following lines in
-the settings.php file for each site to avoid that values cached for a site are
-returned for all the sites.
+the settings.php file used by each site to avoid that values cached for a site
+are returned for all the sites.
 
 ```php
-// release 7.x-1.0
-$conf['cache_prefix'] = drupal_random_bytes(8);
-
-// release 7.x-2.0
 $conf['apc_cache_prefix'] = drupal_random_bytes(8);
 ```
 
@@ -106,11 +102,11 @@ conflicts in case of multi-site installations, but setting
 
 To use the lock backend implemented by the Alternative PHP Cache module, the
 following lines need to be added in the settings.php file. (Replace
-`'sites/all/modules/apc'` with the path for the module, in the case the module
-is installed in a different directory.)
+*sites/all/modules/apc* with the path for the module, in the case the module is
+installed in a different directory.)
 
 ```php
-$conf['lock_inc'] = 'sites/all/modules/apc/drupal_apc_lock.inc';
+$conf['lock_inc'] = 'sites/all/modules/apc/includes/classes/apc_lock.inc';
 ```
 
 Differently from cache backends, only a single lock backend can be used at time.

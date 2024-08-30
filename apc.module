@@ -24,7 +24,7 @@ function apc_permission() {
  */
 function apc_page_alter(&$page) {
   if (variable_get('apc_show_debug', FALSE) && user_access('access apc statistics')) {
-    $operations = DrupalApcCache::operations();
+    $operations = ApcCache::operations();
     $rows = array();
 
     if (!empty($operations) && is_array($operations)) {

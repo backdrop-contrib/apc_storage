@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains DrupalApcCache.
+ * Contains ApcCache.
  */
 
 // phpcs:disable SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator.NullCoalesceOperatorNotUsed
@@ -13,7 +13,7 @@
  * This is a Drupal cache implementation which uses the APCu extension to store
  * cached data.
  */
-class DrupalApcCache implements DrupalCacheInterface {
+class ApcCache implements DrupalCacheInterface {
 
   /**
    * The list of all the operations done to the cache.

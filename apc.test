@@ -5,8 +5,6 @@
  * Test classes for the Alternative PHP Cache module.
  */
 
-// phpcs:disable SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator.NullCoalesceOperatorNotUsed
-
 /**
  * Methods and properties for all the test classes that write directly to APCu.
  */
@@ -301,7 +299,7 @@ trait ApcApcuTestTrait {
   protected function assertApcuKeysByPrefix($key, $options = array()) {
     $escaped_key = preg_quote($key, '/');
     $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
-    $message = isset($options['message']) ? $options['message'] : 'There are APCu keys matching @key.';
+    $message = $options['message'] ?? 'There are APCu keys matching @key.';
     $message = format_string($message, array('@key' => $this->varExport("/^$escaped_key/")));
 
     return $this->assertTrue($iterator->getTotalCount() > 0, $message);
@@ -323,7 +321,7 @@ trait ApcApcuTestTrait {
   protected function assertNoApcuKeysByPrefix($key, $options = array()) {
     $escaped_key = preg_quote($key, '/');
     $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
-    $message = isset($options['message']) ? $options['message'] : 'There are no APCu keys matching @key.';
+    $message = $options['message'] ?? 'There are no APCu keys matching @key.';
     $message = format_string($message, array('@key' => $this->varExport("/^$escaped_key/")));
 
     return $this->assertTrue($iterator->getTotalCount() === 0, $message);

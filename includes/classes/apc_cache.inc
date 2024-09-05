@@ -5,8 +5,6 @@
  * Contains ApcCache.
  */
 
-// phpcs:disable SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator.NullCoalesceOperatorNotUsed
-
 /**
  * APCu cache implementation.
  *
@@ -68,11 +66,6 @@ class ApcCache implements DrupalCacheInterface {
    */
   protected function setBinPrefix() {
     $prefixes = variable_get('apc_cache_prefix', '');
-
-    // @todo Remove the following lines in the 7.x-2.x branch.
-    if (empty($prefixes)) {
-      $prefixes = variable_get('cache_prefix', '');
-    }
 
     if (is_string($prefixes) && !empty($prefixes)) {
       // $prefixes can be a string used for all the cache bins.
@@ -334,7 +327,7 @@ class ApcCache implements DrupalCacheInterface {
    * {@inheritdoc}
    */
   public function isEmpty() {
-    if (extension_loaded('apcu') && apcu_enabled() && class_exists('APCUIterator')) {
+    if (extension_loaded('apcu') && apcu_enabled()) {
       $escaped_key = preg_quote($this->keyName(), '/');
       $iterator = new APCUIterator('/^' . $escaped_key . '/', APC_ITER_KEY);
 

@@ -18,7 +18,6 @@
  *   patterns are replaced by the new patterns.
  */
 function _apc_delete_apcu_keys($patterns = array()) {
-  $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
   $apcu_keys_to_remove = variable_get('apc_apcu_keys_to_remove', array());
 
   foreach ($patterns as $pattern => $old_pattern) {
@@ -33,7 +32,7 @@ function _apc_delete_apcu_keys($patterns = array()) {
   // code to terminate.
   variable_set('apc_apcu_keys_to_remove', $apcu_keys_to_remove);
 
-  if ($apcu_enabled && class_exists('APCUIterator')) {
+  if (extension_loaded('apcu') && apcu_enabled()) {
     foreach (array_keys($apcu_keys_to_remove) as $pattern) {
       $pattern = '/^' . preg_quote($pattern, '/') . '/';
       $iterator = new APCUIterator($pattern, APC_ITER_KEY);
@@ -70,11 +69,11 @@ function apc_requirements($phase) {
       return $requirements;
     }
 
-    $required_version_installed = version_compare($apcu_version, '5.0.0', '>=');
+    $required_version_installed = version_compare($apcu_version, '5.1.17', '>=');
 
     if (!$required_version_installed) {
       $requirements['apc']['description'] = $t(
-        'The Alternative PHP Cache module needs the APCu extension version 5.0.0 or higher; version %apcu_version is currently installed.',
+        'The Alternative PHP Cache module needs the APCu extension version 5.1.17 or higher; version %apcu_version is currently installed.',
         array('%apcu_version' => $apcu_version)
       );
       $requirements['apc']['severity'] = REQUIREMENT_ERROR;
@@ -146,9 +145,7 @@ function apc_update_7201() {
  * Implements hook_uninstall().
  */
 function apc_uninstall() {
-  $apcu_enabled = extension_loaded('apcu') && apcu_enabled();
-
-  if ($apcu_enabled && class_exists('APCUIterator')) {
+  if (extension_loaded('apcu') && apcu_enabled()) {
     $cache_iterator = new APCUIterator('/^apc_cache::[a-zA-Z0-9-_]{40,46}::[0-9a-f]{2,}/', APC_ITER_KEY);
     $lock_iterator = new APCUIterator('/^apc_lock::[a-zA-Z0-9-_]{40,46}/', APC_ITER_KEY);
 

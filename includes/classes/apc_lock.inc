@@ -17,6 +17,13 @@ declare(strict_types=1);
 class ApcLock {
 
   /**
+   * The regular expression to delete the APCu keys used for lock values.
+   *
+   * @var string
+   */
+  public const LOCK_KEYS_REGEXP = '/^apc_lock::[a-zA-Z0-9-_]{40,46}/';
+
+  /**
    * The locks acquired in the current request.
    *
    * @var array

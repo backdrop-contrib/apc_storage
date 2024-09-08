@@ -146,8 +146,8 @@ function apc_update_7201(): void {
  */
 function apc_uninstall(): void {
   if (extension_loaded('apcu') && apcu_enabled()) {
-    $cache_iterator = new APCUIterator('/^apc_cache::[a-zA-Z0-9-_]{40,46}::[0-9a-f]{2,}/', APC_ITER_KEY);
-    $lock_iterator = new APCUIterator('/^apc_lock::[a-zA-Z0-9-_]{40,46}/', APC_ITER_KEY);
+    $cache_iterator = new APCUIterator(ApcCache::CACHE_KEYS_REGEXP, APC_ITER_KEY);
+    $lock_iterator = new APCUIterator(ApcLock::LOCK_KEYS_REGEXP, APC_ITER_KEY);
 
     // Delete all the APCu keys used by the module.
     apcu_delete($cache_iterator);

@@ -16,6 +16,13 @@ declare(strict_types=1);
 class ApcCache implements DrupalCacheInterface {
 
   /**
+   * The regular expression to delete the APCu keys used for cache values.
+   *
+   * @var string
+   */
+  public const CACHE_KEYS_REGEXP = '/^apc_cache::[a-zA-Z0-9-_]{40,46}::[0-9a-f]{2,}/';
+
+  /**
    * The list of all the operations done to the cache.
    *
    * @var array

@@ -1,4 +1,4 @@
-<?php
+ <?php
 
 /**
  * @file
@@ -167,7 +167,7 @@ class ApcLock {
   }
 
   /**
-   * Releases a lock previously acquired by lock_acquire().
+   * Releases a lock previously acquired by ApcLock::acquire().
    *
    * This will release the named lock if it is still held by the current
    * request.

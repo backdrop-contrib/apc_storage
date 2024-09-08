@@ -1,0 +1,6 @@
+name = Alternative PHP Cache - Admin pages
+description = Administration pages for the Alternative PHP Cache module.
+package = Performance and scalability
+core = 7.x
+php = 8.2
+dependencies[] = apc

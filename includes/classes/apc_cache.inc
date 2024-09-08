@@ -289,7 +289,7 @@ class ApcCache implements DrupalCacheInterface {
    *   The prefix for the cache IDs to delete.
    */
   protected function deleteKeys(string $prefix = ''): void {
-    if (extension_loaded('apcu') && apcu_enabled() && class_exists('APCUIterator')) {
+    if (extension_loaded('apcu') && apcu_enabled()) {
       $this->addOperation(array('deleteKeys()', $this->bin, $prefix));
 
       $escaped_key = preg_quote($this->keyName($prefix), '/');

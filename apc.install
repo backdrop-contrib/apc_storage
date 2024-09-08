@@ -85,9 +85,9 @@ function apc_requirements($phase) {
 
     if (apcu_enabled() && $phase == 'runtime') {
       $cache = apcu_cache_info(TRUE);
-      $num_entries = isset($cache['num_entries']) ? $cache['num_entries'] : 0;
-      $start_time = isset($cache['start_time']) ? $cache['start_time'] : time();
-      $mem_size = isset($cache['mem_size']) ? $cache['mem_size'] : 0;
+      $num_entries = $cache['num_entries'] ?? 0;
+      $start_time = $cache['start_time'] ?? time();
+      $mem_size = $cache['mem_size'] ?? 0;
 
       $requirements['apc']['description'] = $t(
         'The APCu extension has been running for !duration. It contains !num_entries entries and uses !memory_size of memory.',

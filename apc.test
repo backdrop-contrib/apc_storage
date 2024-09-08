@@ -85,7 +85,7 @@ trait ApcApcuTestTrait {
       $output = $var ? 'TRUE' : 'FALSE';
     }
     elseif (is_string($var)) {
-      if (strpos($var, "\n") !== FALSE || strpos($var, "'") !== FALSE) {
+      if (str_contains($var, "\n") || str_contains($var, "'")) {
         // If the string contains a line break or a single quote, use the
         // double quote export mode. Encode backslash and double quotes and
         // transform some common control characters.
@@ -869,7 +869,7 @@ class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
         cache_clear_all($cache_id_prefixes[0], $bin, TRUE);
 
         foreach ($stored as $cid) {
-          if (strpos($cid, $cache_id_prefixes[0]) === 0) {
+          if (str_starts_with($cid, $cache_id_prefixes[0])) {
             $options = array('message' => '@id was removed by cache_clear_all().');
 
             $this->assertNoCacheItem($bin, $cid, $options);

@@ -20,35 +20,35 @@ class ApcCache implements DrupalCacheInterface {
    *
    * @var array
    */
-  protected static $operations = array();
+  protected static array $operations = array();
 
   /**
    * The cache bin.
    *
    * @var string
    */
-  protected $bin;
+  protected string $bin;
 
   /**
    * The strings used to build the name of the APCu keys for the cached data.
    *
    * @var array
    */
-  protected $prefixes = array();
+  protected array $prefixes = array();
 
   /**
    * The part of the APCu key which identifies the cache bin.
    *
    * @var string
    */
-  protected $binPrefix;
+  protected string $binPrefix;
 
   /**
    * The first part of the APCu key.
    *
    * @var string
    */
-  protected $modulePrefix = 'apc_cache';
+  protected string $modulePrefix = 'apc_cache';
 
   /**
    * Converts a binary string to a hexadecimal representation.
@@ -59,14 +59,14 @@ class ApcCache implements DrupalCacheInterface {
    * @return string
    *   The hexadecimal representation of the binary string.
    */
-  protected function binaryToHex($data) {
+  protected function binaryToHex(string $data): string {
     return unpack('H*', $data)[1];
   }
 
   /**
    * Sets the one of the strings used for the APCu storage key.
    */
-  protected function setBinPrefix() {
+  protected function setBinPrefix(): void {
     $prefixes = variable_get('apc_cache_prefix', '');
 
     if (is_string($prefixes) && !empty($prefixes)) {
@@ -103,7 +103,7 @@ class ApcCache implements DrupalCacheInterface {
   /**
    * Sets two of the strings used for the APCu storage key.
    */
-  protected function setDatabasePrefix() {
+  protected function setDatabasePrefix(): void {
     global $databases;
 
     if (isset($databases) && is_array($databases)) {
@@ -155,7 +155,7 @@ class ApcCache implements DrupalCacheInterface {
    *   The key which can be used in APC calls to avoid conflicts with other
    *   keys.
    */
-  protected function keyName($cid = '') {
+  protected function keyName(string $cid = ''): string {
     $key_name = $this->modulePrefix . '::' . $this->binPrefix . '::';
 
     if ($cid != '') {
@@ -168,7 +168,7 @@ class ApcCache implements DrupalCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public function get($cid) {
+  public function get($cid): object|false {
     $this->addOperation(array('get()', $this->bin, array($cid)));
 
     if (extension_loaded('apcu') && apcu_enabled()) {
@@ -197,14 +197,14 @@ class ApcCache implements DrupalCacheInterface {
    *   The item with unserialized data, or FALSE if there is no valid item to
    *   load.
    */
-  protected function prepareItem($cache) {
+  protected function prepareItem(object $cache): object|false {
     return isset($cache->data) ? $cache : FALSE;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getMultiple(&$cids) {
+  public function getMultiple(&$cids): array {
     $cache = array();
 
     // Add a get to our statistics.
@@ -232,7 +232,7 @@ class ApcCache implements DrupalCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public function set($cid, $data, $expire = CACHE_PERMANENT) {
+  public function set($cid, $data, $expire = CACHE_PERMANENT): void {
     // Add set to statistics.
     $this->addOperation(array('set()', $this->bin, $cid));
 
@@ -275,7 +275,7 @@ class ApcCache implements DrupalCacheInterface {
    * @param string $cid
    *   The cache ID of the item to delete.
    */
-  protected function deleteKey($cid) {
+  protected function deleteKey(string $cid): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $this->addOperation(array('deleteKey()', $this->bin, $cid));
       apcu_delete($this->keyName($cid));
@@ -285,10 +285,10 @@ class ApcCache implements DrupalCacheInterface {
   /**
    * Deletes all the cache IDs matching the given prefix.
    *
-   * @param string $prefix
+   * @param string|null $prefix
    *   The prefix for the cache IDs to delete.
    */
-  protected function deleteKeys($prefix = NULL) {
+  protected function deleteKeys(string $prefix = NULL): void {
     if (extension_loaded('apcu') && apcu_enabled() && class_exists('APCUIterator')) {
       $this->addOperation(array('deleteKeys()', $this->bin, $prefix));
 
@@ -301,7 +301,7 @@ class ApcCache implements DrupalCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public function clear($cid = NULL, $wildcard = FALSE) {
+  public function clear($cid = NULL, $wildcard = FALSE): void {
     if (empty($cid)) {
       $this->deleteKeys();
     }
@@ -328,7 +328,7 @@ class ApcCache implements DrupalCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public function isEmpty() {
+  public function isEmpty(): bool {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $escaped_key = preg_quote($this->keyName(), '/');
       $iterator = new APCUIterator('/^' . $escaped_key . '/', APC_ITER_KEY);
@@ -345,7 +345,7 @@ class ApcCache implements DrupalCacheInterface {
    * @return array
    *   The list of cache operations.
    */
-  public static function operations() {
+  public static function operations(): array {
     return self::$operations;
   }
 
@@ -355,8 +355,8 @@ class ApcCache implements DrupalCacheInterface {
    * @param array $operation
    *   The new operation to add.
    */
-  protected function addOperation($operation) {
-    if (variable_get('apc_show_debug', FALSE) && is_array($operation)) {
+  protected function addOperation(array $operation): void {
+    if (variable_get('apc_show_debug', FALSE)) {
       self::$operations[] = $operation;
     }
   }

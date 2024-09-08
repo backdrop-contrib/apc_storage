@@ -21,19 +21,19 @@ class ApcLock {
    *
    * @var array
    */
-  protected static $locks = array();
+  protected static array $locks = array();
 
   /**
    * The unique ID used to generate the APCu keys for locks.
    *
    * @var string
    */
-  protected static $uniqueId = '';
+  protected static string $uniqueId = '';
 
   /**
    * Initializes the locking system.
    */
-  public static function initialize() {
+  public static function initialize(): void {
     self::$uniqueId = drupal_random_bytes(32);
   }
 
@@ -48,7 +48,7 @@ class ApcLock {
    * @return bool
    *   TRUE if the lock was acquired, FALSE otherwise.
    */
-  public static function acquire($name, $timeout = 30.0) {
+  public static function acquire(string $name, float $timeout = 30.0): bool {
     // Ensure that the timeout is at least one second. APCu works with integer
     // TTLs where 0 means the value is persistent.
     $timeout = (int) round(max($timeout, 1.0));
@@ -97,7 +97,7 @@ class ApcLock {
    * @return bool
    *   TRUE if there is no lock, or it was removed, FALSE otherwise.
    */
-  public static function maybeAvailable($name) {
+  public static function maybeAvailable(string $name): bool {
     $key = self::getLockKey($name);
 
     if (!apcu_exists($key)) {
@@ -133,7 +133,7 @@ class ApcLock {
    * @return bool
    *   FALSE if the lock is available, TRUE otherwise.
    */
-  public static function waitForLock($name, $delay = 30.0) {
+  public static function waitForLock(string $name, float $delay = 30.0): bool {
     // Pause the process for short periods between calling
     // lock_may_be_available(). However, if the wait period is too long, there
     // is the potential for a large number of processes to be blocked waiting
@@ -177,7 +177,7 @@ class ApcLock {
    * @param string $name
    *   The name of the lock.
    */
-  public static function release($name) {
+  public static function release(string $name): void {
     // The lock is unconditionally removed, since the caller assumes the lock is
     // anyway released.
     unset(self::$locks[$name]);
@@ -193,7 +193,7 @@ class ApcLock {
    * @return string
    *   The APCu key name.
    */
-  public static function getLockKey($name) {
+  public static function getLockKey(string $name): string {
     // self::$uniqueId is already initialized from ApcLock::initialize(). The
     // following lines are added as safeguard, just in case
     // ApcLock::initialize() is not called as expected. This should never happen
@@ -216,7 +216,7 @@ class ApcLock {
  *
  * @see ApcLock::initialize()
  */
-function lock_initialize() {
+function lock_initialize(): void {
   ApcLock::initialize();
 }
 
@@ -233,7 +233,7 @@ function lock_initialize() {
  *
  * @see ApcLock::acquire()
  */
-function lock_acquire($name, $timeout = 30.0) {
+function lock_acquire(string $name, float $timeout = 30.0): bool {
   return ApcLock::acquire($name, $timeout);
 }
 
@@ -250,7 +250,7 @@ function lock_acquire($name, $timeout = 30.0) {
  *
  * @see ApcLock::maybeAvailable()
  */
-function lock_may_be_available($name) {
+function lock_may_be_available(string $name): bool {
   return ApcLock::maybeAvailable($name);
 }
 
@@ -273,7 +273,7 @@ function lock_may_be_available($name) {
  *
  * @see ApcLock::waitForLock()
  */
-function lock_wait($name, $delay = 30.0) {
+function lock_wait(string $name, float $delay = 30.0): bool {
   return ApcLock::waitForLock($name, $delay);
 }
 
@@ -287,6 +287,6 @@ function lock_wait($name, $delay = 30.0) {
  *
  * @see ApcLock::release()
  */
-function lock_release($name) {
+function lock_release(string $name): void {
   ApcLock::release($name);
 }

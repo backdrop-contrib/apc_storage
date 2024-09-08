@@ -19,7 +19,7 @@ declare(strict_types=1);
  *   An associative array of patterns and their corresponding old patterns. Old
  *   patterns are replaced by the new patterns.
  */
-function _apc_delete_apcu_keys($patterns = array()) {
+function _apc_delete_apcu_keys(array $patterns = array()): void {
   $apcu_keys_to_remove = variable_get('apc_apcu_keys_to_remove', array());
 
   foreach ($patterns as $pattern => $old_pattern) {
@@ -50,7 +50,7 @@ function _apc_delete_apcu_keys($patterns = array()) {
 /**
  * Implements hook_requirements().
  */
-function apc_requirements($phase) {
+function apc_requirements($phase): array {
   // Ensure translations don't break at install time.
   $t = get_t();
 
@@ -121,14 +121,14 @@ function apc_requirements($phase) {
 /**
  * Implements hook_last_removed().
  */
-function apc_last_removed() {
+function apc_last_removed(): int {
   return 7107;
 }
 
 /**
  * Clear the APCu storage to remove the keys using the old prefix.
  */
-function apc_update_7200() {
+function apc_update_7200(): void {
   _apc_delete_apcu_keys();
 
   if (extension_loaded('apcu') && apcu_enabled()) {
@@ -139,14 +139,14 @@ function apc_update_7200() {
 /**
  * Update the registry to include the renamed classes.
  */
-function apc_update_7201() {
+function apc_update_7201(): void {
   registry_rebuild();
 }
 
 /**
  * Implements hook_uninstall().
  */
-function apc_uninstall() {
+function apc_uninstall(): void {
   if (extension_loaded('apcu') && apcu_enabled()) {
     $cache_iterator = new APCUIterator('/^apc_cache::[a-zA-Z0-9-_]{40,46}::[0-9a-f]{2,}/', APC_ITER_KEY);
     $lock_iterator = new APCUIterator('/^apc_lock::[a-zA-Z0-9-_]{40,46}/', APC_ITER_KEY);

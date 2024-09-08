@@ -25,7 +25,7 @@ trait ApcApcuTestTrait {
   /**
    * Deletes data from APCu.
    */
-  protected function clearApcu() {
+  protected function clearApcu(): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
       apcu_clear_cache();
     }
@@ -37,7 +37,7 @@ trait ApcApcuTestTrait {
    * @return float
    *   The randomly generated floating-point number.
    */
-  protected function randomFloat() {
+  protected function randomFloat(): float {
     return (float) mt_rand(128, 65536) / mt_rand(256, 8192);
   }
 
@@ -47,7 +47,7 @@ trait ApcApcuTestTrait {
    * @return int
    *   A random integer between 128 and 65536.
    */
-  protected function randomInt() {
+  protected function randomInt(): int {
     return mt_rand(128, 65536);
   }
 
@@ -63,7 +63,7 @@ trait ApcApcuTestTrait {
    * @return string
    *   The exported variable.
    */
-  protected static function varExport($var) {
+  protected static function varExport($var): string {
     if (is_array($var)) {
       if (empty($var)) {
         $output = 'array()';
@@ -116,7 +116,7 @@ trait ApcApcuTestTrait {
    * This method is called from any test that needs to store data either
    * directly in APCu or as cached data.
    */
-  protected function storageData() {
+  protected function storageData(): Generator {
     // Return a multiple of 3 items.
     // Avoid using NULL as value, since that fails tests.
     yield '_01_' . $this->randomName() => array(
@@ -169,7 +169,7 @@ trait ApcApcuTestTrait {
    *
    * If the APCu extension is not loaded nor enabled, $skipTest is set to TRUE.
    */
-  protected function checkRequirements() {
+  protected function checkRequirements(): void {
     if (!extension_loaded('apcu') && !apcu_enabled()) {
       $this->skipTest = TRUE;
 
@@ -180,7 +180,7 @@ trait ApcApcuTestTrait {
   /**
    * Asserts that the APCu storage is empty.
    */
-  protected function assertApcuEmpty() {
+  protected function assertApcuEmpty(): bool {
     $iterator = new APCUIterator('/^.+/', APC_ITER_KEY);
 
     return $this->assertTrue($iterator->getTotalCount() === 0, 'The APCu storage is empty.');
@@ -192,7 +192,7 @@ trait ApcApcuTestTrait {
    * @return bool
    *   TRUE if the APCu storage is not empty, FALSE otherwise.
    */
-  protected function assertApcuNotEmpty() {
+  protected function assertApcuNotEmpty(): bool {
     $iterator = new APCUIterator('/^.+/', APC_ITER_KEY);
 
     return $this->assertTrue($iterator->getTotalCount() > 0, 'The APCu storage is not empty.');
@@ -211,7 +211,7 @@ trait ApcApcuTestTrait {
    * @return bool
    *   TRUE if the key-value pair was stored, FALSE otherwise.
    */
-  protected function assertApcuKeySaved($key, $value, $ttl = 0) {
+  protected function assertApcuKeySaved($key, $value, $ttl = 0): bool {
     $message = format_string('@key was stored in APCu.', array('@key' => $this->varExport($key)));
 
     $result = apcu_store($key, $value, $ttl);
@@ -233,7 +233,7 @@ trait ApcApcuTestTrait {
    *   TRUE if the APCu key exists and its value matches the expected value,
    *   FALSE otherwise.
    */
-  protected function assertApcuKeyByName($key, $options = array()) {
+  protected function assertApcuKeyByName($key, $options = array()): bool {
     $args = array('@key' => $this->varExport($key));
 
     if (!empty($options['message'])) {
@@ -270,7 +270,7 @@ trait ApcApcuTestTrait {
    * @return bool
    *   TRUE if the APCu key exists, FALSE otherwise.
    */
-  protected function assertNoApcuKeyByName($key, $options = array()) {
+  protected function assertNoApcuKeyByName($key, $options = array()): bool {
     $args = array('@key' => $this->varExport($key));
 
     if (!empty($options['message'])) {
@@ -298,7 +298,7 @@ trait ApcApcuTestTrait {
    * @return bool
    *   TRUE if there are APCu keys matching the prefix, FALSE otherwise.
    */
-  protected function assertApcuKeysByPrefix($key, $options = array()) {
+  protected function assertApcuKeysByPrefix($key, $options = array()): bool {
     $escaped_key = preg_quote($key, '/');
     $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
     $message = $options['message'] ?? 'There are APCu keys matching @key.';
@@ -320,7 +320,7 @@ trait ApcApcuTestTrait {
    * @return bool
    *   TRUE if there are no APCu keys matching the prefix, FALSE otherwise.
    */
-  protected function assertNoApcuKeysByPrefix($key, $options = array()) {
+  protected function assertNoApcuKeysByPrefix($key, $options = array()): bool {
     $escaped_key = preg_quote($key, '/');
     $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
     $message = $options['message'] ?? 'There are no APCu keys matching @key.';
@@ -341,7 +341,7 @@ class ApcApcuBaseTestCase extends DrupalUnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->checkRequirements();
   }
@@ -349,7 +349,7 @@ class ApcApcuBaseTestCase extends DrupalUnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function tearDown() {
+  protected function tearDown(): void {
     parent::tearDown();
     $this->clearApcu();
   }
@@ -364,7 +364,7 @@ class ApcApcuStoreAndRetrieveTestCase extends ApcApcuBaseTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
+  public static function getInfo(): array {
     return array(
       'name' => 'APCu store and retrieve test',
       'description' => 'Tests reading and writing the APCu storage.',
@@ -375,7 +375,7 @@ class ApcApcuStoreAndRetrieveTestCase extends ApcApcuBaseTestCase {
   /**
    * Tests writing and reading values in APCu.
    */
-  public function testStoreRetrieve() {
+  public function testStoreRetrieve(): void {
     $stored = array();
 
     if ($this->skipTest) {
@@ -404,7 +404,7 @@ class ApcApcuStoreAndRetrieveTestCase extends ApcApcuBaseTestCase {
   /**
    * Tests writing and reading values with a delay in APCu.
    */
-  protected function testStoreDelayRetrieve() {
+  protected function testStoreDelayRetrieve(): void {
     $stored = array();
 
     if ($this->skipTest) {
@@ -472,7 +472,7 @@ trait ApcCacheTestTrait {
    * @param string ...$bins
    *   The cache bins to add.
    */
-  protected function setCacheBins(...$bins) {
+  protected function setCacheBins(...$bins): void {
     $this->cacheBins = array_unique(array_merge($this->cacheBins, $bins));
   }
 
@@ -486,7 +486,7 @@ trait ApcCacheTestTrait {
    * @return array
    *   The cache bins stored on APCu.
    */
-  protected function getCacheBins($ignore_first = FALSE) {
+  protected function getCacheBins($ignore_first = FALSE): array {
     $cache_bins = $this->cacheBins;
 
     if ($ignore_first) {
@@ -502,7 +502,7 @@ trait ApcCacheTestTrait {
    * @return bool
    *   FALSE if any cache bin is not stored on APCu, TRUE otherwise.
    */
-  protected function assertCacheBinsOnApcu() {
+  protected function assertCacheBinsOnApcu(): bool {
     $result = TRUE;
 
     foreach ($this->getCacheBins() as $bin) {
@@ -533,7 +533,7 @@ trait ApcCacheTestTrait {
    * @return bool
    *   TRUE if the cache item is saved, FALSE otherwise.
    */
-  protected function assertCacheItemSaved($bin, $cid, $value, $ttl = 0) {
+  protected function assertCacheItemSaved($bin, $cid, $value, $ttl = 0): bool {
     cache_set($cid, $value, $bin, $ttl > 0 ? $ttl + time() : CACHE_PERMANENT);
 
     return $this->assertCacheItem($bin, $cid, array('value' => $value));
@@ -557,7 +557,7 @@ trait ApcCacheTestTrait {
    * @return bool
    *   TRUE if the cache item exists, FALSE otherwise.
    */
-  protected function assertCacheItem($bin, $cid, $options = array()) {
+  protected function assertCacheItem($bin, $cid, $options = array()): bool {
     $args = array('@id' => $this->varExport("$bin/$cid"));
     $item = cache_get($cid, $bin);
 
@@ -604,7 +604,7 @@ trait ApcCacheTestTrait {
    * @return bool
    *   TRUE if the cache item does not exist, FALSE otherwise.
    */
-  protected function assertNoCacheItem($bin, $cid, $options = array()) {
+  protected function assertNoCacheItem($bin, $cid, $options = array()): bool {
     $args = array('@id' => $this->varExport("$bin/$cid"));
 
     if (array_key_exists('message', $options) && !empty($options['message'])) {
@@ -633,7 +633,7 @@ trait ApcCacheTestTrait {
    * @return bool
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
-  protected function assertCacheItems($bin, ...$cids) {
+  protected function assertCacheItems($bin, ...$cids): bool {
     // cache_get_multiple() gets $cids by reference. To avoid it alters this
     // method's $cids parameter, pass it a copy.
     $cache_ids = $cids;
@@ -667,7 +667,7 @@ trait ApcCacheTestTrait {
    * @return bool
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
-  protected function assertNoCacheItems($bin, $cids, ...$non_existent_cids) {
+  protected function assertNoCacheItems($bin, $cids, ...$non_existent_cids): bool {
     // cache_get_multiple() gets $cids by reference. To avoid it alters this
     // method's $cids parameter, pass it a copy.
     $cache_ids = $cids;
@@ -698,7 +698,7 @@ class ApcCacheBaseTestCase extends DrupalUnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     global $conf;
 
     parent::setUp();
@@ -727,7 +727,7 @@ class ApcCacheBaseTestCase extends DrupalUnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function tearDown() {
+  protected function tearDown(): void {
     parent::tearDown();
     $this->clearApcu();
   }
@@ -744,7 +744,7 @@ class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
+  public static function getInfo(): array {
     return array(
       'name' => 'Cache clear test',
       'description' => 'Tests calling cache_clear_all() with various arguments.',
@@ -755,7 +755,7 @@ class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
   /**
    * Tests cache_clear_all() using a cache ID.
    */
-  public function testClearByCid() {
+  public function testClearByCid(): void {
     $stored = array();
 
     if ($this->skipTest) {
@@ -795,7 +795,7 @@ class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
   /**
    * Tests cache_clear_all() using * as cache ID.
    */
-  public function testClearStar() {
+  public function testClearStar(): void {
     $stored = array();
 
     if ($this->skipTest) {
@@ -842,7 +842,7 @@ class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
   /**
    * Tests cache_clear_all() passing TRUE as last parameter.
    */
-  public function testClearWildcard() {
+  public function testClearWildcard(): void {
     $cache_id_prefixes = array('clear_first_time_by_wildcard_', 'clear_second_time_by_wildcard_');
     $stored = array();
 
@@ -904,7 +904,7 @@ class ApcCacheConflictingKeysTestCase extends ApcCacheBaseTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
+  public static function getInfo(): array {
     return array(
       'name' => 'Conflicting keys test',
       'description' => 'Tests that keys for a cache bin do not conflict with other cache bin keys.',
@@ -915,7 +915,7 @@ class ApcCacheConflictingKeysTestCase extends ApcCacheBaseTestCase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     $this->setCacheBins('apc_test_' . $this->randomName(), 'apc_test_more_' . $this->randomName());
     parent::setUp();
   }
@@ -923,7 +923,7 @@ class ApcCacheConflictingKeysTestCase extends ApcCacheBaseTestCase {
   /**
    * Tests that the same keys in different cache bins are preserved.
    */
-  public function testConflictingKeys() {
+  public function testConflictingKeys(): void {
     $stored = array();
 
     if ($this->skipTest) {
@@ -975,7 +975,7 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
    * the drupal_apc_lock.inc file would cause an error about functions already
    * defined.
    */
-  protected function getLockKey($name) {
+  protected function getLockKey($name): string {
     static $unique_id;
 
     if (empty($unique_id)) {
@@ -990,7 +990,7 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
+  public static function getInfo(): array {
     return array(
       'name' => 'Existing APCu keys test',
       'description' => 'Verifies there is no conflict between APCu keys used for storing cache items and other APCu keys.',
@@ -1001,7 +1001,7 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->setCacheBins('apc_cache', 'apc_cache::', 'apc_cache::default_prefix::', 'apc_lock', 'apc_lock::');
     parent::setUp();
   }
@@ -1011,7 +1011,7 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
    *
    * This test also verifies that locks stored in APCu are preserved.
    */
-  public function testWriteFirstApcuValues() {
+  public function testWriteFirstApcuValues(): void {
     $stored = array();
 
     if ($this->skipTest) {
@@ -1057,7 +1057,7 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
    *
    * This test also verifies that locks stored in APCu are preserved.
    */
-  public function testWriteFirstCacheItems() {
+  public function testWriteFirstCacheItems(): void {
     $stored = array();
 
     if ($this->skipTest) {
@@ -1109,7 +1109,7 @@ class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
+  public static function getInfo(): array {
     return array(
       'name' => 'Store and retrieve test',
       'description' => 'Verifies the cache items are correctly stored and the retrieved values are correct.',
@@ -1120,7 +1120,7 @@ class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
   /**
    * Tests storing and retrieving cache items.
    */
-  public function testStoreRetrieveCacheItem() {
+  public function testStoreRetrieveCacheItem(): void {
     $stored = array();
 
     if ($this->skipTest) {
@@ -1151,7 +1151,7 @@ class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
   /**
    * Tests storing and retrieving cache items with a delay.
    */
-  public function testStoreDelayRetrieveCacheItem() {
+  public function testStoreDelayRetrieveCacheItem(): void {
     $stored = array();
 
     if ($this->skipTest) {
@@ -1196,7 +1196,7 @@ class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
   /**
    * Tests storing cache items and retrieving them via cache_get_multiple().
    */
-  public function testStoreRetrieveMultipleCacheItems() {
+  public function testStoreRetrieveMultipleCacheItems(): void {
     $stored = array();
 
     if ($this->skipTest) {
@@ -1229,7 +1229,7 @@ class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
   /**
    * Tests storing cache items and retrieving them via cache_get_multiple().
    */
-  public function testStoreDelayRetrieveMultipleCacheItems() {
+  public function testStoreDelayRetrieveMultipleCacheItems(): void {
     $stored = array();
 
     if ($this->skipTest) {

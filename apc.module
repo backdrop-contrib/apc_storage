@@ -12,7 +12,7 @@ declare(strict_types=1);
 /**
  * Implements hook_permission().
  */
-function apc_permission() {
+function apc_permission(): array {
   return array(
     'access apc statistics' => array(
       'title' => t('Access APC statistics'),
@@ -24,12 +24,12 @@ function apc_permission() {
 /**
  * Implements hook_page_alter().
  */
-function apc_page_alter(&$page) {
+function apc_page_alter(&$page): void {
   if (variable_get('apc_show_debug', FALSE) && user_access('access apc statistics')) {
     $operations = ApcCache::operations();
     $rows = array();
 
-    if (!empty($operations) && is_array($operations)) {
+    if (!empty($operations)) {
       foreach ($operations as $row) {
         if (is_array($row[2])) {
           $row[2] = implode(',<br />', $row[2]);
@@ -60,7 +60,7 @@ function apc_page_alter(&$page) {
 /**
  * Implements hook_form_FORM_ID_alter() for system_performance_settings().
  */
-function apc_form_system_performance_settings_alter(&$form, $form_state) {
+function apc_form_system_performance_settings_alter(&$form, $form_state): void {
   if (extension_loaded('apcu')) {
     $form['clear_cache']['clear']['#submit'][] = 'apc_clear_apcu_cache';
 
@@ -75,7 +75,7 @@ function apc_form_system_performance_settings_alter(&$form, $form_state) {
 /**
  * Submission form handler for system_performance_settings().
  */
-function apc_clear_apcu_cache() {
+function apc_clear_apcu_cache(): void {
   if (extension_loaded('apcu') && apcu_enabled()) {
     $iterator = new APCUIterator("/^apc_cache::[a-zA-Z0-9-_]{20,}::[a-zA-Z0-9-_]{20,}/", APC_ITER_KEY);
 

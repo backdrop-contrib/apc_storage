@@ -19,6 +19,9 @@ class ApcCache implements DrupalCacheInterface {
    * The regular expression to delete the APCu keys used for cache values.
    *
    * @var string
+   *
+   * @internal This constant should only be used by this module. It is public
+   *   only because it needs to be accessible from apc_uninstall().
    */
   public const CACHE_KEYS_REGEXP = '/^apc_cache::[a-zA-Z0-9-_]{40,46}::[0-9a-f]{2,}/';
 

@@ -60,7 +60,7 @@ function apc_page_alter(&$page): void {
 /**
  * Implements hook_form_FORM_ID_alter() for system_performance_settings().
  */
-function apc_form_system_performance_settings_alter(&$form, $form_state): void {
+function apc_form_system_performance_settings_alter(&$form, &$form_state): void {
   if (extension_loaded('apcu')) {
     $form['clear_cache']['clear']['#submit'][] = 'apc_clear_apcu_cache';
 

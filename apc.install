@@ -7,8 +7,6 @@
 
 declare(strict_types=1);
 
-// phpcs:disable SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator.NullCoalesceOperatorNotUsed
-
 /**
  * Deletes APCu keys based on the provided patterns.
  *

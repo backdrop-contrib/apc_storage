@@ -285,7 +285,7 @@ class ApcCache implements DrupalCacheInterface {
   /**
    * Deletes all the cache IDs matching the given prefix.
    *
-   * @param string|null $prefix
+   * @param string $prefix
    *   The prefix for the cache IDs to delete.
    */
   protected function deleteKeys(string $prefix = ''): void {

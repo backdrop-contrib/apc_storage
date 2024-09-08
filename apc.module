@@ -5,6 +5,8 @@
  * Hook implementations for the Alternative PHP Cache module.
  */
 
+declare(strict_types=1);
+
 // phpcs:disable SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator.NullCoalesceOperatorNotUsed
 
 /**

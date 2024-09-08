@@ -5,6 +5,8 @@
  * Test classes for the Alternative PHP Cache module.
  */
 
+declare(strict_types=1);
+
 /**
  * Methods and properties for all the test classes that write directly to APCu.
  */

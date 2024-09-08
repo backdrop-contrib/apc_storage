@@ -5,6 +5,8 @@
  * Contains ApcCache.
  */
 
+declare(strict_types=1);
+
 /**
  * APCu cache implementation.
  *

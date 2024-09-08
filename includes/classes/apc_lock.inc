@@ -7,6 +7,8 @@
  * @see includes/lock.inc
  */
 
+declare(strict_types=1);
+
 /**
  * Class for the APCu-based locking mechanism implementation.
  *

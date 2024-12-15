@@ -100,14 +100,14 @@ function apc_requirements($phase): array {
     elseif (!apcu_enabled()) {
       $severity = drupal_is_cli() ? REQUIREMENT_INFO : REQUIREMENT_ERROR;
       $requirements['apc']['description'] = $t(
-        'The Alternative PHP Cache module needs the APCu extension to be enabled.'
+        'The Alternative PHP Cache module requires the APCu extension.'
       );
       $requirements['apc']['severity'] = $severity;
     }
   }
   else {
     $requirements['apc']['description'] = $t(
-      'The Alternative PHP Cache module needs the <a href="!apcu_link">APCu</a> extension.',
+      'The Alternative PHP Cache module requires the <a href="!apcu_link">APCu</a> extension.',
       array('!apcu_link' => 'https://www.php.net/apcu')
     );
     $requirements['apc']['severity'] = REQUIREMENT_ERROR;

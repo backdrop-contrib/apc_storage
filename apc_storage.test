@@ -703,7 +703,7 @@ class ApcStorageCacheBaseTestCase extends DrupalUnitTestCase {
 
     parent::setUp();
 
-    $conf['cache_backends'][] = drupal_get_path('module', 'apc') . '/includes/apc_cache.inc';
+    $conf['cache_backends'][] = drupal_get_path('module', 'apc') . '/includes/apc_storage_cache.inc';
 
     foreach ($this->getCacheBins() as $cache_bin) {
       $conf["cache_class_$cache_bin"] = 'ApcStorageCache';

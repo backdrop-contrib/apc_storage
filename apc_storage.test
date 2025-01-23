@@ -15,8 +15,8 @@ trait ApcStorageApcuTestTrait {
   /**
    * Whether the test should be skipped.
    *
-   * ApcStorageApcuTestTrait::checkRequirements() will set this property to TRUE if the
-   * requirements for the test to run are not met.
+   * ApcStorageApcuTestTrait::checkRequirements() will set this property to TRUE
+   * if the requirements for the test to run are not met.
    *
    * @var bool
    */
@@ -1210,7 +1210,7 @@ class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCas
         $cid = "store_retrieve_cache_item_$id";
 
         // The TTL set by ApcStorageApcuTestTrait::storageData() is ignored. All
-        //the cache items are permanent.
+        // the cache items are permanent.
         if ($this->assertCacheItemSaved($bin, $cid, $data['value'])) {
           $stored[] = $cid;
         }

@@ -38,6 +38,16 @@ class ApcStorageLock {
     self::$uniqueId = drupal_random_bytes(32);
   }
 
+  /**
+   * Generates the key name used for locks.
+   *
+   * @param string $name
+   *   The name of the lock.
+   *
+   * @return string
+   *   The key name which can be used in APC calls to avoid conflicts with other
+   *   keys.
+   */
   public static function getLockKey(string $name): string {
     // self::$uniqueId is already initialized from ApcStorageLock::initialize().
     // The following lines are added as safeguard, just in case

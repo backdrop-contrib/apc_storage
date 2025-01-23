@@ -28,6 +28,6 @@ include:
 #   OPT_IN_TEST_NEXT_MAJOR: '1'
 #   _CURL_TEMPLATES_REF: 'main'
 variables:
-  PHP_VERSION: '8.2'
+  PHP_VERSION: '8.3'
   _PHPUNIT_CONCURRENT: '1'
   _CONCURRENCY_THREADS: '6'

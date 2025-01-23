@@ -218,16 +218,6 @@ class ApcStorageLock {
     return FALSE;
   }
 
-  /**
-   * Gets the name of the APCu key used to store a lock.
-   *
-   * @param string $name
-   *   The name of the lock.
-   *
-   * @return string
-   *   The APCu key name.
-   */
-
 }
 
 /**

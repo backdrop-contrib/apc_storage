@@ -1,0 +1,87 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall hooks for the APC Storage module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_requirements().
+ */
+function apc_storage_requirements($phase): array {
+  // Ensure translations don't break at install time.
+  $t = get_t();
+
+  $requirements['apc_storage'] = array(
+    'title' => $t('APC Storage'),
+  );
+
+  if (extension_loaded('apcu')) {
+    $apcu_version = phpversion('apcu');
+
+    if ($apcu_version === FALSE) {
+      $severity = drupal_is_cli() ? REQUIREMENT_INFO : REQUIREMENT_ERROR;
+      $requirements['apc_storage']['description'] = $t(
+        'The APC Storage module requires the APCu extension.'
+      );
+      $requirements['apc_storage']['severity'] = $severity;
+
+      return $requirements;
+    }
+
+    $required_version_installed = version_compare($apcu_version, '5.1.17', '>=');
+
+    if (!$required_version_installed) {
+      $requirements['apc_storage']['description'] = $t(
+        'The APC Storage module requires the APCu extension version 5.1.17 or higher; version %apcu_version is currently installed.',
+        array('%apcu_version' => $apcu_version)
+      );
+      $requirements['apc_storage']['severity'] = REQUIREMENT_ERROR;
+
+      return $requirements;
+    }
+
+    if (apcu_enabled() && $phase == 'runtime') {
+      $cache = apcu_cache_info(TRUE);
+      $num_entries = $cache['num_entries'] ?? 0;
+      $start_time = $cache['start_time'] ?? time();
+      $mem_size = $cache['mem_size'] ?? 0;
+
+      $requirements['apc_storage']['description'] = $t(
+        'The APCu extension has been running for !duration. It contains !num_entries entries and uses !memory_size of memory.',
+        array(
+          '!duration' => format_interval(time() - $start_time),
+          '!num_entries' => $num_entries,
+          '!memory_size' => format_size($mem_size),
+        )
+      );
+      $requirements['apc_storage']['severity'] = REQUIREMENT_INFO;
+    }
+    elseif (!apcu_enabled()) {
+      $severity = drupal_is_cli() ? REQUIREMENT_INFO : REQUIREMENT_ERROR;
+      $requirements['apc_storage']['description'] = $t(
+        'The APC Storage module requires the APCu extension.'
+      );
+      $requirements['apc']['severity'] = $severity;
+    }
+  }
+  else {
+    $requirements['apc_storage']['description'] = $t(
+      'The APC Storage module requires the <a href="!apcu_link">APCu</a> extension.',
+      array('!apcu_link' => 'https://www.php.net/apcu')
+    );
+    $requirements['apc_storage']['severity'] = REQUIREMENT_ERROR;
+  }
+
+  return $requirements;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function apc_uninstall(): void {
+  ApcStorageCache::deleteAllStoredData();
+  ApcStorageLock::deleteAllStoredData();
+}

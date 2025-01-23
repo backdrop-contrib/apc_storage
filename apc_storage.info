@@ -1,0 +1,10 @@
+name = APC Storage
+description = Integrates the APCu extension with Drupal.
+package = Performance and scalability
+core = 7.x
+php = 8.3
+files[] = apc_storage.test
+files[] = includes/apc_storage_cache.inc
+files[] = includes/apc_storage_lock.inc
+files[] = includes/apc_storage_queue.inc
+files[] = includes/apc_storage_queue_item.inc

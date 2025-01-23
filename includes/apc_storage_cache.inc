@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcCache.
+ * Contains ApcStorageCache.
  */
 
 declare(strict_types=1);
@@ -13,17 +13,7 @@ declare(strict_types=1);
  * This is a Drupal cache implementation which uses the APCu extension to store
  * cached data.
  */
-class ApcCache implements DrupalCacheInterface {
-
-  /**
-   * The regular expression to delete the APCu keys used for cache values.
-   *
-   * @var string
-   *
-   * @internal This constant should only be used by this module. It is public
-   *   only because it needs to be accessible from apc_uninstall().
-   */
-  public const CACHE_KEYS_REGEXP = '/^apc_cache::[a-zA-Z0-9-_]{40,46}::[0-9a-f]{2,}/';
+class ApcStorageCache implements DrupalCacheInterface {
 
   /**
    * The list of all the operations done to the cache.
@@ -58,7 +48,7 @@ class ApcCache implements DrupalCacheInterface {
    *
    * @var string
    */
-  protected string $modulePrefix = 'apc_cache';
+  protected string $modulePrefix = 'apc_storage_cache';
 
   /**
    * Converts a binary string to a hexadecimal representation.
@@ -77,7 +67,7 @@ class ApcCache implements DrupalCacheInterface {
    * Sets the one of the strings used for the APCu storage key.
    */
   protected function setBinPrefix(): void {
-    $prefixes = variable_get('apc_cache_prefix', '');
+    $prefixes = variable_get('apc_storage_cache_prefix', '');
 
     if (is_string($prefixes) && !empty($prefixes)) {
       // $prefixes can be a string used for all the cache bins.
@@ -179,7 +169,11 @@ class ApcCache implements DrupalCacheInterface {
    * {@inheritdoc}
    */
   public function get($cid): object|false {
-    $this->addOperation(array('get()', $this->bin, array($cid)));
+    $this->addOperation(array(
+      'method' => 'get()',
+      'bin' => $this->bin,
+      'cid' => array($cid),
+    ));
 
     if (extension_loaded('apcu') && apcu_enabled()) {
       $data = apcu_fetch($this->keyName($cid), $success);
@@ -218,7 +212,11 @@ class ApcCache implements DrupalCacheInterface {
     $cache = array();
 
     // Add a get to our statistics.
-    $this->addOperation(array('getMultiple()', $this->bin, $cids));
+    $this->addOperation(array(
+      'method' => 'getMultiple()',
+      'bin' => $this->bin,
+      'cids' => $cids,
+    ));
 
     if (!$cids) {
       return $cache;
@@ -244,7 +242,11 @@ class ApcCache implements DrupalCacheInterface {
    */
   public function set($cid, $data, $expire = CACHE_PERMANENT): void {
     // Add set to statistics.
-    $this->addOperation(array('set()', $this->bin, $cid));
+    $this->addOperation(array(
+      'method' => 'set()',
+      'bin' => $this->bin,
+      'cid' => array($cid),
+    ));
 
     if (extension_loaded('apcu') && apcu_enabled()) {
       // Create new cache object.
@@ -287,7 +289,11 @@ class ApcCache implements DrupalCacheInterface {
    */
   protected function deleteKey(string $cid): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $this->addOperation(array('deleteKey()', $this->bin, $cid));
+      $this->addOperation(array(
+        'method' => 'deleteKey()',
+        'bin' => $this->bin,
+        'cid' => array($cid),
+      ));
       apcu_delete($this->keyName($cid));
     }
   }
@@ -300,12 +306,36 @@ class ApcCache implements DrupalCacheInterface {
    */
   protected function deleteKeys(string $prefix = ''): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $this->addOperation(array('deleteKeys()', $this->bin, $prefix));
+      $this->addOperation(array(
+        'method' => 'deleteKeys()',
+        'bin' => $this->bin,
+        'cid' => array($prefix),
+      ));
 
       $escaped_key = preg_quote($this->keyName($prefix), '/');
       $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
       apcu_delete($iterator);
     }
+  }
+
+  /**
+   * Deletes all the cache data stored by ApcStorageCache.
+   *
+   * @return bool
+   *   TRUE if the data was successfully deleted, FALSE otherwise.
+   */
+  public static function deleteAllStoredData(): bool {
+    self::addOperation(array(
+      'method' => 'deleteAllStoredData()',
+    ));
+    
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      $iterator = new APCUIterator('/^apc_storage_cache::[a-zA-Z0-9-_]{40,46}::[0-9a-f]{2,}/', APC_ITER_KEY);
+      apcu_delete($iterator);
+      return TRUE;
+    }
+
+    return FALSE;
   }
 
   /**
@@ -366,7 +396,13 @@ class ApcCache implements DrupalCacheInterface {
    *   The new operation to add.
    */
   protected function addOperation(array $operation): void {
-    if (variable_get('apc_show_debug', FALSE)) {
+    // Add the default values for bin and cid.
+    $operation += array(
+      'bin' => '',
+      'cid' => '',
+    );
+
+    if (variable_get('apc_storage_show_details', FALSE)) {
       self::$operations[] = $operation;
     }
   }

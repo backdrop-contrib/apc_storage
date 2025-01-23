@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Hook implementations for the Alternative PHP Cache module.
+ * Hook implementations for the APC Storage module.
  *
  * This file is intentionally empty, as all the hooks are implemented in an
  * optional module.

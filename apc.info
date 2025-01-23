@@ -1,8 +1,0 @@
-name = Alternative PHP Cache
-description = Integrates the APCu extension with Drupal.
-package = Performance and scalability
-core = 7.x
-php = 8.2
-files[] = apc.test
-files[] = includes/classes/apc_cache.inc
-files[] = includes/classes/apc_lock.inc

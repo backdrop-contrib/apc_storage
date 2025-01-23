@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Test classes for the Alternative PHP Cache module.
+ * Test classes for the APC Storage module.
  */
 
 declare(strict_types=1);
@@ -10,12 +10,12 @@ declare(strict_types=1);
 /**
  * Methods and properties for all the test classes that write directly to APCu.
  */
-trait ApcApcuTestTrait {
+trait ApcStorageApcuTestTrait {
 
   /**
    * Whether the test should be skipped.
    *
-   * ApcApcuTestTrait::checkRequirements() will set this property to TRUE if the
+   * ApcStorageApcuTestTrait::checkRequirements() will set this property to TRUE if the
    * requirements for the test to run are not met.
    *
    * @var bool
@@ -334,9 +334,9 @@ trait ApcApcuTestTrait {
 /**
  * Base class for the test classes that write directly to APCu.
  */
-class ApcApcuBaseTestCase extends DrupalUnitTestCase {
+class ApcStorageApcuBaseTestCase extends DrupalUnitTestCase {
 
-  use ApcApcuTestTrait;
+  use ApcStorageApcuTestTrait;
 
   /**
    * {@inheritdoc}
@@ -359,7 +359,7 @@ class ApcApcuBaseTestCase extends DrupalUnitTestCase {
 /**
  * Unit tests for reading and writing the APCu storage.
  */
-class ApcApcuStoreAndRetrieveTestCase extends ApcApcuBaseTestCase {
+class ApcStorageApcuStoreAndRetrieveTestCase extends ApcStorageApcuBaseTestCase {
 
   /**
    * {@inheritdoc}
@@ -368,7 +368,7 @@ class ApcApcuStoreAndRetrieveTestCase extends ApcApcuBaseTestCase {
     return array(
       'name' => 'APCu store and retrieve test',
       'description' => 'Tests reading and writing the APCu storage.',
-      'group' => 'Alternative PHP Cache',
+      'group' => 'APC Storage',
     );
   }
 
@@ -424,7 +424,7 @@ class ApcApcuStoreAndRetrieveTestCase extends ApcApcuBaseTestCase {
 
       if ($this->assertTrue(!empty($stored), $message)) {
         // Halt the tests for 10 seconds, which is 2 seconds more than the
-        // maximum TTL set by ApcApcuTestTrait::storageData().
+        // maximum TTL set by ApcStorageApcuTestTrait::storageData().
         $message = format_string('The test will be halted for @delay seconds.', array('@delay' => 10));
         $persistent_key_message = '@key persists and it was found.';
         $purgeable_key_message = '@key was purgeable and it was not found.';
@@ -455,16 +455,16 @@ class ApcApcuStoreAndRetrieveTestCase extends ApcApcuBaseTestCase {
 /**
  * Methods and properties for all the cache test classes.
  */
-trait ApcCacheTestTrait {
+trait ApcStorageCacheTestTrait {
 
-  use ApcApcuTestTrait;
+  use ApcStorageApcuTestTrait;
 
   /**
    * The cache bins to store on APCu.
    *
    * @var array
    */
-  protected $cacheBins = array('apc_test');
+  protected $cacheBins = array('apc_storage_test');
 
   /**
    * Adds cache bins to the list of cache bins that are stored on APCu.
@@ -510,7 +510,7 @@ trait ApcCacheTestTrait {
       $args = array('@bin' => $this->varExport($bin));
       $message = format_string('Data for the @bin cache bin is stored on APCu.', $args);
 
-      if (!$this->assertTrue($backend instanceof ApcCache, $message)) {
+      if (!$this->assertTrue($backend instanceof ApcStorageCache, $message)) {
         $result = FALSE;
       }
     }
@@ -691,9 +691,9 @@ trait ApcCacheTestTrait {
 /**
  * Base class for the cache test classes.
  */
-class ApcCacheBaseTestCase extends DrupalUnitTestCase {
+class ApcStorageCacheBaseTestCase extends DrupalUnitTestCase {
 
-  use ApcCacheTestTrait;
+  use ApcStorageCacheTestTrait;
 
   /**
    * {@inheritdoc}
@@ -706,7 +706,7 @@ class ApcCacheBaseTestCase extends DrupalUnitTestCase {
     $conf['cache_backends'][] = drupal_get_path('module', 'apc') . '/includes/classes/apc_cache.inc';
 
     foreach ($this->getCacheBins() as $cache_bin) {
-      $conf["cache_class_$cache_bin"] = 'ApcCache';
+      $conf["cache_class_$cache_bin"] = 'ApcStorageCache';
     }
 
     // The DrupalFakeCache class is a cache backend stub implementation used by
@@ -737,9 +737,9 @@ class ApcCacheBaseTestCase extends DrupalUnitTestCase {
 /**
  * Unit tests for cache_clear_all().
  */
-class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
+class ApcStorageCacheClearTestCase extends ApcStorageCacheBaseTestCase {
 
-  use ApcCacheTestTrait;
+  use ApcStorageCacheTestTrait;
 
   /**
    * {@inheritdoc}
@@ -748,7 +748,7 @@ class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
     return array(
       'name' => 'Cache clear test',
       'description' => 'Tests calling cache_clear_all() with various arguments.',
-      'group' => 'Alternative PHP Cache',
+      'group' => 'APC Storage',
     );
   }
 
@@ -897,9 +897,9 @@ class ApcCacheClearTestCase extends ApcCacheBaseTestCase {
 /**
  * Unit tests for writing the same cache item in multiple cache bins.
  */
-class ApcCacheConflictingKeysTestCase extends ApcCacheBaseTestCase {
+class ApcStorageCacheConflictingKeysTestCase extends ApcStorageCacheBaseTestCase {
 
-  use ApcCacheTestTrait;
+  use ApcStorageCacheTestTrait;
 
   /**
    * {@inheritdoc}
@@ -908,7 +908,7 @@ class ApcCacheConflictingKeysTestCase extends ApcCacheBaseTestCase {
     return array(
       'name' => 'Conflicting keys test',
       'description' => 'Tests that keys for a cache bin do not conflict with other cache bin keys.',
-      'group' => 'Alternative PHP Cache',
+      'group' => 'APC Storage',
     );
   }
 
@@ -916,7 +916,7 @@ class ApcCacheConflictingKeysTestCase extends ApcCacheBaseTestCase {
    * {@inheritdoc}
    */
   public function setUp(): void {
-    $this->setCacheBins('apc_test_' . $this->randomName(), 'apc_test_more_' . $this->randomName());
+    $this->setCacheBins('apc_storage_test_' . $this->randomName(), 'apc_storage_test_more_' . $this->randomName());
     parent::setUp();
   }
 
@@ -965,15 +965,15 @@ class ApcCacheConflictingKeysTestCase extends ApcCacheBaseTestCase {
 /**
  * Unit tests for creating cache items when APCu contains other values.
  */
-class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
+class ApcStorageCachePreserveExistingApcuKeysTestCase extends ApcStorageCacheBaseTestCase {
 
   /**
    * Returns the key name used for locks.
    *
    * This method uses code similar to the code in
-   * ApcCacheTestTrait::getLockKey(). It is duplicated here because including
-   * the drupal_apc_lock.inc file would cause an error about functions already
-   * defined.
+   * ApcStorageCacheTestTrait::getLockKey(). It is duplicated here because
+   * including the drupal_apc_lock.inc file would cause an error about functions
+   * already defined.
    */
   protected function getLockKey($name): string {
     static $unique_id;
@@ -984,7 +984,7 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
 
     $hash = hash('sha256', $unique_id . $name, TRUE);
 
-    return 'apc_lock::' . drupal_base64_encode($hash);
+    return 'apc_storage_lock::' . drupal_base64_encode($hash);
   }
 
   /**
@@ -994,7 +994,7 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
     return array(
       'name' => 'Existing APCu keys test',
       'description' => 'Verifies there is no conflict between APCu keys used for storing cache items and other APCu keys.',
-      'group' => 'Alternative PHP Cache',
+      'group' => 'APC Storage',
     );
   }
 
@@ -1002,7 +1002,7 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
    * {@inheritdoc}
    */
   protected function setUp(): void {
-    $this->setCacheBins('apc_cache', 'apc_cache::', 'apc_cache::default_prefix::', 'apc_lock', 'apc_lock::');
+    $this->setCacheBins('apc_storage_cache', 'apc_storage_cache::', 'apc_storage_cache::default_prefix::', 'apc_storage_lock', 'apc_storage_lock::');
     parent::setUp();
   }
 
@@ -1104,7 +1104,7 @@ class ApcCachePreserveExistingApcuKeysTestCase extends ApcCacheBaseTestCase {
 /**
  * Unit tests for storing and retrieving cache items.
  */
-class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
+class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCase {
 
   /**
    * {@inheritdoc}
@@ -1113,7 +1113,7 @@ class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
     return array(
       'name' => 'Store and retrieve test',
       'description' => 'Verifies the cache items are correctly stored and the retrieved values are correct.',
-      'group' => 'Alternative PHP Cache',
+      'group' => 'APC Storage',
     );
   }
 
@@ -1172,9 +1172,9 @@ class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
       $message = 'New items were stored in the cache.';
 
       if ($this->assertTrue(!empty($stored), $message)) {
-        // Add 2 seconds to the maximum TTL ApcApcuTestTrait::storageData() sets
-        // to be sure that non-permanent values are purged when the cache is
-        // read.
+        // Add 2 seconds to the maximum TTL
+        // ApcStorageApcuTestTrait::storageData() sets to be sure that
+        // non-permanent values are purged when the cache is read.
         $message = format_string('The test will be halted for @delay seconds.', array('@delay' => 10));
 
         $this->pass($message);
@@ -1209,8 +1209,8 @@ class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
       foreach ($this->storageData() as $id => $data) {
         $cid = "store_retrieve_cache_item_$id";
 
-        // The TTL set by ApcApcuTestTrait::storageData() is ignored. All the
-        // cache items are permanent.
+        // The TTL set by ApcStorageApcuTestTrait::storageData() is ignored. All
+        //the cache items are permanent.
         if ($this->assertCacheItemSaved($bin, $cid, $data['value'])) {
           $stored[] = $cid;
         }
@@ -1250,10 +1250,11 @@ class ApcCacheStoreAndRetrieveTestCase extends ApcCacheBaseTestCase {
       $message = 'New items were stored in the cache.';
 
       if ($this->assertTrue(!empty($stored), $message)) {
-        // 12 is the maximum TTL set by ApcApcuTestTrait::storageData(), plus 2
-        // to make the permanent cache items ApcApcuTestTrait::storageData()
-        // returns purgeable, plus 2 to be sure that all the cached items are
-        // purged when cache_get_multiple() is called.
+        // 12 is the maximum TTL set by ApcStorageApcuTestTrait::storageData(),
+        // plus 2 to make the permanent cache items
+        // ApcStorageApcuTestTrait::storageData() returns purgeable, plus 2 to
+        // be sure that all the cached items are purged when
+        // cache_get_multiple() is called.
         $message = format_string('The test will be halted for @delay seconds.', array('@delay' => 12));
 
         $this->pass($message);

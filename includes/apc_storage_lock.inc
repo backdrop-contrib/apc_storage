@@ -15,14 +15,7 @@ declare(strict_types=1);
  * @internal This class should only be used from the code in this file.
  *   Contributed modules should not use this class.
  */
-class ApcLock {
-
-  /**
-   * The regular expression to delete the APCu keys used for lock values.
-   *
-   * @var string
-   */
-  public const LOCK_KEYS_REGEXP = '/^apc_lock::[a-zA-Z0-9-_]{40,46}/';
+class ApcStorageLock {
 
   /**
    * The locks acquired in the current request.
@@ -43,6 +36,22 @@ class ApcLock {
    */
   public static function initialize(): void {
     self::$uniqueId = drupal_random_bytes(32);
+  }
+
+  public static function getLockKey(string $name): string {
+    // self::$uniqueId is already initialized from ApcStorageLock::initialize().
+    // The following lines are added as safeguard, just in case
+    // ApcStorageLock::initialize() is not called as expected. This should never
+    // happen because Drupal core calls lock_initialize() in
+    // _drupal_bootstrap_variables() and lock_initialize() implemented in this
+    // file is a wrapper for ApcStorageLock::initialize().
+    if (empty(self::$uniqueId)) {
+      self::$uniqueId = drupal_random_bytes(32);
+    }
+
+    $hash = hash('sha256', self::$uniqueId . $name, TRUE);
+
+    return 'apc_storage_lock::' . drupal_base64_encode($hash);
   }
 
   /**
@@ -177,7 +186,7 @@ class ApcLock {
   }
 
   /**
-   * Releases a lock previously acquired by ApcLock::acquire().
+   * Releases a lock previously acquired by ApcStorageLock::acquire().
    *
    * This will release the named lock if it is still held by the current
    * request.
@@ -193,6 +202,23 @@ class ApcLock {
   }
 
   /**
+   * Deletes all the lock data stored by ApcStorageLock.
+   *
+   * @return bool
+   *   TRUE if the data was successfully deleted, FALSE otherwise.
+   */
+  public static function deleteAllStoredData(): bool {
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      $iterator = new APCUIterator('/^apc_lock::[a-zA-Z0-9-_]{40,46}/', APC_ITER_KEY);
+      apcu_delete($iterator);
+
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  /**
    * Gets the name of the APCu key used to store a lock.
    *
    * @param string $name
@@ -201,31 +227,16 @@ class ApcLock {
    * @return string
    *   The APCu key name.
    */
-  public static function getLockKey(string $name): string {
-    // self::$uniqueId is already initialized from ApcLock::initialize(). The
-    // following lines are added as safeguard, just in case
-    // ApcLock::initialize() is not called as expected. This should never happen
-    // because Drupal core calls lock_initialize() in
-    // _drupal_bootstrap_variables() and lock_initialize() implemented in this
-    // file is a wrapper for ApcLock::initialize().
-    if (empty(self::$uniqueId)) {
-      self::$uniqueId = drupal_random_bytes(32);
-    }
-
-    $hash = hash('sha256', self::$uniqueId . $name, TRUE);
-
-    return 'apc_lock::' . drupal_base64_encode($hash);
-  }
 
 }
 
 /**
  * Initializes the locking system.
  *
- * @see ApcLock::initialize()
+ * @see ApcStorageLock::initialize()
  */
 function lock_initialize(): void {
-  ApcLock::initialize();
+  ApcStorageLock::initialize();
 }
 
 /**
@@ -239,10 +250,10 @@ function lock_initialize(): void {
  * @return bool
  *   TRUE if the lock was acquired, FALSE otherwise.
  *
- * @see ApcLock::acquire()
+ * @see ApcStorageLock::acquire()
  */
 function lock_acquire(string $name, float $timeout = 30.0): bool {
-  return ApcLock::acquire($name, $timeout);
+  return ApcStorageLock::acquire($name, $timeout);
 }
 
 /**
@@ -256,10 +267,10 @@ function lock_acquire(string $name, float $timeout = 30.0): bool {
  * @return bool
  *   TRUE if there is no lock, or it was removed, FALSE otherwise.
  *
- * @see ApcLock::maybeAvailable()
+ * @see ApcStorageLock::maybeAvailable()
  */
 function lock_may_be_available(string $name): bool {
-  return ApcLock::maybeAvailable($name);
+  return ApcStorageLock::maybeAvailable($name);
 }
 
 /**
@@ -279,10 +290,10 @@ function lock_may_be_available(string $name): bool {
  * @return bool
  *   FALSE if the lock is available, TRUE otherwise.
  *
- * @see ApcLock::waitForLock()
+ * @see ApcStorageLock::waitForLock()
  */
 function lock_wait(string $name, float $delay = 30.0): bool {
-  return ApcLock::waitForLock($name, $delay);
+  return ApcStorageLock::waitForLock($name, $delay);
 }
 
 /**
@@ -293,8 +304,8 @@ function lock_wait(string $name, float $delay = 30.0): bool {
  * @param string $name
  *   The name of the lock.
  *
- * @see ApcLock::release()
+ * @see ApcStorageLock::release()
  */
 function lock_release(string $name): void {
-  ApcLock::release($name);
+  ApcStorageLock::release($name);
 }

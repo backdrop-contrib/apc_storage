@@ -1,0 +1,5 @@
+name = APC Storage - Admin pages
+description = Administration pages for the APC Storage module.
+package = Performance and scalability
+core = 7.x
+dependencies[] = apc_storage

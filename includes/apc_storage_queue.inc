@@ -7,6 +7,8 @@
 
 declare(strict_types=1);
 
+use Random\RandomException;
+
 /**
  * An APCu-based queue implementation.
  */
@@ -40,12 +42,17 @@ class ApcStorageQueue implements DrupalQueueInterface {
    * {@inheritdoc}
    */
   public function createItem(mixed $data): bool {
-    $item = new stdClass();
-    $item->item_id = random_bytes(32);
-    $item->data = $data;
-    $item->expire = 0;
+    try {
+      $item = new stdClass();
+      $item->item_id = random_bytes(32);
+      $item->data = $data;
+      $item->expire = 0;
+    }
+    catch (RandomException) {
+      return FALSE;
+    }
 
-    return apcu_store('apc_storage_queue::' . $this->name . '::' . unpack('H*', $item->item_id)[1], $item, 0);
+    return apcu_store('apc_storage_queue::' . $this->name . '::' . unpack('H*', $item->item_id)[1], $item);
   }
 
   /**
@@ -64,7 +71,7 @@ class ApcStorageQueue implements DrupalQueueInterface {
   /**
    * {@inheritdoc}
    */
-  public function claimItem($lease_time = 30): object {
+  public function claimItem($lease_time = 30): ?object {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $iterator = new APCUIterator('/^apc_storage_queue::' . $this->name . '::[0-9a-f]{64}/');
 
@@ -73,7 +80,8 @@ class ApcStorageQueue implements DrupalQueueInterface {
           $item['value']->expire = 0;
         }
 
-        // If the previously set lease time has expired, reset the expire time.
+        // If the previously set lease time has expired, reset the expiration
+        // time.
         elseif (!empty($item['value']->expire) && $item['value']->expire < time()) {
           $item['value']->expire = 0;
         }
@@ -82,12 +90,14 @@ class ApcStorageQueue implements DrupalQueueInterface {
         if ($item['value']->expire == 0) {
           $item['value']->expire = time() + $lease_time;
 
-          if (apcu_store($item['key'], $item['value'], 0)) {
+          if (apcu_store($item['key'], $item['value'])) {
             return $item['value'];
           }
         }
       }
     }
+
+    return NULL;
   }
 
   /**
@@ -106,7 +116,7 @@ class ApcStorageQueue implements DrupalQueueInterface {
     $item->expire = 0;
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      return apcu_store('apc_storage_queue::' . $this->name . '::' . unpack('H*', $item->item_id)[1], $item, 0);
+      return apcu_store('apc_storage_queue::' . $this->name . '::' . unpack('H*', $item->item_id)[1], $item);
     }
 
     return FALSE;

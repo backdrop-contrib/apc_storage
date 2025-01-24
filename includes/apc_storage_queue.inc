@@ -24,6 +24,19 @@ class ApcStorageQueue implements DrupalQueueInterface {
   }
 
   /**
+   * Converts a binary string to a hexadecimal representation.
+   *
+   * @param string $data
+   *   The binary string to convert.
+   *
+   * @return string
+   *   The hexadecimal representation of the binary string.
+   */
+  protected function binaryToHex(string $data): string {
+    return unpack('H*', $data)[1];
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function createItem(mixed $data): bool {
@@ -51,13 +64,17 @@ class ApcStorageQueue implements DrupalQueueInterface {
   /**
    * {@inheritdoc}
    */
-  public function claimItem(int $lease_time = 30): object {
+  public function claimItem($lease_time = 30): object {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $iterator = new APCUIterator('/^apc_storage_queue::' . $this->name . '::[0-9a-f]{64}/');
 
       foreach ($iterator as $item) {
+        if (!isset($item['value']->expire)) {
+          $item['value']->expire = 0;
+        }
+
         // If the previously set lease time has expired, reset the expire time.
-        if (empty($item['value']->expire) && $item['value']->expire < time()) {
+        elseif (!empty($item['value']->expire) && $item['value']->expire < time()) {
           $item['value']->expire = 0;
         }
 
@@ -76,16 +93,16 @@ class ApcStorageQueue implements DrupalQueueInterface {
   /**
    * {@inheritdoc}
    */
-  public function deleteItem(object $item): void {
+  public function deleteItem($item): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      apcu_delete('apc_storage_queue::' . $this->name . '::' . unpack('H*', $item->item_id)[1]);
+      apcu_delete('apc_storage_queue::' . $this->name . '::' . $this->binaryToHex($item->item_id));
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function releaseItem(object $item): bool {
+  public function releaseItem($item): bool {
     $item->expire = 0;
 
     if (extension_loaded('apcu') && apcu_enabled()) {

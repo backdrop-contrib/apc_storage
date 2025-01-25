@@ -76,7 +76,7 @@ the settings.php file used by each site to avoid that values cached for a site
 are returned for all the sites.
 
 ```php
-$conf['apc_storage_cache_prefix'] = drupal_random_bytes(8);
+$conf['apc_storage_cache_prefix'] = random_bytes(8);
 ```
 
 It is also possible to provide a different prefix for each cache bin, for
@@ -84,9 +84,9 @@ example using the following lines.
 
 ```php
 $conf['apc_storage_cache_prefix'] = array(
-  'cache' => drupal_random_bytes(8),
-  'cache_bootstrap' => drupal_random_bytes(8),
-  'default' => drupal_random_bytes(8),
+  'cache' => random_bytes(8),
+  'cache_bootstrap' => random_bytes(8),
+  'default' => random_bytes(8),
 );
 ```
 

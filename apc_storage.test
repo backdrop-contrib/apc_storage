@@ -979,7 +979,7 @@ class ApcStorageCachePreserveExistingApcuKeysTestCase extends ApcStorageCacheBas
     static $unique_id;
 
     if (empty($unique_id)) {
-      $unique_id = drupal_random_bytes(32);
+      $unique_id = random_bytes(32);
     }
 
     $hash = hash('sha256', $unique_id . $name, TRUE);

@@ -116,7 +116,7 @@ class ApcStorageQueue implements DrupalQueueInterface {
     $item->expire = 0;
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      return apcu_store('apc_storage_queue::' . $this->name . '::' . unpack('H*', $item->item_id)[1], $item);
+      return apcu_store('apc_storage_queue::' . $this->name . '::' . $this->binaryToHex($item->item_id), $item);
     }
 
     return FALSE;

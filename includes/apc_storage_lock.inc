@@ -35,7 +35,7 @@ class ApcStorageLock {
    * Initializes the locking system.
    */
   public static function initialize(): void {
-    self::$uniqueId = drupal_random_bytes(32);
+    self::$uniqueId = random_bytes(32);
   }
 
   /**
@@ -56,7 +56,7 @@ class ApcStorageLock {
     // _drupal_bootstrap_variables() and lock_initialize() implemented in this
     // file is a wrapper for ApcStorageLock::initialize().
     if (empty(self::$uniqueId)) {
-      self::$uniqueId = drupal_random_bytes(32);
+      self::$uniqueId = random_bytes(32);
     }
 
     $hash = hash('sha256', self::$uniqueId . $name, TRUE);

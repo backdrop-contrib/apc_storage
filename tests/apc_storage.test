@@ -1312,6 +1312,13 @@ class ApcStorageQueueCronTestCase extends DrupalWebTestCase {
     ));
   }
 
+  /**
+   * Tests that the queue cron callback works.
+   *
+   * Tests that the queue cron callback works by creating items in the queue
+   * and then running the cron. Verifies that the items are removed from the
+   * queue.
+   */
   public function testQueueCronCallback(): void {
     $first_queue = DrupalQueue::get('apc_storage_queue_test_support_class_callback');
     $second_queue = DrupalQueue::get('apc_storage_queue_test_support_function_callback');

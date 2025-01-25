@@ -395,7 +395,7 @@ class ApcStorageCache implements DrupalCacheInterface {
    * @param array $operation
    *   The new operation to add.
    */
-  protected function addOperation(array $operation): void {
+  protected static function addOperation(array $operation): void {
     // Add the default values for bin and cid.
     $operation += array(
       'bin' => '',

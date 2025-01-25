@@ -9,6 +9,7 @@
 
 declare(strict_types=1);
 
+use Random\Engine\Xoshiro256StarStar;
 use Random\RandomException;
 
 /**
@@ -42,11 +43,16 @@ class ApcStorageLock {
         self::$uniqueId = random_bytes(32);
       }
       catch (RandomException) {
-        self::$uniqueId = hash(
-          'sha256',
-          uniqid(hash('sha256', 'apc_storage_lock_' . rand(), TRUE), TRUE),
-          TRUE
-        );
+        // Use a fallback in case random_bytes() fails.
+        try {
+          $engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_lock_' . time(), TRUE));
+          self::$uniqueId = hash('sha256', $engine->generate(), TRUE);
+        }
+        catch (ValueError) {
+          // This should never happen because the seed passed to
+          // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
+          // and those are not all zeros.
+        }
       }
     }
   }
@@ -73,11 +79,16 @@ class ApcStorageLock {
         self::$uniqueId = random_bytes(32);
       }
       catch (RandomException) {
-        self::$uniqueId = hash(
-          'sha256',
-          uniqid(hash('sha256', 'apc_storage_lock_' . rand(), TRUE), TRUE),
-          TRUE
-        );
+        // Use a fallback in case random_bytes() fails.
+        try {
+          $engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_lock_' . time(), TRUE));
+          self::$uniqueId = hash('sha256', $engine->generate(), TRUE);
+        }
+        catch (ValueError) {
+          // This should never happen because the seed passed to
+          // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
+          // and those are not all zeros.
+        }
       }
     }
 

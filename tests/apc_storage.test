@@ -7,6 +7,8 @@
 
 declare(strict_types=1);
 
+use Random\RandomException;
+
 /**
  * Methods and properties for all the test classes that write directly to APCu.
  */
@@ -971,15 +973,24 @@ class ApcStorageCachePreserveExistingApcuKeysTestCase extends ApcStorageCacheBas
    * Returns the key name used for locks.
    *
    * This method uses code similar to the code in
-   * ApcStorageCacheTestTrait::getLockKey(). It is duplicated here because
-   * including the drupal_apc_lock.inc file would cause an error about functions
-   * already defined.
+   * ApcStorageLock::getLockKey(). It is duplicated here because including the
+   * apc_storage_lock.inc file would cause an error about functions already
+   * defined.
    */
   protected function getLockKey($name): string {
     static $unique_id;
 
     if (empty($unique_id)) {
-      $unique_id = random_bytes(32);
+      try {
+        $unique_id = random_bytes(32);
+      }
+      catch (RandomException) {
+        $unique_id = hash(
+          'sha256',
+          uniqid('apc_storage_lock_', TRUE),
+          TRUE
+        );
+      }
     }
 
     $hash = hash('sha256', $unique_id . $name, TRUE);

@@ -9,6 +9,8 @@
 
 declare(strict_types=1);
 
+use Random\RandomException;
+
 /**
  * Class for the APCu-based locking mechanism implementation.
  *
@@ -35,7 +37,18 @@ class ApcStorageLock {
    * Initializes the locking system.
    */
   public static function initialize(): void {
-    self::$uniqueId = random_bytes(32);
+    if (empty(self::$uniqueId)) {
+      try {
+        self::$uniqueId = random_bytes(32);
+      }
+      catch (RandomException) {
+        self::$uniqueId = hash(
+          'sha256',
+          uniqid('apc_storage_lock_', TRUE),
+          TRUE
+        );
+      }
+    }
   }
 
   /**
@@ -56,7 +69,16 @@ class ApcStorageLock {
     // _drupal_bootstrap_variables() and lock_initialize() implemented in this
     // file is a wrapper for ApcStorageLock::initialize().
     if (empty(self::$uniqueId)) {
-      self::$uniqueId = random_bytes(32);
+      try {
+        self::$uniqueId = random_bytes(32);
+      }
+      catch (RandomException) {
+        self::$uniqueId = hash(
+          'sha256',
+          uniqid('apc_storage_lock_', TRUE),
+          TRUE
+        );
+      }
     }
 
     $hash = hash('sha256', self::$uniqueId . $name, TRUE);

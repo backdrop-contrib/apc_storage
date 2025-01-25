@@ -1,0 +1,5 @@
+name = APC Storage Queue Test Support
+description = 'Support module for testing the APC Storage Queue implementation.'
+package = Testing
+core = 7.x
+hidden = TRUE

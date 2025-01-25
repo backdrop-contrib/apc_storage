@@ -1268,3 +1268,60 @@ class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCas
   }
 
 }
+
+/**
+ * Unit tests for queue cron.
+ */
+class ApcStorageQueueCronTestCase extends DrupalWebTestCase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getInfo(): array {
+    return array(
+      'name' => 'APC Storage queue cron test',
+      'description' => 'Tests queue cron.',
+      'group' => 'APC Storage',
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp(): void {
+    // The default class for queues is intentionally set to MemoryQueue to avoid
+    // the database is used for queue storage.
+    $GLOBALS['config']['queue_class_apc_storage_queue_test_support_class_callback'] = 'ApcStorageQueue';
+    $GLOBALS['config']['queue_class_apc_storage_queue_test_support_function_callback'] = 'ApcStorageQueue';
+    $GLOBALS['config']['queue_default_class'] = 'MemoryQueue';
+
+    parent::setUp(array(
+      'apc_storage',
+      'apc_storage_queue_test_support',
+    ));
+  }
+
+  public function testQueueCronCallback(): void {
+    $first_queue = DrupalQueue::get('apc_storage_queue_test_support_class_callback');
+    $second_queue = DrupalQueue::get('apc_storage_queue_test_support_function_callback');
+    $first_queue->createItem(array(
+      $this->randomName() => $this->randomString(),
+    ));
+    $first_queue->createItem(array(
+      $this->randomName() => $this->randomString(),
+    ));
+    $second_queue->createItem(array(
+      $this->randomName() => $this->randomString(),
+    ));
+    $second_queue->createItem(array(
+      $this->randomName() => $this->randomString(),
+    ));
+    $this->assertEqual($first_queue->numberOfItems(), 2);
+    $this->assertEqual($second_queue->numberOfItems(), 2);
+
+    $this->cronRun();
+    $this->assertEqual($first_queue->numberOfItems(), 0);
+    $this->assertEqual($second_queue->numberOfItems(), 0);
+  }
+
+}

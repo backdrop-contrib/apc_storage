@@ -88,6 +88,7 @@ class ApcStorageLock {
           // This should never happen because the seed passed to
           // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
           // and those are not all zeros.
+          self::$uniqueId = hash('sha256', 'apc_storage_lock_' . time(), TRUE);
         }
       }
     }

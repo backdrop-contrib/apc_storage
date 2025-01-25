@@ -987,7 +987,7 @@ class ApcStorageCachePreserveExistingApcuKeysTestCase extends ApcStorageCacheBas
       catch (RandomException) {
         $unique_id = hash(
           'sha256',
-          uniqid('apc_storage_lock_', TRUE),
+          uniqid(hash('sha256', 'apc_storage_lock_' . rand(), TRUE), TRUE),
           TRUE
         );
       }

@@ -44,7 +44,7 @@ class ApcStorageLock {
       catch (RandomException) {
         self::$uniqueId = hash(
           'sha256',
-          uniqid('apc_storage_lock_', TRUE),
+          uniqid(hash('sha256', 'apc_storage_lock_' . rand(), TRUE), TRUE),
           TRUE
         );
       }
@@ -75,7 +75,7 @@ class ApcStorageLock {
       catch (RandomException) {
         self::$uniqueId = hash(
           'sha256',
-          uniqid('apc_storage_lock_', TRUE),
+          uniqid(hash('sha256', 'apc_storage_lock_' . rand(), TRUE), TRUE),
           TRUE
         );
       }

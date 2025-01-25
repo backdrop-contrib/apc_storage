@@ -35,7 +35,7 @@ trait ApcStorageApcuTestTrait {
   protected Randomizer $randomizer;
 
   /**
-   * Initializes the random generator used by the test.
+   * Initializes the random generator used by the tests.
    */
   private function initRandomizer(): void {
     if (!isset($this->randomizer)) {

@@ -737,7 +737,7 @@ class ApcStorageCacheBaseTestCase extends DrupalUnitTestCase {
 
     parent::setUp();
 
-    $conf['cache_backends'][] = drupal_get_path('module', 'apc_storage') . '/includes/apc_storage_cache.inc';
+    $conf['cache_backends'][] = drupal_get_path('module', 'apc_storage') . '/includes/apc_storage_cache.class.inc';
 
     foreach ($this->getCacheBins() as $cache_bin) {
       $conf["cache_class_$cache_bin"] = 'ApcStorageCache';
@@ -1006,8 +1006,8 @@ class ApcStorageCachePreserveExistingApcuKeysTestCase extends ApcStorageCacheBas
    *
    * This method uses code similar to the code in
    * ApcStorageLock::getLockKey(). It is duplicated here because including the
-   * apc_storage_lock.inc file would cause an error about functions already
-   * defined.
+   * apc_storage_lock.class.inc file would cause an error about functions
+   * already defined.
    */
   protected function getLockKey($name): string {
     static $unique_id;

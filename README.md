@@ -38,7 +38,7 @@ module as cache backend. (Replace *sites/all/modules/apc_storage* with the path 
 module, in the case the module is installed in a different directory.)
 
 ```php
-$conf['cache_backends'][] = 'sites/all/modules/apc_storage/includes/apc_storage_cache.inc';
+$conf['cache_backends'][] = 'sites/all/modules/apc_storage/includes/apc_storage_cache.class.inc';
 ```
 
 Then lines like the following ones must be added for each cache bin to store on
@@ -106,7 +106,7 @@ following lines need to be added in the settings.php file. (Replace
 module is installed in a different directory.)
 
 ```php
-$conf['lock_inc'] = 'sites/all/modules/apc_storage/includes/apc_storage_lock.inc';
+$conf['lock_inc'] = 'sites/all/modules/apc_storage/includes/apc_storage_lock.class.inc';
 ```
 
 Differently from cache backends, only a single lock backend can be used at time.

@@ -99,13 +99,6 @@ trait ApcStorageApcuTestTrait {
         $output = "'" . $var . "'";
       }
     }
-    elseif (is_object($var) && get_class($var) === 'stdClass') {
-      // Before PHP 7.3, var_export() exports stdClass objects using an
-      // undefined magic method __set_state() leaving the export broken. This
-      // workaround avoids it by casting the object as an array for export and
-      // casting it back to an object when evaluated.
-      $output = '(object) ' . self::varExport((array) $var);
-    }
     else {
       $output = var_export($var, TRUE);
     }

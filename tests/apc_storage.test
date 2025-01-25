@@ -8,7 +8,9 @@
 declare(strict_types=1);
 
 use Random\Engine\Xoshiro256StarStar;
+use Random\IntervalBoundary;
 use Random\RandomException;
+use Random\Randomizer;
 
 /**
  * Methods and properties for all the test classes that write directly to APCu.
@@ -26,6 +28,23 @@ trait ApcStorageApcuTestTrait {
   protected $skipTest = FALSE;
 
   /**
+   * The random generator used by the tests.
+   *
+   * @var \Random\Randomizer
+   */
+  protected Randomizer $randomizer;
+
+  /**
+   * Initializes the random generator used by the test.
+   */
+  private function initRandomizer(): void {
+    if (!isset($this->randomizer)) {
+      $engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_test_' . time(), TRUE));
+      $this->randomizer = new Randomizer($engine);
+    }
+  }
+
+  /**
    * Deletes data from APCu.
    */
   protected function clearApcu(): void {
@@ -35,13 +54,22 @@ trait ApcStorageApcuTestTrait {
   }
 
   /**
-   * Generates a random floating-point number between 0.125 and 8.
+   * Generates a random floating-point number between 1.0 and 8.0.
    *
    * @return float
    *   The randomly generated floating-point number.
    */
   protected function randomFloat(): float {
-    return (float) mt_rand(128, 65536) / mt_rand(256, 8192);
+    try {
+      $this->initRandomizer();
+      return $this->randomizer->getFloat(1.0, 8.0, IntervalBoundary::ClosedClosed);
+    }
+    catch (ValueError) {
+      // This should never happen because the seed passed to
+      // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
+      // and those are not all zeros.
+      return 3.141592653589793;
+    }
   }
 
   /**
@@ -51,7 +79,17 @@ trait ApcStorageApcuTestTrait {
    *   A random integer between 128 and 65536.
    */
   protected function randomInt(): int {
-    return mt_rand(128, 65536);
+    $this->initRandomizer();
+
+    try {
+      return $this->randomizer->getInt(128, 65536);
+    }
+    catch (ValueError) {
+      // This should never happen because the seed passed to
+      // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
+      // and those are not all zeros.
+      return 5376;
+    }
   }
 
   /**

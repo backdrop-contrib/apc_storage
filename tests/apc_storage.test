@@ -39,7 +39,7 @@ trait ApcStorageApcuTestTrait {
    */
   private function initRandomizer(): void {
     if (!isset($this->randomizer)) {
-      $engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_test_' . time(), TRUE));
+      $engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_test_' . hrtime(TRUE), TRUE));
       $this->randomizer = new Randomizer($engine);
     }
   }
@@ -1019,7 +1019,7 @@ class ApcStorageCachePreserveExistingApcuKeysTestCase extends ApcStorageCacheBas
       catch (RandomException) {
         // Use a fallback in case random_bytes() fails.
         try {
-          $engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_lock_' . time(), TRUE));
+          $engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_lock_' . hrtime(TRUE), TRUE));
           $unique_id = hash('sha256', $engine->generate(), TRUE);
         }
         catch (ValueError) {

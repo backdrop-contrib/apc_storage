@@ -2,15 +2,10 @@
 
 /**
  * @file
- * An APCU-based implementation of a locking mechanism.
- *
- * @see includes/lock.inc
+ * Contains ApcStorageLock.
  */
 
 declare(strict_types=1);
-
-use Random\Engine\Xoshiro256StarStar;
-use Random\RandomException;
 
 /**
  * Class for the APCu-based locking mechanism implementation.
@@ -38,22 +33,12 @@ class ApcStorageLock {
    * Initializes the locking system.
    */
   public static function initialize(): void {
-    if (empty(self::$uniqueId)) {
-      try {
-        self::$uniqueId = random_bytes(32);
+    if (!isset(self::$uniqueId)) {
+      if (!class_exists(ApcStorageHelper::class)) {
+        require_once __DIR__ . '/apc_storage_helper.class.inc';
       }
-      catch (RandomException) {
-        // Use a fallback in case random_bytes() fails.
-        try {
-          $engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_lock_' . hrtime(TRUE), TRUE));
-          self::$uniqueId = hash('sha256', $engine->generate(), TRUE);
-        }
-        catch (ValueError) {
-          // This should never happen because the seed passed to
-          // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
-          // and those are not all zeros.
-        }
-      }
+
+      self::$uniqueId = ApcStorageHelper::uniqueId();
     }
   }
 
@@ -68,30 +53,7 @@ class ApcStorageLock {
    *   keys.
    */
   public static function getLockKey(string $name): string {
-    // self::$uniqueId is already initialized from ApcStorageLock::initialize().
-    // The following lines are added as safeguard, just in case
-    // ApcStorageLock::initialize() is not called as expected. This should never
-    // happen because Drupal core calls lock_initialize() in
-    // _drupal_bootstrap_variables() and lock_initialize() implemented in this
-    // file is a wrapper for ApcStorageLock::initialize().
-    if (empty(self::$uniqueId)) {
-      try {
-        self::$uniqueId = random_bytes(32);
-      }
-      catch (RandomException) {
-        // Use a fallback in case random_bytes() fails.
-        try {
-          $engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_lock_' . hrtime(TRUE), TRUE));
-          self::$uniqueId = hash('sha256', $engine->generate(), TRUE);
-        }
-        catch (ValueError) {
-          // This should never happen because the seed passed to
-          // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
-          // and those are not all zeros.
-          self::$uniqueId = hash('sha256', 'apc_storage_lock_' . hrtime(TRUE), TRUE);
-        }
-      }
-    }
+    self::initialize();
 
     $hash = hash('sha256', self::$uniqueId . $name, TRUE);
 

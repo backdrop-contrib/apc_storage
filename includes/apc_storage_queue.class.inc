@@ -7,8 +7,6 @@
 
 declare(strict_types=1);
 
-use Random\RandomException;
-
 /**
  * An APCu-based queue implementation.
  */
@@ -42,17 +40,14 @@ class ApcStorageQueue implements DrupalQueueInterface {
    * {@inheritdoc}
    */
   public function createItem(mixed $data): bool {
-    try {
-      $item = new stdClass();
-      $item->item_id = random_bytes(32);
-      $item->data = $data;
-      $item->expire = 0;
-    }
-    catch (RandomException) {
-      return FALSE;
-    }
+    $item = new stdClass();
+    $item->item_id = random_bytes(32);
+    $item->data = $data;
+    $item->expire = 0;
 
-    return apcu_store('apc_storage_queue::' . $this->name . '::' . unpack('H*', $item->item_id)[1], $item);
+    $item->item_id = ApcStorageHelper::uniqueId();
+
+    return apcu_store('apc_storage_queue::' . $this->name . '::' . $this->binaryToHex($item->item_id), $item);
   }
 
   /**

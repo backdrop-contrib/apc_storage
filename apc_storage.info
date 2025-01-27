@@ -5,5 +5,6 @@ core = 7.x
 php = 8.3
 files[] = tests/apc_storage.test
 files[] = includes/apc_storage_cache.class.inc
+files[] = includes/apc_storage_helper.class.inc
 files[] = includes/apc_storage_lock.class.inc
 files[] = includes/apc_storage_queue.class.inc

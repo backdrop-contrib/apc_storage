@@ -1,10 +1,8 @@
 name = APC Storage
 description = Integrates the APCu extension with Drupal.
-package = Performance and scalability
-core = 7.x
+package = Administration
+backdrop = 1.x
 php = 8.3
-files[] = tests/apc_storage.test
-files[] = includes/apc_storage_cache.class.inc
-files[] = includes/apc_storage_helper.class.inc
-files[] = includes/apc_storage_lock.class.inc
-files[] = includes/apc_storage_queue.class.inc
+type = module
+dependencies[] = system (>=1.30.0)
+maintainers[avpaderno] = Alberto Paderno

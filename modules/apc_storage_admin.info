@@ -1,5 +1,8 @@
-name = APC Storage - Admin pages
+name = APC Storage - Admin Pages
 description = Administration pages for the APC Storage module.
-package = Performance and scalability
-core = 7.x
+package = User Interface
+backdrop = 1.x
+php = 8.3
+type = module
 dependencies[] = apc_storage
+maintainers[avpaderno] = Alberto Paderno

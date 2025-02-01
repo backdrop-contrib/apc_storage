@@ -5,4 +5,5 @@ backdrop = 1.x
 php = 8.3
 type = module
 dependencies[] = apc_storage
+configure = admin/config/development/apc_storage
 maintainers[avpaderno] = Alberto Paderno

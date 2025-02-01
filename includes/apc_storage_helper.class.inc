@@ -12,7 +12,7 @@ use Random\RandomException;
 
 class ApcStorageHelper {
 
-  static Xoshiro256StarStar $engine;
+  static object $engine;
 
   /**
    * Generates a unique identifier.
@@ -25,26 +25,36 @@ class ApcStorageHelper {
    *   A unique 32-byte string.
    */
   public static function uniqueId(): string {
-    try {
-      return random_bytes(32);
-    }
-    catch (RandomException) {
-      // Use a fallback in case random_bytes() fails.
+    if (!isset(self::$engine)) {
       try {
-        if (!isset(self::$engine)) {
-          $engine = new Xoshiro256StarStar(
-            hash('sha256', 'apc_storage_helper_' . hrtime(TRUE), TRUE)
-          );
-        }
-
-        return hash('sha256', $engine->generate(), TRUE);
+        $engine = new Xoshiro256StarStar(
+          hash('sha256', hrtime(TRUE) . 'apc_storage_helper_', TRUE)
+        );
       }
       catch (ValueError) {
         // This should never happen because the seed passed to
         // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
         // and those are not all zeros.
-        return hash('sha256', 'apc_storage_helper_' . hrtime(TRUE), TRUE);
+        $engine = (new class {
+          public function generate(): string {
+            $data = str_replace('.', '', (string) microtime(TRUE)) .
+              'apc_storage_helper_' .
+              hrtime(TRUE);
+
+            return hash('sha256', $data, TRUE);
+          }
+        });
       }
+
+      self::$engine = $engine;
+    }
+
+    try {
+      return random_bytes(32);
+    }
+    catch (RandomException) {
+      // Use a fallback in case random_bytes() fails.
+      return hash('sha256', $engine->generate(), TRUE);
     }
   }
 

@@ -240,7 +240,6 @@ class ApcStorageCache implements BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function set($cid, $data, $expire = CACHE_PERMANENT): void {
-    // Add set to statistics.
     $this->addOperation(array(
       'method' => 'set()',
       'bin' => $this->bin,
@@ -306,7 +305,6 @@ class ApcStorageCache implements BackdropCacheInterface {
     ));
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-
       foreach ($cids as $cid) {
         apcu_delete($this->keyName($cid));
       }

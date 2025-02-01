@@ -13,7 +13,7 @@ declare(strict_types=1);
  * This is a Drupal cache implementation which uses the APCu extension to store
  * cached data.
  */
-class ApcStorageCache implements DrupalCacheInterface {
+class ApcStorageCache implements BackdropCacheInterface {
 
   /**
    * The list of all the operations done to the cache.
@@ -67,7 +67,7 @@ class ApcStorageCache implements DrupalCacheInterface {
    * Sets the one of the strings used for the APCu storage key.
    */
   protected function setBinPrefix(): void {
-    $prefixes = variable_get('apc_storage_cache_prefix', '');
+    $prefixes = settings_get('apc_storage_cache_prefix', '');
 
     if (is_string($prefixes) && !empty($prefixes)) {
       // $prefixes can be a string used for all the cache bins.
@@ -126,7 +126,7 @@ class ApcStorageCache implements DrupalCacheInterface {
       $this->prefixes[2] = $this->binaryToHex(serialize($data));
     }
 
-    if ($test_prefix = drupal_valid_test_ua()) {
+    if ($test_prefix = backdrop_valid_test_ua()) {
       $this->prefixes[1] = $this->binaryToHex($test_prefix);
     }
     else {
@@ -142,7 +142,7 @@ class ApcStorageCache implements DrupalCacheInterface {
 
     $data = $this->prefixes[0] . $this->bin . $this->prefixes[1];
     $data = $this->prefixes[2] . hash('sha256', $data, TRUE);
-    $this->binPrefix = drupal_base64_encode($data);
+    $this->binPrefix = backdrop_base64_encode($data);
   }
 
   /**
@@ -190,22 +190,6 @@ class ApcStorageCache implements DrupalCacheInterface {
   }
 
   /**
-   * Prepares a cached item.
-   *
-   * Checks that items are either permanent or did not expire.
-   *
-   * @param object $cache
-   *   An item loaded from cache_get() or cache_get_multiple().
-   *
-   * @return false|object
-   *   The item with unserialized data, or FALSE if there is no valid item to
-   *   load.
-   */
-  protected function prepareItem(object $cache): object|false {
-    return isset($cache->data) ? $cache : FALSE;
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function getMultiple(&$cids): array {
@@ -235,6 +219,22 @@ class ApcStorageCache implements DrupalCacheInterface {
     }
 
     return $cache;
+  }
+
+  /**
+   * Prepares a cached item.
+   *
+   * Checks that items are either permanent or did not expire.
+   *
+   * @param object $cache
+   *   An item loaded from cache_get() or cache_get_multiple().
+   *
+   * @return false|object
+   *   The item with unserialized data, or FALSE if there is no valid item to
+   *   load.
+   */
+  protected function prepareItem(object $cache): object|false {
+    return isset($cache->data) ? $cache : FALSE;
   }
 
   /**
@@ -268,7 +268,7 @@ class ApcStorageCache implements DrupalCacheInterface {
         case CACHE_TEMPORARY:
           // For apcu_store(), using 0 as TTL means the stored data will never
           // expire. The minimum lifetime is one second.
-          $cache_lifetime = variable_get('cache_lifetime', 0);
+          $cache_lifetime = settings_get('apc_storage_cache_lifetime', 0);
           $ttl = max(1, $cache_lifetime);
           break;
 
@@ -282,15 +282,12 @@ class ApcStorageCache implements DrupalCacheInterface {
   }
 
   /**
-   * Deletes a cache item identified by the given cache ID.
-   *
-   * @param string $cid
-   *   The cache ID of the item to delete.
+   * {@inheritdoc}
    */
-  protected function deleteKey(string $cid): void {
+  public function delete($cid): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $this->addOperation(array(
-        'method' => 'deleteKey()',
+        'method' => 'delete()',
         'bin' => $this->bin,
         'cid' => array($cid),
       ));
@@ -299,23 +296,50 @@ class ApcStorageCache implements DrupalCacheInterface {
   }
 
   /**
-   * Deletes all the cache IDs matching the given prefix.
-   *
-   * @param string $prefix
-   *   The prefix for the cache IDs to delete.
+   * {@inheritdoc}
    */
-  protected function deleteKeys(string $prefix = ''): void {
+  public function deleteMultiple(array $cids): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $this->addOperation(array(
-        'method' => 'deleteKeys()',
+        'method' => 'deleteMultiple()',
         'bin' => $this->bin,
-        'cid' => array($prefix),
+        'cids' => $cids,
       ));
 
-      $escaped_key = preg_quote($this->keyName($prefix), '/');
-      $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
-      apcu_delete($iterator);
+      foreach ($cids as $cid) {
+        apcu_delete($this->keyName($cid));
+      }
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function deletePrefix($prefix): void {
+    if (is_string($prefix)) {
+      if (extension_loaded('apcu') && apcu_enabled()) {
+        $this->addOperation([
+          'method' => 'deletePrefix()',
+          'bin' => $this->bin,
+          'cid' => [$prefix],
+        ]);
+
+        $escaped_key = preg_quote($this->keyName($prefix), '/');
+        $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
+        apcu_delete($iterator);
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function flush(): void {
+    $this->deletePrefix('');
+  }
+
+  public function garbageCollection() {
+    // Expired items are automatically deleted by the APCu extension.
   }
 
   /**
@@ -343,24 +367,24 @@ class ApcStorageCache implements DrupalCacheInterface {
    */
   public function clear($cid = NULL, $wildcard = FALSE): void {
     if (empty($cid)) {
-      $this->deleteKeys();
+      $this->deletePrefix('');
     }
     else {
       if ($wildcard) {
         if ($cid == '*') {
-          $this->deleteKeys();
+          $this->deletePrefix('');
         }
         else {
-          $this->deleteKeys($cid);
+          $this->deletePrefix($cid);
         }
       }
       elseif (is_array($cid)) {
         foreach ($cid as $entry) {
-          $this->deleteKey($entry);
+          $this->delete($entry);
         }
       }
       else {
-        $this->deleteKey($cid);
+        $this->delete($cid);
       }
     }
   }
@@ -402,7 +426,7 @@ class ApcStorageCache implements DrupalCacheInterface {
       'cid' => '',
     );
 
-    if (variable_get('apc_storage_show_details', FALSE)) {
+    if (config_get('apc_storage.admin', 'gather_debug_info')) {
       self::$operations[] = $operation;
     }
   }

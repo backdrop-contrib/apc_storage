@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcStorageHelperaaa.
+ * Contains ApcStorageHelper.
  */
 
 declare(strict_types=1);

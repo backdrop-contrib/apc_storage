@@ -114,8 +114,10 @@ function apc_storage_admin_settings($form, &$form_state): array {
   $description = t('User accounts with the !permission permission will be see which data is stored in the APCu storage.',
     array(
     '!permission' => l(t('Access APC Storage reports'), 'admin/config/people/permissions', array('fragment' => 'module-apc-storage-admin')),
-    )) . ' ' .
-    t('This setting should be used only for debugging purposes. It should not be enabled in production since it increases the memory usage and can cause performance issues.');
+    )
+  );
+  $description .= ' ';
+  $description .= t('This setting should be used only for debugging purposes. It should not be enabled in production, since it increases the memory usage and it can cause performance issues.');
   $form['gather_debug_info'] = array(
     '#type' => 'checkbox',
     '#title' => t('Gather information about which data is stored in the APCu storage'),

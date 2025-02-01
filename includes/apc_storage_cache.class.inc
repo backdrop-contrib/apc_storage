@@ -184,9 +184,8 @@ class ApcStorageCache implements BackdropCacheInterface {
 
       return $this->prepareItem($data);
     }
-    else {
-      return FALSE;
-    }
+
+    return FALSE;
   }
 
   /**
@@ -285,12 +284,13 @@ class ApcStorageCache implements BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function delete($cid): void {
+    $this->addOperation(array(
+      'method' => 'delete()',
+      'bin' => $this->bin,
+      'cid' => array($cid),
+    ));
+
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $this->addOperation(array(
-        'method' => 'delete()',
-        'bin' => $this->bin,
-        'cid' => array($cid),
-      ));
       apcu_delete($this->keyName($cid));
     }
   }
@@ -299,12 +299,13 @@ class ApcStorageCache implements BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function deleteMultiple(array $cids): void {
+    $this->addOperation(array(
+      'method' => 'deleteMultiple()',
+      'bin' => $this->bin,
+      'cids' => $cids,
+    ));
+
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $this->addOperation(array(
-        'method' => 'deleteMultiple()',
-        'bin' => $this->bin,
-        'cids' => $cids,
-      ));
 
       foreach ($cids as $cid) {
         apcu_delete($this->keyName($cid));
@@ -317,13 +318,13 @@ class ApcStorageCache implements BackdropCacheInterface {
    */
   public function deletePrefix($prefix): void {
     if (is_string($prefix)) {
-      if (extension_loaded('apcu') && apcu_enabled()) {
-        $this->addOperation([
-          'method' => 'deletePrefix()',
-          'bin' => $this->bin,
-          'cid' => [$prefix],
-        ]);
+      $this->addOperation(array(
+        'method' => 'deletePrefix()',
+        'bin' => $this->bin,
+        'cid' => array($prefix),
+      ));
 
+      if (extension_loaded('apcu') && apcu_enabled()) {
         $escaped_key = preg_quote($this->keyName($prefix), '/');
         $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
         apcu_delete($iterator);

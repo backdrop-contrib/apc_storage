@@ -43,6 +43,19 @@ class ApcStorageLock {
   }
 
   /**
+   * Converts a binary string to a hexadecimal representation.
+   *
+   * @param string $data
+   *   The binary string to convert.
+   *
+   * @return string
+   *   The hexadecimal representation of the binary string.
+   */
+  protected static function binToHex(string $data): string {
+    return unpack('H*', $data)[1];
+  }
+
+  /**
    * Generates the key name used for locks.
    *
    * @param string $name
@@ -55,9 +68,8 @@ class ApcStorageLock {
   public static function getLockKey(string $name): string {
     self::initialize();
 
-    $hash = hash('sha256', self::$uniqueId . $name, TRUE);
-
-    return 'apc_storage_lock::' . drupal_base64_encode($hash);
+    return 'apc_storage_lock::' . backdrop_base64_encode(self::$uniqueId) . '::' .
+      self::binToHex($name);
   }
 
   /**
@@ -208,6 +220,27 @@ class ApcStorageLock {
   }
 
   /**
+   * Releases all previously acquired locks.
+   *
+   * @param $lock_id
+   *   The lock ID, or NULL to release the locks for the current request.
+   */
+  public static function releaseAll(?string $lock_id = NULL): void {
+    if (empty($lock_id)) {
+      $lock_id = self::$uniqueId;
+    }
+
+    self::$locks = array();
+
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      $key = preg_quote('apc_storage_lock::' . backdrop_base64_encode($lock_id) . '::', '/');
+      $iterator = new APCUIterator("/^$key::/", APC_ITER_KEY);
+
+      apcu_delete($iterator);
+    }
+  }
+
+  /**
    * Deletes all the lock data stored by ApcStorageLock.
    *
    * @return bool
@@ -215,7 +248,7 @@ class ApcStorageLock {
    */
   public static function deleteAllStoredData(): bool {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $iterator = new APCUIterator('/^apc_lock::[a-zA-Z0-9-_]{40,46}/', APC_ITER_KEY);
+      $iterator = new APCUIterator('/^apc_storage_lock::[a-zA-Z0-9-_]+::/', APC_ITER_KEY);
       apcu_delete($iterator);
 
       return TRUE;
@@ -304,4 +337,14 @@ function lock_wait(string $name, float $delay = 30.0): bool {
  */
 function lock_release(string $name): void {
   ApcStorageLock::release($name);
+}
+
+/**
+ * Releases all previously acquired locks.
+ *
+ * @param $lock_id
+ *   The lock ID, or NULL to release the locks for the current request.
+ */
+function lock_release_all($lock_id = NULL): void {
+  ApcStorageLock::releaseAll($lock_id);
 }

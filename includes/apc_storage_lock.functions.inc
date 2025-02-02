@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 /**
  * Initializes the locking system.
- *
  */
 function lock_initialize(): void {
   if (!class_exists(ApcStorageLock::class)) {

@@ -1,5 +1,8 @@
 name = APC Storage Queue Test Support
-description = 'Support module for testing the APC Storage Queue implementation.'
+description = Support module for testing the APC Storage Queue implementation.
 package = Testing
-core = 7.x
+backdrop = 1.x
+php = 8.3
+type = module
+dependencies[] = apc_storage
 hidden = TRUE

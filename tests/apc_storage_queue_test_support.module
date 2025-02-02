@@ -11,9 +11,11 @@
 function apc_storage_queue_test_support_cron_queue_info(): array {
   $queues['apc_storage_queue_test_support_class_callback'] = array(
     'worker callback' => array('ApcStorageQueueTestSupportWorker', 'cronQueueTestCallback'),
+    'time' => 60,
   );
   $queues['apc_storage_queue_test_support_function_callback'] = array(
     'worker callback' => 'apc_storage_queue_test_support_callback',
+    'time' => 60,
   );
 
   return $queues;

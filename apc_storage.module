@@ -3,7 +3,15 @@
 /**
  * @file
  * Hook implementations for the APC Storage module.
- *
- * This file is intentionally empty, as all the hooks are implemented in an
- * optional module.
  */
+
+/**
+ * Implements hook_autoload_info().
+ */
+function apc_storage_autoload_info(): array {
+  return array(
+    'ApcStorageCache' => 'includes/apc_storage_cache.class.inc',
+    'ApcStorageLock' => 'includes/apc_storage_lock.class.inc',
+    'ApcStorageQueue' => 'includes/apc_storage_queue.class.inc',
+  );
+}

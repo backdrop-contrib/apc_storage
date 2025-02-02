@@ -10,7 +10,7 @@ declare(strict_types=1);
 /**
  * An APCu-based queue implementation.
  */
-class ApcStorageQueue implements DrupalQueueInterface {
+class ApcStorageQueue implements BackdropQueueInterface {
 
   /**
    * The name of the queue this instance is working with.
@@ -41,11 +41,9 @@ class ApcStorageQueue implements DrupalQueueInterface {
    */
   public function createItem(mixed $data): bool {
     $item = new stdClass();
-    $item->item_id = random_bytes(32);
     $item->data = $data;
-    $item->expire = 0;
-
     $item->item_id = ApcStorageHelper::uniqueId();
+    $item->expire = 0;
 
     return apcu_store('apc_storage_queue::' . $this->name . '::' . $this->binaryToHex($item->item_id), $item);
   }

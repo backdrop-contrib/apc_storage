@@ -18,7 +18,7 @@ class ApcStorageLock {
   /**
    * The locks acquired in the current request.
    *
-   * @var array
+   * @var ApcStorageLock[]
    */
   protected static array $locks = array();
 
@@ -30,9 +30,35 @@ class ApcStorageLock {
   protected static string $uniqueId = '';
 
   /**
-   * Initializes the locking system.
+   * The name of the lock.
+   *
+   * @var string
    */
-  public static function initialize(): void {
+  protected string $name;
+
+  /**
+   * The APCu key used for the lock.
+   *
+   * @var string
+   */
+  protected string $key;
+
+  /**
+   * The expiration time of the lock.
+   *
+   * @var float
+   */
+  protected float $expire;
+
+  /**
+   * Retrieves the lock with a given name.
+   *
+   * @param string $name
+   *   The name of the lock.
+   *
+   * @return $this
+   */
+  public static function get(string $name): self {
     if (!isset(self::$uniqueId)) {
       if (!class_exists(ApcStorageHelper::class)) {
         require_once __DIR__ . '/apc_storage_helper.class.inc';
@@ -40,6 +66,22 @@ class ApcStorageLock {
 
       self::$uniqueId = ApcStorageHelper::uniqueId();
     }
+
+    if (isset(self::$locks[$name])) {
+      return self::$locks[$name];
+    }
+
+    $lock = new self($name);
+    self::$locks[$name] = $lock;
+
+    return $lock;
+  }
+
+  private function __construct(string $name) {
+    $this->name = $name;
+    $this->key = 'apc_storage_lock::' .
+      backdrop_base64_encode(self::$uniqueId) . '::' .
+      $this->binToHex($this->name);
   }
 
   /**
@@ -56,69 +98,43 @@ class ApcStorageLock {
   }
 
   /**
-   * Generates the key name used for locks.
+   * Acquires (or renews) a lock. It does not block for already acquired locks.
    *
-   * @param string $name
-   *   The name of the lock.
-   *
-   * @return string
-   *   The key name which can be used in APC calls to avoid conflicts with other
-   *   keys.
-   */
-  public static function getLockKey(string $name): string {
-    self::initialize();
-
-    return 'apc_storage_lock::' . backdrop_base64_encode(self::$uniqueId) . '::' .
-      self::binToHex($name);
-  }
-
-  /**
-   * Acquires (or renews) a lock, but it does not block if it fails.
-   *
-   * @param string $name
-   *   The name of the lock.
    * @param float $timeout
    *   The number of seconds before the lock expires. The minimum timeout is 1.
    *
    * @return bool
    *   TRUE if the lock was acquired, FALSE otherwise.
    */
-  public static function acquire(string $name, float $timeout = 30.0): bool {
+  public function acquire(float $timeout = 30.0): bool {
     // Ensure that the timeout is at least one second. APCu works with integer
     // TTLs where 0 means the value is persistent.
     $timeout = (int) round(max($timeout, 1.0));
-    $key = self::getLockKey($name);
-    $expire = microtime(TRUE) + $timeout;
+    $this->expire = microtime(TRUE) + $timeout;
 
-    if (isset(self::$locks[$name])) {
-      // Try to extend the expiration of a lock we already acquired.
-      $success = apcu_store($key, array('expire' => $expire), $timeout);
+    // Try to extend the expiration of an already acquired lock.
+    $success = apcu_store($this->key, array('expire' => $this->expire), $timeout);
 
-      if (!$success) {
-        // The lock was broken.
-        unset(self::$locks[$name]);
-        apcu_delete($key);
-      }
+    if (!$success) {
+      // The lock was broken.
+      apcu_delete($this->key);
 
-      return $success;
+      $this->expire = 0;
     }
     else {
       // Try to acquire the lock.
       $retry = FALSE;
 
       do {
-        $success = apcu_store($key, array('expire' => $expire), $timeout);
+        $success = apcu_store($this->key, array('expire' => $this->expire), $timeout);
 
-        if ($success) {
-          self::$locks[$name] = TRUE;
-        }
-        else {
-          $retry = !$retry && self::maybeAvailable($name);
+        if (!$success) {
+          $retry = !$retry && $this->maybeAvailable();
         }
       } while ($retry);
     }
 
-    return isset(self::$locks[$name]);
+    return TRUE;
   }
 
   /**
@@ -126,49 +142,42 @@ class ApcStorageLock {
    *
    * If an existing lock has expired, it is removed.
    *
-   * @param string $name
-   *   The name of the lock.
-   *
    * @return bool
    *   TRUE if there is no lock, or it was removed, FALSE otherwise.
    */
-  public static function maybeAvailable(string $name): bool {
-    $key = self::getLockKey($name);
-
-    if (!apcu_exists($key)) {
+  public function maybeAvailable(): bool {
+    if (!apcu_exists($this->key)) {
       return TRUE;
     }
 
-    $lock = apcu_fetch($key, $success);
+    $lock = apcu_fetch($this->key, $success);
 
     if (!$success) {
       return TRUE;
     }
 
-    $expire = (float) $lock['expire'];
+    $this->expire = (float) $lock['expire'];
     $now = microtime(TRUE);
 
-    if ($now >= $expire) {
-      apcu_delete($key);
-
-      return TRUE;
+    if ($now < $this->expire) {
+      return FALSE;
     }
 
-    return FALSE;
+    $this->expire = 0;
+    apcu_delete($this->key);
+    return TRUE;
   }
 
   /**
    * Waits for a lock to be available.
    *
-   * @param string $name
-   *   The name of the lock.
    * @param float $delay
    *   The maximum number of seconds to wait, as an integer.
    *
    * @return bool
    *   FALSE if the lock is available, TRUE otherwise.
    */
-  public static function waitForLock(string $name, float $delay = 30.0): bool {
+  public function waitForLock(float $delay = 30.0): bool {
     // Pause the process for short periods between calling
     // lock_may_be_available(). However, if the wait period is too long, there
     // is the potential for a large number of processes to be blocked waiting
@@ -181,8 +190,9 @@ class ApcStorageLock {
     // further numbers are equivalent.
     $delay = (int) round($delay * 1000000);
 
-    // Begin sleeping at 25ms.
+    // Start sleeping for 25ms.
     $sleep = 25000;
+
     while ($delay > 0) {
       // This function should only be called by a request that failed to get a
       // lock, so we sleep first to give the parallel request a chance to finish
@@ -193,7 +203,7 @@ class ApcStorageLock {
       $delay = $delay - $sleep;
       $sleep = min(500000, $sleep + 25000, $delay);
 
-      if (!apcu_exists(self::getLockKey($name))) {
+      if (!apcu_exists($this->key)) {
         // No longer need to wait.
         return FALSE;
       }
@@ -208,35 +218,27 @@ class ApcStorageLock {
    *
    * This will release the named lock if it is still held by the current
    * request.
-   *
-   * @param string $name
-   *   The name of the lock.
    */
-  public static function release(string $name): void {
+  public function release(): void {
     // The lock is unconditionally removed, since the caller assumes the lock is
-    // anyway released.
-    unset(self::$locks[$name]);
-    apcu_delete(self::getLockKey($name));
+    // released.
+    $this->expire = 0;
+    apcu_delete($this->key);
   }
 
   /**
    * Releases all previously acquired locks.
-   *
-   * @param $lock_id
-   *   The lock ID, or NULL to release the locks for the current request.
    */
-  public static function releaseAll(?string $lock_id = NULL): void {
-    if (empty($lock_id)) {
-      $lock_id = self::$uniqueId;
-    }
-
+  public static function releaseAll(): void {
     self::$locks = array();
 
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      $key = preg_quote('apc_storage_lock::' . backdrop_base64_encode($lock_id) . '::', '/');
-      $iterator = new APCUIterator("/^$key::/", APC_ITER_KEY);
+    if (!empty(self::$uniqueId)) {
+      if (extension_loaded('apcu') && apcu_enabled()) {
+        $key = preg_quote('apc_storage_lock::' . backdrop_base64_encode(self::$uniqueId) . '::', '/');
+        $iterator = new APCUIterator("/^$key::/", APC_ITER_KEY);
 
-      apcu_delete($iterator);
+        apcu_delete($iterator);
+      }
     }
   }
 
@@ -262,17 +264,17 @@ class ApcStorageLock {
 /**
  * Initializes the locking system.
  *
- * @see ApcStorageLock::initialize()
  */
 function lock_initialize(): void {
-  ApcStorageLock::initialize();
+  // Register a shutdown function to release all locks.
+  backdrop_register_shutdown_function('ApcStorageLock::releaseAll');
 }
 
 /**
- * Acquires (or renews) a lock, but it does not block if it fails.
+ * Acquires a lock. It does not wait for the lock to be available.
  *
  * @param string $name
- *   The name of the lock.
+ *   The lock name.
  * @param float $timeout
  *   The number of seconds before the lock expires. The minimum timeout is 1.
  *
@@ -282,7 +284,7 @@ function lock_initialize(): void {
  * @see ApcStorageLock::acquire()
  */
 function lock_acquire(string $name, float $timeout = 30.0): bool {
-  return ApcStorageLock::acquire($name, $timeout);
+  return ApcStorageLock::get($name)->acquire($timeout);
 }
 
 /**
@@ -299,7 +301,7 @@ function lock_acquire(string $name, float $timeout = 30.0): bool {
  * @see ApcStorageLock::maybeAvailable()
  */
 function lock_may_be_available(string $name): bool {
-  return ApcStorageLock::maybeAvailable($name);
+  return ApcStorageLock::get($name)->maybeAvailable();
 }
 
 /**
@@ -322,7 +324,7 @@ function lock_may_be_available(string $name): bool {
  * @see ApcStorageLock::waitForLock()
  */
 function lock_wait(string $name, float $delay = 30.0): bool {
-  return ApcStorageLock::waitForLock($name, $delay);
+  return ApcStorageLock::get($name)->waitForLock($delay);
 }
 
 /**
@@ -336,15 +338,5 @@ function lock_wait(string $name, float $delay = 30.0): bool {
  * @see ApcStorageLock::release()
  */
 function lock_release(string $name): void {
-  ApcStorageLock::release($name);
-}
-
-/**
- * Releases all previously acquired locks.
- *
- * @param $lock_id
- *   The lock ID, or NULL to release the locks for the current request.
- */
-function lock_release_all($lock_id = NULL): void {
-  ApcStorageLock::releaseAll($lock_id);
+  ApcStorageLock::get($name)->release();
 }

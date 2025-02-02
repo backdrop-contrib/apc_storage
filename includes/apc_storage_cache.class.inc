@@ -9,9 +9,6 @@ declare(strict_types=1);
 
 /**
  * APCu cache implementation.
- *
- * This is a Drupal cache implementation which uses the APCu extension to store
- * cached data.
  */
 class ApcStorageCache implements BackdropCacheInterface {
 

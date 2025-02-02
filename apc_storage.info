@@ -1,5 +1,5 @@
 name = APC Storage
-description = Integrates the APCu extension with Drupal.
+description = Integrates the APCu extension with Backdrop.
 package = Administration
 backdrop = 1.x
 php = 8.3

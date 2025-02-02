@@ -1,7 +1,7 @@
 # APC Storage
 
-The APC Storage module integrates the APCu extension with Drupal,
-as cache, lock, or queue backend.
+The APC Storage module integrates the APCu extension with Backdrop CMS as cache,
+lock, or queue backend.
 
 
 ## Requirements

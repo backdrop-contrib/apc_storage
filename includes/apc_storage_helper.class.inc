@@ -41,7 +41,7 @@ class ApcStorageHelper {
               'apc_storage_helper_' .
               hrtime(TRUE);
 
-            return hash('sha256', $data, TRUE);
+            return hash('sha512', $data, TRUE);
           }
         });
       }

@@ -12,7 +12,7 @@ use Random\RandomException;
 
 class ApcStorageHelper {
 
-  static object $engine;
+  static Xoshiro256StarStar $engine;
 
   /**
    * Generates a unique identifier.
@@ -27,26 +27,15 @@ class ApcStorageHelper {
   public static function uniqueId(): string {
     if (!isset(self::$engine)) {
       try {
-        $engine = new Xoshiro256StarStar(
+        self::$engine = new Xoshiro256StarStar(
           hash('sha256', hrtime(TRUE) . 'apc_storage_helper_', TRUE)
         );
       }
       catch (ValueError) {
-        // This should never happen because the seed passed to
+        // This exception should never be thrown because the seed passed to
         // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
         // and those are not all zeros.
-        $engine = (new class {
-          public function generate(): string {
-            $data = str_replace('.', '', (string) microtime(TRUE)) .
-              'apc_storage_helper_' .
-              hrtime(TRUE);
-
-            return hash('xxh3', $data, TRUE);
-          }
-        });
       }
-
-      self::$engine = $engine;
     }
 
     try {

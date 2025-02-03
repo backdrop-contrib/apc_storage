@@ -26,7 +26,7 @@ these requirements.
 ## Issues
 
 Bugs and Feature requests should be reported in the
-[issue queue](https://github.com/backdrop-contrib/graphicsmagick/issues).
+[issue queue](https://github.com/backdrop-contrib/apc_storage/issues).
 
 
 ## Current Maintainers

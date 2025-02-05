@@ -10,8 +10,7 @@ declare(strict_types=1);
 /**
  * Class for the APCu-based locking mechanism implementation.
  *
- * @internal This class should only be used from the code in this file.
- *   Contributed modules should not use this class.
+ * @internal This class should only be used from third-party modules.
  */
 class ApcStorageLock {
 

@@ -43,8 +43,12 @@ class ApcStorageHelper {
     }
     catch (RandomException) {
       // Use a fallback in case random_bytes() fails.
-      $int = unpack('P', self::$engine->generate())[1];
-      $algo = (($int & 0xF) > 7) ? "sha256" : "sha3-256";
+      $int = unpack('P', self::$engine->generate())[1] & 0xF;
+      $algo = match (TRUE) {
+        $int > 8 => 'sha512/256',
+        $int > 3 => 'sha3-256',
+        $int > 0 => 'sha256',
+      };
 
       return hash($algo, self::$engine->generate(), TRUE);
     }

@@ -15,6 +15,19 @@ class ApcStorageHelper {
   static Xoshiro256StarStar $engine;
 
   /**
+   * Converts a binary string to a hexadecimal representation.
+   *
+   * @param string $data
+   *   The binary string to convert.
+   *
+   * @return string
+   *   The hexadecimal representation of the binary string.
+   */
+  protected static function binToHex(string $data): string {
+    return unpack('H*', $data)[1];
+  }
+
+  /**
    * Generates a unique identifier.
    *
    * This method attempts to generate a 32-byte random identifier using

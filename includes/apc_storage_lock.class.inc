@@ -58,11 +58,11 @@ class ApcStorageLock {
    * @return $this
    */
   public static function get(string $name): self {
-    if (!isset(self::$uniqueId)) {
-      if (!class_exists(ApcStorageHelper::class)) {
-        require_once __DIR__ . '/apc_storage_helper.class.inc';
-      }
+    if (!class_exists(ApcStorageHelper::class)) {
+      require_once __DIR__ . '/apc_storage_helper.class.inc';
+    }
 
+    if (!isset(self::$uniqueId)) {
       self::$uniqueId = ApcStorageHelper::uniqueId();
     }
 
@@ -80,20 +80,7 @@ class ApcStorageLock {
     $this->name = $name;
     $this->key = 'apc_storage_lock::' .
       backdrop_base64_encode(self::$uniqueId) . '::' .
-      $this->binToHex($this->name);
-  }
-
-  /**
-   * Converts a binary string to a hexadecimal representation.
-   *
-   * @param string $data
-   *   The binary string to convert.
-   *
-   * @return string
-   *   The hexadecimal representation of the binary string.
-   */
-  protected static function binToHex(string $data): string {
-    return unpack('H*', $data)[1];
+      ApcStorageHelper::binaryToHex($this->name);
   }
 
   /**

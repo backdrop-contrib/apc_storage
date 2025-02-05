@@ -20,20 +20,11 @@ class ApcStorageQueue implements BackdropQueueInterface {
   protected string $name;
 
   public function __construct($name) {
-    $this->name = $name;
-  }
+    if (!class_exists(ApcStorageHelper::class)) {
+      require_once __DIR__ . '/apc_storage_helper.class.inc';
+    }
 
-  /**
-   * Converts a binary string to a hexadecimal representation.
-   *
-   * @param string $data
-   *   The binary string to convert.
-   *
-   * @return string
-   *   The hexadecimal representation of the binary string.
-   */
-  protected function binaryToHex(string $data): string {
-    return unpack('H*', $data)[1];
+    $this->name = $name;
   }
 
   /**
@@ -45,7 +36,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
     $item->item_id = ApcStorageHelper::uniqueId();
     $item->expire = 0;
 
-    return apcu_store('apc_storage_queue::' . $this->name . '::' . $this->binaryToHex($item->item_id), $item);
+    return apcu_store('apc_storage_queue::' . $this->name . '::' . ApcStorageHelper::binaryToHex($item->item_id), $item);
   }
 
   /**
@@ -98,7 +89,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
    */
   public function deleteItem($item): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      apcu_delete('apc_storage_queue::' . $this->name . '::' . $this->binaryToHex($item->item_id));
+      apcu_delete('apc_storage_queue::' . $this->name . '::' . ApcStorageHelper::binaryToHex($item->item_id));
     }
   }
 
@@ -109,7 +100,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
     $item->expire = 0;
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      return apcu_store('apc_storage_queue::' . $this->name . '::' . $this->binaryToHex($item->item_id), $item);
+      return apcu_store('apc_storage_queue::' . $this->name . '::' . ApcStorageHelper::binaryToHex($item->item_id), $item);
     }
 
     return FALSE;

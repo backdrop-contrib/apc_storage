@@ -28,6 +28,21 @@ class ApcStorageQueue implements BackdropQueueInterface {
   }
 
   /**
+   * Generates the key name for storing an item in the APCu queue.
+   *
+   * @param object $item
+   *   The item for which the queue key name is to be generated. The item
+   *   object must contain an 'item_id' property.
+   *
+   * @return string
+   *   A string representing the key name used to store the item in the
+   *   APCu queue.
+   */
+  protected function queueKeyName(object $item): string {
+    return 'apc_storage_queue::' . $this->name . '::' . ApcStorageHelper::binaryToHex($item->item_id);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function createItem(mixed $data): bool {
@@ -36,7 +51,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
     $item->item_id = ApcStorageHelper::uniqueId();
     $item->expire = 0;
 
-    return apcu_store('apc_storage_queue::' . $this->name . '::' . ApcStorageHelper::binaryToHex($item->item_id), $item);
+    return apcu_store($this->queueKeyName($item));
   }
 
   /**
@@ -89,7 +104,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
    */
   public function deleteItem($item): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      apcu_delete('apc_storage_queue::' . $this->name . '::' . ApcStorageHelper::binaryToHex($item->item_id));
+      apcu_delete($this->queueKeyName($item));
     }
   }
 
@@ -100,7 +115,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
     $item->expire = 0;
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      return apcu_store('apc_storage_queue::' . $this->name . '::' . ApcStorageHelper::binaryToHex($item->item_id), $item);
+      return apcu_store($this->queueKeyName($item), $item);
     }
 
     return FALSE;

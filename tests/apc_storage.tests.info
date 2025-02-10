@@ -1,0 +1,5 @@
+[ApcStorageApcuStoreAndRetrieveTestCase]
+name = APCu store and retrieve test
+description = Tests reading and writing the APCu storage.'
+group = APC Storage
+file = apc_storage_apcu.test

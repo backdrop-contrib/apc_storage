@@ -9,12 +9,12 @@
  * Implements hook_cron_queue_info().
  */
 function apc_storage_queue_test_support_cron_queue_info(): array {
-  $queues['apc_storage_queue_test_support_class_callback'] = array(
-    'worker callback' => array('ApcStorageQueueTestSupportWorker', 'cronQueueTestCallback'),
+  $queues['apc_storage_test_first_queue'] = array(
+    'worker callback' => 'apc_storage_queue_test_callback',
     'time' => 60,
   );
-  $queues['apc_storage_queue_test_support_function_callback'] = array(
-    'worker callback' => 'apc_storage_queue_test_support_callback',
+  $queues['apc_storage_test_second_queue'] = array(
+    'worker callback' => 'apc_storage_queue_test_callback',
     'time' => 60,
   );
 
@@ -24,20 +24,6 @@ function apc_storage_queue_test_support_cron_queue_info(): array {
 /**
  * Callback worker for the test queue.
  */
-function apc_storage_queue_test_support_callback() {
+function apc_storage_queue_test_callback() {
   // This function is intentionally left empty.
-}
-
-/**
- * Worker class for the queue tests.
- */
-class ApcStorageQueueTestSupportWorker {
-
-  /**
-   * Callback function for processing queue items during cron runs.
-   */
-  public static function cronQueueTestCallback() {
-    // This method is intentionally left empty.
-  }
-
 }

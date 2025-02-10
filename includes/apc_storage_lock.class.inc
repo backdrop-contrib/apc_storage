@@ -221,7 +221,7 @@ class ApcStorageLock {
     if (!empty(self::$uniqueId)) {
       if (extension_loaded('apcu') && apcu_enabled()) {
         $key = preg_quote('apc_storage_lock::' . backdrop_base64_encode(self::$uniqueId) . '::', '/');
-        $iterator = new APCUIterator("/^$key::/", APC_ITER_KEY);
+        $iterator = new APCUIterator("/^$key/", APC_ITER_KEY);
 
         apcu_delete($iterator);
       }

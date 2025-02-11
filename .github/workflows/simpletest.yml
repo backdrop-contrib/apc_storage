@@ -1,4 +1,4 @@
-name: Simpletest tests
+name: Simpletest
 on: [push, pull_request]
 jobs:
   simpletest:

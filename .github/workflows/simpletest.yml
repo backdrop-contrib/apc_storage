@@ -33,7 +33,7 @@ jobs:
           coverage: none
 
       - name: Print PHP include path
-        shell: php${{ env.PHP_VERSION }} {0}
+        shell: php {0}
         run: |
           <?php
             $directive = 'include_path';

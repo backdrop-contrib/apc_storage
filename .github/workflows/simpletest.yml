@@ -9,6 +9,7 @@ jobs:
         run: |
           echo "REPO_NAME=${PWD##*/}" >> $GITHUB_ENV
           echo 'PHP_VERSION=8.3' >> $GITHUB_ENV
+
       - name: Install MariaDB
         uses: shogo82148/actions-setup-mysql@v1
         with:
@@ -21,6 +22,7 @@ jobs:
           echo -e '[client]\nuser = root\npassword = root\nhost = 127.0.0.1' > ~/.my.cnf
           mysql -e 'SELECT version()\G'
           mysql -e 'CREATE DATABASE backdrop;'
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -28,6 +30,17 @@ jobs:
           extensions: apcu
           ini-values: apc.enabled=1, apc.enable_cli=1
           coverage: none
+
+      - name: Print PHP directive values
+        shell: php {0}
+        run: |
+          <?php
+            $directives = ['include_path', 'open_basedir'];
+            foreach ($directives as $directive) {
+              $value = ini_get($directive);
+              echo "$directive: $value\n";
+            }
+          ?>
 
       - name: Check out Backdrop core
         uses: actions/checkout@v4
@@ -49,9 +62,11 @@ jobs:
           sudo sed -i -e 's/user = www-data/user = runner/' /etc/php/${{ env.PHP_VERSION }}/fpm/pool.d/www.conf
           sudo sed -i -e 's/listen.owner = www-data/listen.owner = runner/' /etc/php/${{ env.PHP_VERSION }}/fpm/pool.d/www.conf
           sudo systemctl restart php${{ env.PHP_VERSION }}-fpm.service
+
       - name: Install Backdrop
         run: |
           cp modules/${{ env.REPO_NAME }}/.github/misc/settings.local.php .
           core/scripts/install.sh --db-url=mysql://root:root@127.0.0.1/backdrop
+
       - name: Run tests
         run: core/scripts/run-tests.sh --force --directory=modules/${{ env.REPO_NAME }} --verbose --concurrency=color --concurrency=4 --cache 2>&1

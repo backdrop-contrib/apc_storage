@@ -39,7 +39,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
    *   APCu queue.
    */
   protected function queueKeyName(object $item): string {
-    return 'apc_storage_queue::' . $this->name . '::' . ApcStorageHelper::binToHex($item->item_id);
+    return 'apc_storage_queue::' . $this->name . '::' . ApcStorageHelper::binaryToHex($item->item_id);
   }
 
   /**

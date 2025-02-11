@@ -23,7 +23,7 @@ class ApcStorageHelper {
    * @return string
    *   The hexadecimal representation of the binary string.
    */
-  public static function binToHex(string $data): string {
+  public static function binaryToHex(string $data): string {
     return unpack('H*', $data)[1];
   }
 

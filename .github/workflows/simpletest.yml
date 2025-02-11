@@ -5,11 +5,10 @@ jobs:
     name: Run Simpletest
     runs-on: ubuntu-22.04
     steps:
-      - name: Setup env
+      - name: Set up environment variables
         run: |
           echo "REPO_NAME=${PWD##*/}" >> $GITHUB_ENV
           echo 'PHP_VERSION=8.3' >> $GITHUB_ENV
-          echo "MODULE_INCLUDE_PATH=$(readlink -f modules/${{ env.REPO_NAME }}/includes)" >> $GITHUB_ENV
 
       - name: Install MariaDB
         uses: shogo82148/actions-setup-mysql@v1
@@ -23,6 +22,20 @@ jobs:
           echo -e '[client]\nuser = root\npassword = root\nhost = 127.0.0.1' > ~/.my.cnf
           mysql -e 'SELECT version()\G'
           mysql -e 'CREATE DATABASE backdrop;'
+
+      - name: Check out Backdrop core
+        uses: actions/checkout@v4
+        with:
+          repository: backdrop/backdrop
+
+      - name: Check out module
+        uses: actions/checkout@v4
+        with:
+          path: modules/${{ env.REPO_NAME }}
+
+      - name: Set up module include path
+        run: |
+          echo "MODULE_INCLUDE_PATH=${PWD}/modules/${{ env.REPO_NAME }}" >> $GITHUB_ENV
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -39,16 +52,6 @@ jobs:
             $directive = 'include_path';
             echo "$directive: ", ini_get($directive), "\n";
           ?>
-
-      - name: Check out Backdrop core
-        uses: actions/checkout@v4
-        with:
-          repository: backdrop/backdrop
-
-      - name: Check out module
-        uses: actions/checkout@v4
-        with:
-          path: modules/${{ env.REPO_NAME }}
 
       - name: Set up Apache
         run: |

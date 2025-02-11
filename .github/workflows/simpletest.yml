@@ -9,7 +9,7 @@ jobs:
         run: |
           echo "REPO_NAME=${PWD##*/}" >> $GITHUB_ENV
           echo 'PHP_VERSION=8.3' >> $GITHUB_ENV
-          echo "MODULE_INCLUDE_PATH=$(readlink -f modules/${{ env.REPO_NAME }})" >> $GITHUB_ENV
+          echo "MODULE_INCLUDE_PATH=$(readlink -f modules/${{ env.REPO_NAME }}/includes)" >> $GITHUB_ENV
 
       - name: Install MariaDB
         uses: shogo82148/actions-setup-mysql@v1
@@ -29,7 +29,7 @@ jobs:
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: apcu
-          ini-values: apc.enabled=1, apc.enable_cli=1, include_path=.:${{ env.MODULE_INCLUDE_PATH }}/usr/share/php
+          ini-values: apc.enabled=1, apc.enable_cli=1, include_path=.:${{ env.MODULE_INCLUDE_PATH }}:/usr/share/php
           coverage: none
 
       - name: Print PHP include path

@@ -3,12 +3,13 @@ on: [push, pull_request]
 jobs:
   simpletest:
     name: Run Simpletest
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Setup env
         run: |
           echo "REPO_NAME=${PWD##*/}" >> $GITHUB_ENV
           echo 'PHP_VERSION=8.3' >> $GITHUB_ENV
+          echo "MODULE_INCLUDE_PATH=$(readlink -f modules/${{ env.REPO_NAME }})" >> $GITHUB_ENV
 
       - name: Install MariaDB
         uses: shogo82148/actions-setup-mysql@v1
@@ -28,18 +29,15 @@ jobs:
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: apcu
-          ini-values: apc.enabled=1, apc.enable_cli=1
+          ini-values: apc.enabled=1, apc.enable_cli=1, include_path=.:${{ env.MODULE_INCLUDE_PATH }}/usr/share/php
           coverage: none
 
-      - name: Print PHP directive values
-        shell: php {0}
+      - name: Print PHP include path
+        shell: php${{ env.PHP_VERSION }} {0}
         run: |
           <?php
-            $directives = ['include_path', 'open_basedir'];
-            foreach ($directives as $directive) {
-              $value = ini_get($directive);
-              echo "$directive: $value\n";
-            }
+            $directive = 'include_path';
+            echo "$directive: ", ini_get($directive), "\n";
           ?>
 
       - name: Check out Backdrop core

@@ -1,4 +1,4 @@
-name: Functional Tests
+name: Simpletest tests
 on: [push, pull_request]
 jobs:
   simpletest:
@@ -21,7 +21,7 @@ jobs:
           echo -e '[client]\nuser = root\npassword = root\nhost = 127.0.0.1' > ~/.my.cnf
           mysql -e 'SELECT version()\G'
           mysql -e 'CREATE DATABASE backdrop;'
-      - name: Setup PHP
+      - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.USE_PHP_V }}
@@ -29,17 +29,17 @@ jobs:
           ini-values: apc.enabled=1, apc.enable_cli=1
           coverage: none
 
-      - name: Checkout Backdrop core
+      - name: Check out Backdrop core
         uses: actions/checkout@v4
         with:
           repository: backdrop/backdrop
 
-      - name: Checkout module
+      - name: Check out module
         uses: actions/checkout@v4
         with:
           path: modules/${{ env.REPO_NAME }}
 
-      - name: Setup Apache
+      - name: Set up Apache
         run: |
           sudo cp -f modules/${{ env.REPO_NAME }}/.github/misc/default.conf /etc/apache2/sites-available/000-default.conf
           sudo sed -i -e "s?_PWD?$PWD?g" -e "s/_PHP_V/${{ env.USE_PHP_V }}/g" /etc/apache2/sites-available/000-default.conf
@@ -53,5 +53,5 @@ jobs:
         run: |
           cp modules/${{ env.REPO_NAME }}/.github/misc/settings.local.php .
           core/scripts/install.sh --db-url=mysql://root:root@127.0.0.1/backdrop
-      - name: Run functional tests
-        run: core/scripts/run-tests.sh --force --directory=modules/${{ env.REPO_NAME }} --verbose --concurrency=color --concurrency=3 --cache 2>&1
+      - name: Run tests
+        run: core/scripts/run-tests.sh --force --directory=modules/${{ env.REPO_NAME }} --verbose --concurrency=color --concurrency=4 --cache 2>&1

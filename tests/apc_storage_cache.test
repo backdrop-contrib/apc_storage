@@ -75,7 +75,7 @@ class ApcStorageCacheBaseTestCase extends BackdropWebTestCase {
       // The BackdropFakeCache class is a cache backend stub implementation used
       // by Backdrop core during installation. It is used as default backend class
       // so that only the cache bins used from tests are stored.
-      $settings['cache_backends'][] = 'includes/cache-install.inc';
+      $settings['cache_backends'][] = 'core/includes/cache-install.inc';
 
       if (getenv('GITHUB_ACTIONS')) {
         // Tests runs through GitHub Actions. Add the include directories to
@@ -88,10 +88,6 @@ class ApcStorageCacheBaseTestCase extends BackdropWebTestCase {
           if ($absolute_path = realpath($file)) {
             $paths[] = dirname($absolute_path);
           }
-        }
-
-        if ($absolute_path = realpath(BACKDROP_ROOT . '/includes')) {
-          $paths[] = $absolute_path;
         }
 
         if ($paths) {
@@ -108,7 +104,7 @@ class ApcStorageCacheBaseTestCase extends BackdropWebTestCase {
 
       $settings['cache_default_class'] = 'BackdropFakeCache';
 
-      require_once BACKDROP_ROOT . '/includes/cache.inc';
+      require_once BACKDROP_ROOT . '/core/includes/cache.inc';
 
       foreach ($settings['cache_backends'] as $include) {
         require_once BACKDROP_ROOT . '/' . $include;

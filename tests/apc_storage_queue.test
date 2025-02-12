@@ -62,6 +62,7 @@ class ApcStorageQueueTestCase extends BackdropWebTestCase {
 
       $settings['queue_class_apc_storage_test_first_queue'] = 'ApcStorageQueue';
       $settings['queue_class_apc_storage_test_second_queue'] = 'ApcStorageQueue';
+      $settings['queue_class_apc_storage_test_third_queue'] = 'ApcStorageQueue';
 
       // The default class for queues is intentionally set to MemoryQueue to
       // avoid the database is used for queue storage.
@@ -320,6 +321,7 @@ class ApcStorageQueueTestCase extends BackdropWebTestCase {
     $queues = array(
       'apc_storage_test_first_queue' => array(),
       'apc_storage_test_second_queue' => array(),
+      'apc_storage_test_third_queue' => array(),
     );
 
     foreach ($queues as $name => &$data) {

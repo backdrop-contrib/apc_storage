@@ -329,7 +329,7 @@ class ApcStorageQueueCronTestCase extends BackdropWebTestCase {
     $this->assertEqual($first_queue->numberOfItems(), 9);
     $this->assertEqual($second_queue->numberOfItems(), 9);
     $this->assertApcuKeysByPrefix(
-      '/^apc_storage_queue::[a-zA-Z0-9-_]+::[0-9a-f]{64}/',
+      'apc_storage_queue::[a-zA-Z0-9-_]+::[0-9a-f]{64}',
       array(
         'message' => 'Data for the queues has been stored on the APCu storage.',
         'regexp' => TRUE,
@@ -339,7 +339,7 @@ class ApcStorageQueueCronTestCase extends BackdropWebTestCase {
     $this->assertEqual($first_queue->numberOfItems(), 0);
     $this->assertEqual($second_queue->numberOfItems(), 0);
     $this->assertNoApcuKeysByPrefix(
-      '/^apc_storage_queue::[a-zA-Z0-9-_]+::[0-9a-f]{64}/',
+      'apc_storage_queue::[a-zA-Z0-9-_]+::[0-9a-f]{64}',
       array(
         'message' => 'No APCu key for queue items exists after cron task ran.',
         'regexp' => TRUE,

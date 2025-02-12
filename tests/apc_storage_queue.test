@@ -321,7 +321,7 @@ class ApcStorageQueueCronTestCase extends BackdropWebTestCase {
     );
 
     foreach ($queues as $name => &$data) {
-      $data[0] = DrupalQueue::get($name);
+      $data[0] = BackdropQueue::get($name);
     }
 
     foreach ($queues as &$data) {

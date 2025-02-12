@@ -5,7 +5,7 @@ group = APC Storage
 file = apc_storage_apcu.test
 
 [ApcStorageCacheStoreAndRetrieveTestCase]
-name = Store and retrieve test
+name = Cache store and retrieve test
 description = Verifies the cache items are correctly stored and the retrieved values are correct.
 group = APC Storage
 file = apc_storage_cache.test
@@ -23,13 +23,13 @@ group = APC Storage
 file = apc_storage_cache.test
 
 [ApcStorageCachePreserveExistingApcuKeysTestCase]
-name = Existing APCu keys test
+name = Existing APCu keys conflict test
 description = Verifies there is no conflict between APCu keys used for storing cache items and other APCu keys.
 group = APC Storage
 file = apc_storage_cache.test
 
 [ApcStorageQueueCronTestCase]
-name = APC Storage queue test
+name = Queue test
 description = Tests the APCu queue implementation.
 group = APC Storage
 file = apc_storage_queue.test

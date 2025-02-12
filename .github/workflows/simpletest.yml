@@ -33,25 +33,13 @@ jobs:
         with:
           path: modules/${{ env.REPO_NAME }}
 
-      - name: Set up module include path
-        run: |
-          echo "MODULE_INCLUDE_PATH=${PWD}/modules/${{ env.REPO_NAME }}" >> $GITHUB_ENV
-
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: apcu
-          ini-values: apc.enabled=1, apc.enable_cli=1, include_path=.:${{ env.MODULE_INCLUDE_PATH }}:/usr/share/php
+          ini-values: apc.enabled=1, apc.enable_cli=1
           coverage: none
-
-      - name: Print PHP include path
-        shell: php {0}
-        run: |
-          <?php
-            $directive = 'include_path';
-            echo "$directive: ", ini_get($directive), "\n";
-          ?>
 
       - name: Set up Apache
         run: |
@@ -70,4 +58,4 @@ jobs:
           core/scripts/install.sh --db-url=mysql://root:root@127.0.0.1/backdrop
 
       - name: Run tests
-        run: core/scripts/run-tests.sh --force --directory=modules/${{ env.REPO_NAME }} --verbose --concurrency=color --concurrency=4 --cache 2>&1
+        run: core/scripts/run-tests.sh --force --directory=modules/${{ env.REPO_NAME }} --verbose --concurrency=color --concurrency=7 --cache 2>&1

@@ -46,15 +46,16 @@ class ApcStorageApcuStoreAndRetrieveTestCase extends BackdropWebTestCase {
 
       $this->pass('This test only runs when the APCu extension is loaded and enabled.');
     }
-
-    try {
-      $this->engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_test_' . hrtime(TRUE), TRUE));
-      $this->randomizer = new Randomizer($this->engine);
-    }
-    catch (ValueError) {
-      // This exception should never be thrown because the seed passed to
-      // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
-      // and those are not all zeros.
+    else {
+      try {
+        $this->engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_test_' . hrtime(TRUE), TRUE));
+        $this->randomizer = new Randomizer($this->engine);
+      }
+      catch (ValueError) {
+        // This exception should never be thrown because the seed passed to
+        // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
+        // and those are not all zeros.
+      }
     }
 
     parent::setUp('apc_storage');

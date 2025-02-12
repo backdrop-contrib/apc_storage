@@ -1,0 +1,1174 @@
+<?php
+
+/**
+ * @file
+ * Test classes for the Apcu cache implementation.
+ */
+
+declare(strict_types=1);
+
+use Random\Engine\Xoshiro256StarStar;
+use Random\IntervalBoundary;
+use Random\Randomizer;
+
+/**
+ * Base class for the cache test classes.
+ */
+class ApcStorageCacheBaseTestCase extends BackdropWebTestCase {
+
+  /**
+   * Whether the test should be skipped.
+   *
+   * @var bool
+   */
+  protected bool $skipTest = FALSE;
+
+  /**
+   * The random engine used by the tests.
+   *
+   * @var \Random\Engine\Xoshiro256StarStar
+   */
+  protected Xoshiro256StarStar $engine;
+
+  /**
+   * The random generator used by the tests.
+   *
+   * @var \Random\Randomizer
+   */
+  protected Randomizer $randomizer;
+
+  /**
+   * The cache bins to store on APCu.
+   *
+   * @var array
+   */
+  protected array $cacheBins = array('apc_storage_test');
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    if (!extension_loaded('apcu') && !apcu_enabled()) {
+      $this->skipTest = TRUE;
+
+      $this->pass('This test only runs when the APCu extension is loaded and enabled.');
+    }
+    else {
+      global $settings;
+
+      try {
+        $this->engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_test_' . hrtime(TRUE), TRUE));
+        $this->randomizer = new Randomizer($this->engine);
+      }
+      catch (ValueError) {
+        // This exception should never be thrown because the seed passed to
+        // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
+        // and those are not all zeros.
+      }
+
+      $settings['cache_backends'][] = backdrop_get_path('module', 'apc_storage') . '/includes/apc_storage_cache.class.inc';
+
+      foreach ($this->getCacheBins() as $cache_bin) {
+        $settings["cache_class_$cache_bin"] = 'ApcStorageCache';
+      }
+
+      // The BackdropFakeCache class is a cache backend stub implementation used
+      // by Backdrop core during installation. It is used as default backend class
+      // so that only the cache bins used from tests are stored.
+      $settings['cache_backends'][] = 'includes/cache-install.inc';
+
+      if (getenv('GITHUB_ACTIONS')) {
+        // Tests runs through GitHub Actions. Add the include directories to
+        // include_path.
+        $paths = array();
+
+        foreach ($settings['cache_backends'] as $include) {
+          $file = BACKDROP_ROOT . '/' . $include;
+
+          if ($absolute_path = realpath($file)) {
+            $paths[] = dirname($absolute_path);
+          }
+        }
+
+        if ($absolute_path = realpath(BACKDROP_ROOT . '/includes')) {
+          $paths[] = $absolute_path;
+        }
+
+        if ($paths) {
+          $paths = array_unique($paths);
+
+          set_include_path(
+            implode(PATH_SEPARATOR, $paths). PATH_SEPARATOR . get_include_path()
+          );
+        }
+        else {
+          $this->fail('Could not add the include directories to include_path.');
+        }
+      }
+
+      $settings['cache_default_class'] = 'BackdropFakeCache';
+
+      require_once BACKDROP_ROOT . '/includes/cache.inc';
+
+      foreach ($settings['cache_backends'] as $include) {
+        require_once BACKDROP_ROOT . '/' . $include;
+      }
+    }
+
+    parent::setUp('apc_storage');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function tearDown(): void {
+    parent::tearDown();
+
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      apcu_clear_cache();
+    }
+  }
+
+  /**
+   * Generates a random floating-point number between two values.
+   *
+   * @param float $from
+   *   The lower bound of the range.
+   * @param float $to
+   *   The upper bound of the range.
+   *
+   * @return float
+   *   The randomly generated floating-point number.
+   */
+  protected function randomFloat(float $from = 1.0, float $to = 8.0): float {
+    try {
+      $min = min($from, $to);
+      $max = max($from, $to);
+
+      if ($min === $max) {
+        return $min;
+      }
+
+      return $this->randomizer->getFloat(1.0, 8.0, IntervalBoundary::ClosedClosed);
+    }
+    catch (ValueError) {
+      // This exception should never be thrown.
+    }
+  }
+
+  /**
+   * Generates a random integer between two values.
+   *
+   * @param int $from
+   *   The lower bound of the range.
+   * @param int $to
+   *   The upper bound of the range.
+   *
+   * @return int
+   *   The randomly generated integer.
+   */
+  protected function randomInt(int $from = 128, int $to = 65536): int {
+    try {
+      $min = min($from, $to);
+      $max = max($from, $to);
+
+      if ($min === $max) {
+        return $min;
+      }
+
+      return $this->randomizer->getInt($min, $max);
+    }
+    catch (ValueError) {
+      // This exception should never be thrown.
+    }
+  }
+
+  /**
+   * Converts a binary string to a hexadecimal representation.
+   *
+   * @param string $data
+   *   The binary string to convert.
+   *
+   * @return string
+   *   The hexadecimal representation of the binary string.
+   */
+  protected static function binaryToHex(string $data): string {
+    return unpack('H*', $data)[1];
+  }
+
+  /**
+   * Returns a parsable string representation of a variable.
+   *
+   * This method is similar to drupal_var_export(), but it accepts a single
+   * argument, and it outputs an array on a single line.
+   *
+   * @param mixed $var
+   *   The variable to export.
+   *
+   * @return string
+   *   The exported variable.
+   */
+  protected static function varExport(mixed $var): string {
+    if (is_array($var)) {
+      if (empty($var)) {
+        $output = 'array()';
+      }
+      else {
+        /** @var  array $var */
+        // Don't export keys if the array is non-associative.
+        $export_keys = array_values($var) != $var;
+        $output = 'array(';
+
+        foreach ($var as $key => $value) {
+          $output .= ($export_keys ? self::varExport($key) . ' => ' : '') . self::varExport($value) . ', ';
+        }
+
+        $output = rtrim($output, ', ') . ')';
+      }
+    }
+    elseif (is_bool($var)) {
+      $output = $var ? 'TRUE' : 'FALSE';
+    }
+    elseif (is_string($var)) {
+      if (str_contains($var, "\n") || str_contains($var, "'")) {
+        // If the string contains a line break or a single quote, use the
+        // double quote export mode. Encode backslash and double quotes and
+        // transform some common control characters.
+        $var = str_replace(array('\\', '"', "\n", "\r", "\t"), array('\\\\', '\"', '\n', '\r', '\t'), $var);
+        $output = '"' . $var . '"';
+      }
+      else {
+        $output = "'" . $var . "'";
+      }
+    }
+    else {
+      $output = var_export($var, TRUE);
+    }
+
+    return $output;
+  }
+
+  /**
+   * Adds cache bins to the list of cache bins that are stored on APCu.
+   *
+   * @param string ...$bins
+   *   The cache bins to add.
+   */
+  protected function setCacheBins(string ...$bins): void {
+    $this->cacheBins = array_unique(array_merge($this->cacheBins, $bins));
+  }
+
+  /**
+   * Retrieves the cache bins that are stored on APCu.
+   *
+   * @return array
+   *   The cache bins stored on APCu.
+   */
+  protected function getCacheBins(): array {
+    return $this->cacheBins;
+  }
+
+  /**
+   * Returns data to be stored.
+   *
+   * This method is called from any test that needs to store data either
+   * directly in APCu or as cached data.
+   */
+  protected function storageData(): Generator {
+    // Return a multiple of 3 items.
+    // Avoid using NULL as value, since that fails tests.
+    yield '_01_' . $this->randomName() => array(
+      'value' => $this->randomString(),
+      'ttl' => $this->randomInt(1, 6),
+    );
+    yield '_02_' . $this->randomName() => array(
+      'value' => TRUE,
+      'ttl' => 0,
+    );
+    yield '_03_' . $this->randomName() => array(
+      'value' => FALSE,
+      'ttl' => $this->randomInt(2, 8),
+    );
+    yield '_04_' . $this->randomName() => array(
+      'value' => $this->randomFloat(),
+      'ttl' => 0,
+    );
+    yield '_05_' . $this->randomName() => array(
+      'value' => $this->randomInt(),
+      'ttl' => $this->randomInt(2, 8),
+    );
+    yield '_06_' . $this->randomName() => array(
+      'value' => array(
+        $this->randomName() => $this->randomString(),
+        $this->randomName() => $this->randomInt(),
+        $this->randomName() => $this->randomFloat(),
+        $this->randomName() => TRUE,
+        $this->randomName() => NULL,
+        $this->randomName() => FALSE,
+      ),
+      'ttl' => $this->randomInt(1, 7),
+    );
+    yield '_07_' . $this->randomName() => array(
+      'value' => $this->randomString(),
+      'ttl' => $this->randomInt(1, 8),
+    );
+    yield '_08_' . $this->randomName() => array(
+      'value' => FALSE,
+      'ttl' => 0,
+    );
+    yield '_09_' . $this->randomName() => array(
+      'value' => $this->randomFloat(),
+      'ttl' => $this->randomInt(2, 6),
+    );
+  }
+
+  /**
+   * Asserts that the APCu storage is empty.
+   */
+  protected function assertApcuEmpty(): bool {
+    $iterator = new APCUIterator('/^.+/', APC_ITER_KEY);
+
+    return $this->assertTrue($iterator->getTotalCount() === 0, 'The APCu storage is empty.');
+  }
+
+  /**
+   * Asserts that the APCu storage is not empty.
+   *
+   * @return bool
+   *   TRUE if the APCu storage is not empty, FALSE otherwise.
+   */
+  protected function assertApcuNotEmpty(): bool {
+    $iterator = new APCUIterator('/^.+/', APC_ITER_KEY);
+
+    return $this->assertTrue($iterator->getTotalCount() > 0, 'The APCu storage is not empty.');
+  }
+
+  /**
+   * Asserts that a key-value pair was successfully stored in APCu.
+   *
+   * @param string $key
+   *   The name of the APCu key to store.
+   * @param mixed $value
+   *   The value to store in APCu.
+   * @param int $ttl
+   *   The time to live for the stored value.
+   *
+   * @return bool
+   *   TRUE if the key-value pair was stored, FALSE otherwise.
+   */
+  protected function assertApcuKeySaved(string $key, mixed $value, int $ttl = 0): bool {
+    $message = format_string('@key was stored in APCu.', array('@key' => $this->varExport($key)));
+
+    $result = apcu_store($key, $value, $ttl);
+
+    return $this->assertTrue($result, $message);
+  }
+
+  /**
+   * Asserts there is an APCu key matching the given name.
+   *
+   * @param string $key
+   *   The name of the APCu key to search for.
+   * @param array $options
+   *   An array of options, which can contain the following keys:
+   *     - message: A custom message to display upon assertion.
+   *     - value: The expected value of the APCu key.
+   *
+   * @return bool
+   *   TRUE if the APCu key exists and its value matches the expected value,
+   *   FALSE otherwise.
+   */
+  protected function assertApcuKeyByName(string $key, array $options = array()): bool {
+    $args = array('@key' => $this->varExport($key));
+
+    if (!empty($options['message'])) {
+      $string = $options['message'];
+    }
+    else {
+      $string = '@key was found in APCu.';
+    }
+
+    $message = format_string($string, $args);
+
+    if ($this->assertTrue(apcu_exists($key), $message)) {
+      if (array_key_exists('value', $options)) {
+        $message = format_string('The value for @key is the expected one.', array('@key' => $this->varExport($key)));
+
+        $retrieved = apcu_fetch($key, $success);
+
+        return $this->assertTrue($success && $retrieved === $options['value'], $message);
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Asserts that there is not an APCu key matching the given name.
+   *
+   * @param string $key
+   *   The name of the APCu key to search for.
+   * @param array $options
+   *   An array of options, which can contain the following keys:
+   *     - message: A custom message to display upon assertion.
+   *
+   * @return bool
+   *   TRUE if the APCu key exists, FALSE otherwise.
+   */
+  protected function assertNoApcuKeyByName(string $key, array $options = array()): bool {
+    $args = array('@key' => $this->varExport($key));
+
+    if (!empty($options['message'])) {
+      $string = $options['message'];
+    }
+    else {
+      $string = '@key was found in APCu.';
+    }
+
+    $message = format_string($string, $args);
+
+    return $this->assertFalse(apcu_exists($key), $message);
+  }
+
+  /**
+   * Asserts that there are APCu keys matching the given prefix.
+   *
+   * @param string $key
+   *   The prefix to search for in APCu keys, excluding the regular expression
+   *   delimiters and the ^ anchor.
+   * @param array $options
+   *   An array of options, which can contain the following keys:
+   *     - message: A custom message to display upon assertion.
+   *     - regexp: If TRUE, $key is a regular expression that does not need to
+   *       be passed to preg_quote().
+   *
+   * @return bool
+   *   TRUE if there are APCu keys matching the prefix, FALSE otherwise.
+   */
+  protected function assertApcuKeysByPrefix(string $key, array $options = array()): bool {
+    $options += array(
+      'message' => 'There are APCu keys matching @key.',
+      'regexp' => FALSE,
+    );
+    $escaped_key = !$options['regexp'] ? preg_quote($key, '/') : $key;
+    $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
+    $message = format_string(
+      $options['message'],
+      array('@key' => $this->varExport("/^$escaped_key/"))
+    );
+
+    return $this->assertTrue($iterator->getTotalCount() > 0, $message);
+  }
+
+  /**
+   * Asserts that there are no APCu keys matching the given prefix.
+   *
+   * @param string $key
+   *   The prefix to search for in APCu keys, excluding the regular expression
+   *   delimiters and the ^ anchor.
+   * @param array $options
+   *   An array of options, which can contain the following keys:
+   *     - message: A custom message to display upon assertion.
+   *     - regexp: If TRUE, $key is a regular expression that does not need to
+   *       be passed to preg_quote().
+   *
+   * @return bool
+   *   TRUE if there are no APCu keys matching the prefix, FALSE otherwise.
+   */
+  protected function assertNoApcuKeysByPrefix(string $key, array $options = array()): bool {
+    $options += array(
+      'message' => 'There are no APCu keys matching @key.',
+      'regexp' => FALSE,
+    );
+    $escaped_key = !$options['regexp'] ? preg_quote($key, '/') : $key;
+    $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
+    $message = format_string(
+      $options['message'],
+      array('@key' => $this->varExport("/^$escaped_key/"))
+    );
+
+    return $this->assertTrue($iterator->getTotalCount() === 0, $message);
+  }
+
+  /**
+   * Asserts that all the cache bins used by tests are stored on APCu.
+   *
+   * @return bool
+   *   FALSE if any cache bin is not stored on APCu, TRUE otherwise.
+   */
+  protected function assertCacheBinsOnApcu(): bool {
+    $result = TRUE;
+
+    foreach ($this->getCacheBins() as $bin) {
+      $cache = cache($bin);
+      $args = array('@bin' => $this->varExport($bin));
+      $message = format_string('Data for the @bin cache bin is stored on APCu.', $args);
+
+      if (!$this->assertTrue($cache instanceof ApcStorageCache, $message)) {
+        $result = FALSE;
+      }
+    }
+
+    return $result;
+  }
+
+  /**
+   * Asserts that a cache item is saved.
+   *
+   * @param string $bin
+   *   The cache bin.
+   * @param string $cid
+   *   The cache ID.
+   * @param mixed $value
+   *   The value of the cache item.
+   * @param int $ttl
+   *   The time to live in seconds.
+   *
+   * @return bool
+   *   TRUE if the cache item is saved, FALSE otherwise.
+   */
+  protected function assertCacheItemSaved(string $bin, string $cid, mixed $value, int $ttl = 0): bool {
+    cache_set($cid, $value, $bin, $ttl > 0 ? $ttl + time() : CACHE_PERMANENT);
+
+    return $this->assertCacheItem($bin, $cid, array('value' => $value));
+  }
+
+  /**
+   * Asserts that a cache item exists.
+   *
+   * @param string $bin
+   *   The cache bin.
+   * @param string $cid
+   *   The cache ID.
+   * @param array $options
+   *   An array of extra, optional, values, such as:
+   *     - 'message': A message to display with the assertion. If none is given,
+   *       a default message will be displayed. This string will be passed to
+   *       format_string(). It can use @id as placeholder.
+   *     - 'value': The expected value of the cache item. Any value passed in
+   *       this key will be used, including FALSE, an empty string, or 0.
+   *
+   * @return bool
+   *   TRUE if the cache item exists, FALSE otherwise.
+   */
+  protected function assertCacheItem(string $bin, string $cid, array $options = array()): bool {
+    $args = array('@id' => $this->varExport("$bin/$cid"));
+    $item = cache_get($cid, $bin);
+
+    if (!empty($options['message'])) {
+      $string = $options['message'];
+    }
+    else {
+      $string = 'The value of @id was retrieved from the cache.';
+    }
+
+    $message = format_string($string, $args);
+
+    if ($this->assertNotIdentical($item, FALSE, $message)) {
+      $args = array('@id' => $this->varExport("$bin/$cid"));
+      $message = format_string('@id was correctly stored in the cache.', $args);
+
+      if ($this->assertTrue(is_object($item) && isset($item->data), $message)) {
+        if (array_key_exists('value', $options)) {
+          $value = $options['value'];
+          $args = array('@id' => $this->varExport("$bin/$cid"));
+          $message = format_string('The value of @id is the expected one.', $args);
+
+          return $this->assertIdentical($item->data, $value, $message);
+        }
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Asserts that a cache item does not exist.
+   *
+   * @param string $bin
+   *   The cache bin.
+   * @param string $cid
+   *   The cache ID.
+   * @param array $options
+   *   An array of extra, optional, values, such as:
+   *     - 'message': A message to display with the assertion. If none is given,
+   *       a default message will be displayed. This string will be passed to
+   *       format_string(). It can use @id as placeholder.
+   *
+   * @return bool
+   *   TRUE if the cache item does not exist, FALSE otherwise.
+   */
+  protected function assertNoCacheItem(string $bin, string $cid, array $options = array()): bool {
+    $args = array('@id' => $this->varExport("$bin/$cid"));
+
+    if (array_key_exists('message', $options) && !empty($options['message'])) {
+      $string = $options['message'];
+    }
+    else {
+      $string = 'The value of @id was retrieved from the cache.';
+    }
+
+    $item = cache_get($cid, $bin);
+    $message = format_string($string, $args);
+
+    return $this->assertIdentical($item, FALSE, $message);
+  }
+
+  /**
+   * Asserts that two or more cache items do exist.
+   *
+   * This method calls cache_get_multiple() to retrieve the items.
+   *
+   * @param string $bin
+   *   The cache bin.
+   * @param string ...$cids
+   *   An array containing the cache IDs to retrieve.
+   *
+   * @return bool
+   *   TRUE if the assertion succeeded, FALSE otherwise.
+   */
+  protected function assertCacheItems(string $bin, string ...$cids): bool {
+    // cache_get_multiple() gets $cids by reference. To avoid it alters this
+    // method's $cids parameter, pass it a copy.
+    $cache_ids = $cids;
+    $items = cache_get_multiple($cache_ids, $bin);
+    $result = TRUE;
+
+    foreach ($cids as $cid) {
+      $args = array('@id' => $this->varExport("$bin/$cid"));
+      $message = format_string('@id was found in the cache.', $args);
+
+      if (!$this->assertTrue(isset($items[$cid]), $message)) {
+        $result = FALSE;
+      }
+    }
+
+    return $result;
+  }
+
+  /**
+   * Asserts that two or more cache items do not exist.
+   *
+   * This method calls cache_get_multiple() to retrieve the items.
+   *
+   * @param string $bin
+   *   The cache bin.
+   * @param array $cids
+   *   An array containing the cache IDs to retrieve.
+   * @param string ...$non_existent_cids
+   *   An array containing the cache IDs that should not exist.
+   *
+   * @return bool
+   *   TRUE if the assertion succeeded, FALSE otherwise.
+   */
+  protected function assertNoCacheItems(string $bin, array $cids, string ...$non_existent_cids): bool {
+    // cache_get_multiple() gets $cids by reference. To avoid it alters this
+    // method's $cids parameter, pass it a copy.
+    $cache_ids = $cids;
+    $items = cache_get_multiple($cache_ids, $bin);
+    $result = TRUE;
+
+    foreach ($non_existent_cids as $cid) {
+      $args = array('@id' => $this->varExport("$bin/$cid"));
+      $message = format_string('@id was not found in the cache.', $args);
+
+      if (!$this->assertFalse(isset($items[$cid]), $message)) {
+        $result = FALSE;
+      }
+    }
+
+    return $result;
+  }
+
+}
+
+/**
+ * Unit tests for storing and retrieving cache items.
+ */
+class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCase {
+
+  /**
+   * Tests storing and retrieving cache items.
+   */
+  public function testStoreRetrieveCacheItem(): void {
+    $stored = array();
+
+    if ($this->skipTest) {
+      return;
+    }
+
+    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+      $bin = $this->getCacheBins()[0];
+
+      foreach ($this->storageData() as $id => $data) {
+        $cid = "store_retrieve_cache_item_$id";
+
+        if ($this->assertCacheItemSaved($bin, $cid, $data['value'])) {
+          $stored[$cid] = $data;
+        }
+      }
+
+      $message = 'New items were stored in the cache.';
+
+      if ($this->assertTrue(!empty($stored), $message)) {
+        foreach ($stored as $cid => $data) {
+          $this->assertCacheItem($bin, $cid, array('value' => $data['value']));
+        }
+      }
+    }
+  }
+
+  /**
+   * Tests storing and retrieving cache items with a delay.
+   */
+  public function testStoreDelayRetrieveCacheItem(): void {
+    $stored = array();
+
+    if ($this->skipTest) {
+      return;
+    }
+
+    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+      $bin = $this->getCacheBins()[0];
+
+      foreach ($this->storageData() as $id => $data) {
+        $cid = "store_delay_retrieve_cache_item_$id";
+
+        if ($this->assertCacheItemSaved($bin, $cid, $data['value'], $data['ttl'])) {
+          $stored[$cid] = $data;
+        }
+      }
+
+      $message = 'New items were stored in the cache.';
+
+      if ($this->assertTrue(!empty($stored), $message)) {
+        // Add 2 seconds to the maximum TTL
+        // ApcStorageCacheBaseTestCase::storageData() sets to be sure that
+        // non-permanent values are purged when the cache is read.
+        $message = format_string('The test will be halted for @delay seconds.', array('@delay' => 10));
+
+        $this->pass($message);
+
+        sleep(10);
+
+        foreach ($stored as $cid => $data) {
+          if (!empty($data['ttl'])) {
+            $this->assertNoCacheItem($bin, $cid);
+          }
+          else {
+            $this->assertCacheItem($bin, $cid, array('value' => $data['value']));
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Tests storing cache items and retrieving them via cache_get_multiple().
+   */
+  public function testStoreRetrieveMultipleCacheItems(): void {
+    $stored = array();
+
+    if ($this->skipTest) {
+      return;
+    }
+
+    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+      $bin = $this->getCacheBins()[0];
+
+      foreach ($this->storageData() as $id => $data) {
+        $cid = "store_retrieve_cache_item_$id";
+
+        // The TTL set by
+        // ApcStorageCacheStoreAndRetrieveTestCase::storageData() is ignored.
+        // All the cache items are permanent.
+        if ($this->assertCacheItemSaved($bin, $cid, $data['value'])) {
+          $stored[] = $cid;
+        }
+      }
+
+      $message = 'New items were stored in the cache.';
+
+      if ($this->assertTrue(!empty($stored), $message)) {
+        foreach (array_chunk($stored, 3) as $chunk) {
+          $this->assertCacheItems($bin, ...$chunk);
+        }
+      }
+    }
+  }
+
+  /**
+   * Tests storing cache items and retrieving them via cache_get_multiple().
+   */
+  public function testStoreDelayRetrieveMultipleCacheItems(): void {
+    $stored = array();
+
+    if ($this->skipTest) {
+      return;
+    }
+
+    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+      $bin = $this->getCacheBins()[0];
+
+      foreach ($this->storageData() as $id => $data) {
+        $cid = "store_retrieve_cache_item_$id";
+
+        if ($this->assertCacheItemSaved($bin, $cid, $data['value'], $data['ttl'] + 2)) {
+          $stored[] = $cid;
+        }
+      }
+
+      $message = 'New items were stored in the cache.';
+
+      if ($this->assertTrue(!empty($stored), $message)) {
+        // 12 is the maximum TTL set by
+        // ApcStorageCacheStoreAndRetrieveTestCase::storageData(),
+        // plus 2 to make the permanent cache items
+        // ApcStorageCacheStoreAndRetrieveTestCase::storageData() returns, plus
+        // 2 to be sure that all the cached items are purged when
+        // cache_get_multiple() is called.
+        $message = format_string('The test will be halted for @delay seconds.', array('@delay' => 12));
+
+        $this->pass($message);
+        sleep(12);
+
+        foreach (array_chunk($stored, 3) as $chunk) {
+          $this->assertNoCacheItems($bin, $stored, ...$chunk);
+        }
+      }
+    }
+  }
+
+}
+
+/**
+ * Unit tests for cache_clear_all().
+ */
+class ApcStorageCacheClearTestCase extends ApcStorageCacheBaseTestCase {
+
+  /**
+   * Tests cache_clear_all() using a cache ID.
+   */
+  public function testClearByCid(): void {
+    $stored = array();
+
+    if ($this->skipTest) {
+      return;
+    }
+
+    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+      $bin = $this->getCacheBins()[0];
+
+      foreach ($this->storageData() as $id => $data) {
+        $cid = "clear_by_cid_$id";
+
+        if ($this->assertCacheItemSaved($bin, $cid, $data['value'])) {
+          $stored[] = $cid;
+        }
+      }
+
+      $message = 'New items have been stored in the cache.';
+
+      if ($this->assertTrue(!empty($stored), $message)) {
+        $cleared_cid = array_pop($stored);
+        $options = array('message' => '@id was removed by cache_clear_all().');
+
+        cache_clear_all($cleared_cid, $bin);
+
+        $this->assertNoCacheItem($bin, $cleared_cid, $options);
+
+        $options = array('message' => '@id was not removed by cache_clear_all().');
+
+        foreach ($stored as $cid) {
+          $this->assertCacheItem($bin, $cid, $options);
+        }
+      }
+    }
+  }
+
+  /**
+   * Tests cache_clear_all() using * as cache ID.
+   */
+  public function testClearStar(): void {
+    $stored = array();
+
+    if ($this->skipTest) {
+      return;
+    }
+
+    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+      $bin = $this->getCacheBins()[0];
+
+      foreach ($this->storageData() as $id => $data) {
+        $cid = "clear_by_star_$id";
+
+        if ($this->assertCacheItemSaved($bin, $cid, $data['value'])) {
+          $stored[] = $cid;
+        }
+      }
+
+      $message = 'New items have been stored in the cache.';
+
+      if ($this->assertTrue(!empty($stored), $message)) {
+        $options = array('message' => '@id was not removed by cache_clear_all().');
+
+        cache_clear_all('*', $bin);
+
+        // Since cache_clear_all() was not called with TRUE as last parameter,
+        // '*' is the literal value for the cache ID. No cache item is stored
+        // with that cache ID, so all the cache items still exist.
+        foreach ($stored as $cid) {
+          $this->assertCacheItem($bin, $cid, $options);
+        }
+
+        cache_clear_all('*', $bin, TRUE);
+
+        $options = array('message' => '@id was removed by cache_clear_all().');
+
+        // Since cache_clear_all() was called with TRUE as last parameter, all
+        // the cache items were removed.
+        foreach ($stored as $cid) {
+          $this->assertNoCacheItem($bin, $cid, $options);
+        }
+      }
+    }
+  }
+
+  /**
+   * Tests cache_clear_all() passing TRUE as last parameter.
+   */
+  public function testClearWildcard(): void {
+    $cache_id_prefixes = array('clear_first_time_by_wildcard_', 'clear_second_time_by_wildcard_');
+    $stored = array();
+
+    if ($this->skipTest) {
+      return;
+    }
+
+    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+      $bin = $this->getCacheBins()[0];
+
+      foreach ($cache_id_prefixes as $prefix) {
+        foreach ($this->storageData() as $id => $data) {
+          $cid = "$prefix$id";
+
+          if ($this->assertCacheItemSaved($bin, $cid, $data['value'])) {
+            $stored[] = $cid;
+          }
+        }
+      }
+
+      $message = 'New items were stored in the cache.';
+
+      if ($this->assertTrue(!empty($stored), $message)) {
+        cache_clear_all($cache_id_prefixes[0], $bin, TRUE);
+
+        foreach ($stored as $cid) {
+          if (str_starts_with($cid, $cache_id_prefixes[0])) {
+            $options = array('message' => '@id was removed by cache_clear_all().');
+
+            $this->assertNoCacheItem($bin, $cid, $options);
+          }
+          else {
+            $options = array('message' => '@id was not removed by cache_clear_all().');
+
+            $this->assertCacheItem($bin, $cid, $options);
+          }
+        }
+
+        $options = array('message' => '@id was removed by cache_clear_all().');
+
+        cache_clear_all($cache_id_prefixes[1], $bin, TRUE);
+
+        foreach ($stored as $cid) {
+          $this->assertNoCacheItem($bin, $cid, $options);
+        }
+      }
+    }
+  }
+
+}
+
+/**
+ * Unit tests for writing the same cache item in multiple cache bins.
+ */
+class ApcStorageCacheConflictingKeysTestCase extends ApcStorageCacheBaseTestCase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp(): void {
+    $this->setCacheBins('apc_storage_test_' . $this->randomName(), 'apc_storage_test_more_' . $this->randomName());
+    parent::setUp();
+  }
+
+  /**
+   * Tests that the same keys in different cache bins are preserved.
+   */
+  public function testConflictingKeys(): void {
+    $stored = array();
+
+    if ($this->skipTest) {
+      return;
+    }
+
+    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+      $bin = $this->getCacheBins()[0];
+
+      foreach ($this->storageData() as $id => $data) {
+        if ($this->assertCacheItemSaved($bin, $id, $data['value'])) {
+          $stored[$id] = $data;
+        }
+      }
+
+      $message = 'New items were stored in the cache.';
+
+      if ($this->assertTrue(!empty($stored), $message)) {
+        $bins = $this->getCacheBins();
+        $bins = array_shift($bins);
+
+        foreach ($bins as $bin) {
+          foreach ($stored as $id => $data) {
+            $this->assertCacheItemSaved($bin, $id, $data['value']);
+          }
+        }
+
+        $bin = $this->getCacheBins()[0];
+
+        foreach ($stored as $id => $data) {
+          $message = 'The original item (@id) was not overwritten.';
+          $options = array('message' => $message, 'value' => $data['value']);
+
+          $this->assertCacheItem($bin, $id, $options);
+        }
+      }
+    }
+  }
+
+}
+
+/**
+ * Unit tests for creating cache items when APCu contains other values.
+ */
+class ApcStorageCachePreserveExistingApcuKeysTestCase extends ApcStorageCacheBaseTestCase {
+
+  /**
+   * Returns the key name used for locks.
+   *
+   * This method uses code similar to the code by ApcStorageLock. It is
+   * duplicated here because including the apc_storage_lock.class.inc file would
+   * cause an error about functions already defined.
+   */
+  protected function getLockKey($name): string {
+    static $unique_id;
+
+    if (empty($unique_id)) {
+      $unique_id = ApcStorageHelper::uniqueId();
+    }
+
+    return 'apc_storage_lock::' .
+      backdrop_base64_encode($unique_id) . '::' . ApcStorageHelper::binaryToHex($name);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    $this->setCacheBins('apc_storage_cache', 'apc_storage_cache::', 'apc_storage_cache::default_prefix::', 'apc_storage_lock', 'apc_storage_lock::');
+    parent::setUp();
+  }
+
+  /**
+   * Tests that writing cache items does not change other APCu values.
+   *
+   * This test also verifies that locks stored in APCu are preserved.
+   */
+  public function testWriteFirstApcuValues(): void {
+    $stored = array();
+
+    if ($this->skipTest) {
+      return;
+    }
+
+    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+      foreach ($this->getCacheBins() as $bin) {
+        foreach ($this->storageData() as $id => $data) {
+          $key = $this->getLockKey("$bin$id");
+
+          if ($this->assertApcuKeySaved($key, $data['value'])) {
+            $stored[$key] = $data;
+          }
+        }
+      }
+
+      $count = 0;
+      $message = 'New items were stored in APCu.';
+
+      if ($this->assertTrue(!empty($stored), $message)) {
+        foreach ($this->getCacheBins() as $bin) {
+          foreach ($this->storageData() as $id => $data) {
+            if ($this->assertCacheItemSaved($bin, $id, $data['value'])) {
+              $count++;
+            }
+          }
+        }
+
+        $message = 'New items were stored in the cache.';
+
+        if ($this->assertTrue($count > 0, $message)) {
+          foreach ($stored as $key => $data) {
+            $this->assertApcuKeyByName($key, array('value' => $data['value']));
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Tests that writing APCu values does not change cache items.
+   *
+   * This test also verifies that locks stored in APCu are preserved.
+   */
+  public function testWriteFirstCacheItems(): void {
+    $stored = array();
+
+    if ($this->skipTest) {
+      return;
+    }
+
+    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+      foreach ($this->getCacheBins() as $bin) {
+        foreach ($this->storageData() as $id => $data) {
+          if ($this->assertCacheItemSaved($bin, $id, $data['value'])) {
+            $data['bin'] = $bin;
+            $stored[$id] = $data;
+          }
+        }
+      }
+
+      $count = 0;
+      $message = 'New items were stored in the cache.';
+
+      if ($this->assertTrue(!empty($stored), $message)) {
+        foreach ($this->getCacheBins() as $bin) {
+          foreach ($this->storageData() as $id => $data) {
+            $key = $this->getLockKey("$bin$id");
+
+            if ($this->assertApcuKeySaved($key, $data['value'])) {
+              $count++;
+            }
+          }
+        }
+
+        $message = 'New items were stored in APCu.';
+
+        if ($this->assertTrue($count > 0, $message)) {
+          foreach ($stored as $id => $data) {
+            $this->assertCacheItem($data['bin'], $id, array('value' => $data['value']));
+          }
+        }
+      }
+    }
+  }
+
+}

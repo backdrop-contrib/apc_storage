@@ -62,7 +62,8 @@ class ApcStorageQueueCronTestCase extends BackdropWebTestCase {
 
       // The default class for queues is intentionally set to MemoryQueue to avoid
       // the database is used for queue storage.
-      $settings['queue_class_apc_storage_queue_test_support_'] = 'ApcStorageQueue';
+      $settings['queue_class_apc_storage_test_first_queue'] = 'ApcStorageQueue';
+      $settings['queue_class_apc_storage_test_second_queue'] = 'ApcStorageQueue';
       $settings['queue_default_class'] = 'MemoryQueue';
 
       try {
@@ -263,7 +264,7 @@ class ApcStorageQueueCronTestCase extends BackdropWebTestCase {
       'message' => 'There are APCu keys matching @key.',
       'regexp' => FALSE,
     );
-    $escaped_key = !$options['regexp'] ? preg_quote($key, '/') : $key;
+    $escaped_key = $options['regexp'] ? $key : preg_quote($key, '/');
     $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
     $message = format_string(
       $options['message'],
@@ -293,7 +294,7 @@ class ApcStorageQueueCronTestCase extends BackdropWebTestCase {
       'message' => 'There are no APCu keys matching @key.',
       'regexp' => FALSE,
     );
-    $escaped_key = !$options['regexp'] ? preg_quote($key, '/') : $key;
+    $escaped_key = $options['regexp'] ? $key : preg_quote($key, '/');
     $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
     $message = format_string(
       $options['message'],

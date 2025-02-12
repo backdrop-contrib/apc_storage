@@ -420,7 +420,7 @@ class ApcStorageCacheBaseTestCase extends BackdropWebTestCase {
       'message' => 'There are APCu keys matching @key.',
       'regexp' => FALSE,
     );
-    $escaped_key = !$options['regexp'] ? preg_quote($key, '/') : $key;
+    $escaped_key = $options['regexp'] ? $key : preg_quote($key, '/');
     $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
     $message = format_string(
       $options['message'],
@@ -450,7 +450,7 @@ class ApcStorageCacheBaseTestCase extends BackdropWebTestCase {
       'message' => 'There are no APCu keys matching @key.',
       'regexp' => FALSE,
     );
-    $escaped_key = !$options['regexp'] ? preg_quote($key, '/') : $key;
+    $escaped_key = $options['regexp'] ? $key : preg_quote($key, '/');
     $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
     $message = format_string(
       $options['message'],

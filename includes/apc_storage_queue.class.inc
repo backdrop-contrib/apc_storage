@@ -46,12 +46,16 @@ class ApcStorageQueue implements BackdropQueueInterface {
    * {@inheritdoc}
    */
   public function createItem(mixed $data): bool {
-    $item = new stdClass();
-    $item->data = $data;
-    $item->item_id = ApcStorageHelper::uniqueId();
-    $item->expire = 0;
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      $item = new stdClass();
+      $item->data = $data;
+      $item->item_id = ApcStorageHelper::uniqueId();
+      $item->expire = 0;
 
-    return apcu_store($this->queueKeyName($item), $item);
+      return apcu_store($this->queueKeyName($item), $item);
+    }
+
+    return FALSE;
   }
 
   /**

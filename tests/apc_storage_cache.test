@@ -1021,7 +1021,7 @@ class ApcStorageCacheConflictingKeysTestCase extends ApcStorageCacheBaseTestCase
 
       if ($this->assertTrue(!empty($stored), $message)) {
         $bins = $this->getCacheBins();
-        $bins = array_shift($bins);
+        array_shift($bins);
 
         foreach ($bins as $bin) {
           foreach ($stored as $id => $data) {

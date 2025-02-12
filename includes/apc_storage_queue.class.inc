@@ -73,7 +73,8 @@ class ApcStorageQueue implements BackdropQueueInterface {
    */
   public function claimItem($lease_time = 30): ?object {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $iterator = new APCUIterator('/^apc_storage_queue::' . $this->name . '::[0-9a-f]{64}/');
+      $name = preg_quote($this->name, '/');
+      $iterator = new APCUIterator("/^apc_storage_queue::$name::[0-9a-f]{64}/");
 
       foreach ($iterator as $item) {
         if (!isset($item['value']->expire)) {
@@ -134,7 +135,8 @@ class ApcStorageQueue implements BackdropQueueInterface {
    */
   public function deleteQueue(): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $iterator = new APCUIterator('/^apc_storage_queue::' . $this->name . '::[0-9a-f]{64}/');
+      $name = preg_quote($this->name, '/');
+      $iterator = new APCUIterator("/^apc_storage_queue::$name::[0-9a-f]{64}/");
 
       apcu_delete($iterator);
     }

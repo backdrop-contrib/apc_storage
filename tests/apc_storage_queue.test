@@ -315,19 +315,28 @@ class ApcStorageQueueCronTestCase extends BackdropWebTestCase {
       return;
     }
 
-    $first_queue = BackdropQueue::get('apc_storage_test_first_queue');
-    $second_queue = BackdropQueue::get('apc_storage_test_second_queue');
+    $queues = array(
+      'apc_storage_test_first_queue' => array(),
+      'apc_storage_test_second_queue' => array(),
+    );
 
-    foreach ($this->storageData() as $data) {
-      $first_queue->createItem($data['value']);
+    foreach ($queues as $name => &$data) {
+      $data[0] = BackdropQueue::get($name);
     }
 
-    foreach ($this->storageData() as $data) {
-      $second_queue->createItem($data['value']);
+    foreach ($queues as $name => &$data) {
+      $stored_items = $this->storageData();
+      $data[1] = count($stored_items);
+
+      foreach ($stored_items as $item) {
+        $data[0]->createItem($item['value']);
+      }
     }
 
-    $this->assertEqual($first_queue->numberOfItems(), 9);
-    $this->assertEqual($second_queue->numberOfItems(), 9);
+    foreach ($queues as $name => $data) {
+      $this->assertEqual($data[0]->numberOfItems(), $data[1]);
+    }
+
     $this->assertApcuKeysByPrefix(
       'apc_storage_queue::[a-zA-Z0-9-_]+::[0-9a-f]{64}',
       array(

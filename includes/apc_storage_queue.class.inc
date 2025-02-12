@@ -51,7 +51,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
     $item->item_id = ApcStorageHelper::uniqueId();
     $item->expire = 0;
 
-    return apcu_store($this->queueKeyName($item));
+    return apcu_store($this->queueKeyName($item), $item);
   }
 
   /**
@@ -59,7 +59,8 @@ class ApcStorageQueue implements BackdropQueueInterface {
    */
   public function numberOfItems(): int {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $iterator = new APCUIterator('/^apc_storage_queue::' . $this->name . '::[0-9a-f]{64}/');
+      $name = preg_quote($this->name, '/');
+      $iterator = new APCUIterator("/^apc_storage_queue::$name::[0-9a-f]{64}/");
 
       return $iterator->getTotalCount();
     }

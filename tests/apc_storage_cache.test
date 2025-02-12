@@ -77,30 +77,30 @@ class ApcStorageCacheBaseTestCase extends BackdropWebTestCase {
       // so that only the cache bins used from tests are stored.
       $settings['cache_backends'][] = 'core/includes/cache-install.inc';
 
-      if (getenv('GITHUB_ACTIONS')) {
-        // Tests runs through GitHub Actions. Add the include directories to
-        // include_path.
-        $paths = array();
-
-        foreach ($settings['cache_backends'] as $include) {
-          $file = BACKDROP_ROOT . '/' . $include;
-
-          if ($absolute_path = realpath($file)) {
-            $paths[] = dirname($absolute_path);
-          }
-        }
-
-        if ($paths) {
-          $paths = array_unique($paths);
-
-          set_include_path(
-            implode(PATH_SEPARATOR, $paths). PATH_SEPARATOR . get_include_path()
-          );
-        }
-        else {
-          $this->fail('Could not add the include directories to include_path.');
-        }
-      }
+//      if (getenv('GITHUB_ACTIONS')) {
+//        // Tests runs through GitHub Actions. Add the include directories to
+//        // include_path.
+//        $paths = array();
+//
+//        foreach ($settings['cache_backends'] as $include) {
+//          $file = BACKDROP_ROOT . '/' . $include;
+//
+//          if ($absolute_path = realpath($file)) {
+//            $paths[] = dirname($absolute_path);
+//          }
+//        }
+//
+//        if ($paths) {
+//          $paths = array_unique($paths);
+//
+//          set_include_path(
+//            implode(PATH_SEPARATOR, $paths). PATH_SEPARATOR . get_include_path()
+//          );
+//        }
+//        else {
+//          $this->fail('Could not add the include directories to include_path.');
+//        }
+//      }
 
       $settings['cache_default_class'] = 'BackdropFakeCache';
 

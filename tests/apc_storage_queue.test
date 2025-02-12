@@ -321,11 +321,11 @@ class ApcStorageQueueCronTestCase extends BackdropWebTestCase {
     );
 
     foreach ($queues as $name => &$data) {
-      $data[0] = BackdropQueue::get($name);
+      $data[0] = DrupalQueue::get($name);
     }
 
-    foreach ($queues as $name => &$data) {
-      $stored_items = $this->storageData();
+    foreach ($queues as &$data) {
+      $stored_items = iterator_to_array($this->storageData());
       $data[1] = count($stored_items);
 
       foreach ($stored_items as $item) {
@@ -333,27 +333,31 @@ class ApcStorageQueueCronTestCase extends BackdropWebTestCase {
       }
     }
 
+    unset($data);
+
     foreach ($queues as $name => $data) {
       $this->assertEqual($data[0]->numberOfItems(), $data[1]);
+      $this->assertApcuKeysByPrefix(
+        'apc_storage_queue::' . preg_quote($name, '/') . '::[0-9a-f]{64}',
+        array(
+          'message' => 'Data for the queues has been stored on the APCu storage.',
+          'regexp' => TRUE,
+        )
+      );
     }
 
-    $this->assertApcuKeysByPrefix(
-      'apc_storage_queue::[a-zA-Z0-9-_]+::[0-9a-f]{64}',
-      array(
-        'message' => 'Data for the queues has been stored on the APCu storage.',
-        'regexp' => TRUE,
-      )
-    );
     $this->cronRun();
-    $this->assertEqual($first_queue->numberOfItems(), 0);
-    $this->assertEqual($second_queue->numberOfItems(), 0);
-    $this->assertNoApcuKeysByPrefix(
-      'apc_storage_queue::[a-zA-Z0-9-_]+::[0-9a-f]{64}',
-      array(
-        'message' => 'No APCu key for queue items exists after cron task ran.',
-        'regexp' => TRUE,
-      )
-    );
+
+    foreach ($queues as $name => $data) {
+      $this->assertEqual($data[0]->numberOfItems(), 0);
+      $this->assertNoApcuKeysByPrefix(
+        'apc_storage_queue::' . preg_quote($name, '/') . '::[0-9a-f]{64}',
+        array(
+          'message' => 'No APCu key for queue items exists after cron task ran.',
+          'regexp' => TRUE,
+        )
+      );
+    }
   }
 
 }

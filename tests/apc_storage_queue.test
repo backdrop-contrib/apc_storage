@@ -17,6 +17,11 @@ use Random\Randomizer;
 class ApcStorageQueueTestCase extends BackdropWebTestCase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $profile = 'testing';
+
+  /**
    * Whether the test should be skipped.
    *
    * @var bool

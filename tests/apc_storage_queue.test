@@ -68,7 +68,7 @@ class ApcStorageQueueTestCase extends BackdropWebTestCase {
     else {
       global $settings;
 
-      foreach (array_keys($this->queues) as $name => $queue) {
+      foreach (array_keys($this->queues) as $name) {
         $settings["queue_class_$name"] = 'ApcStorageQueue';
       }
 

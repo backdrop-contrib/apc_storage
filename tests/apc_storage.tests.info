@@ -28,8 +28,14 @@ description = Verifies there is no conflict between APCu keys used for storing c
 group = APC Storage
 file = apc_storage_cache.test
 
+[ApcStorageLockTestCase]
+name = Lock implementation test
+description = Tests the APCu lock implementation.
+group = APC Storage
+file = apc_storage_lock.test
+
 [ApcStorageQueueTestCase]
-name = Queue test
+name = Queue implementation test
 description = Tests the APCu queue implementation.
 group = APC Storage
 file = apc_storage_queue.test

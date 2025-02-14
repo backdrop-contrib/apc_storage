@@ -448,7 +448,7 @@ class ApcStorageQueueTestCase extends BackdropWebTestCase {
         $queue->claimedItems = $claimed_items;
       }
 
-      $this->pass('The test will be halted for 45 seconds.');
+      $this->pass('Tests will be halted for 45 seconds.');
       sleep(45);
 
       foreach ($this->queues as $name => $queue) {

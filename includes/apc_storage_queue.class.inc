@@ -91,7 +91,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
           $item['value']->expire = 0;
         }
 
-        // Find the first item without a set expire.
+        // Find the first item without an expiration time.
         if ($item['value']->expire == 0) {
           $item['value']->expire = time() + $lease_time;
 

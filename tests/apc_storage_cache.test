@@ -718,7 +718,6 @@ class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCas
         $message = format_string('The test will be halted for @delay seconds.', array('@delay' => 10));
 
         $this->pass($message);
-
         sleep(10);
 
         foreach ($stored as $cid => $data) {

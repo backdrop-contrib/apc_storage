@@ -327,8 +327,8 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
     $timeouts = array();
 
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
-      foreach ($this->locks as $lock) {
-        $timeouts[] = $timeout = $this->randomFloat(2.0, 4.0);
+      foreach ($this->locks as $name => $lock) {
+        $timeouts[$name] = $timeout = $this->randomFloat(2.0, 4.0);
         $message = format_string(
           'The lock has been acquired for @timeout seconds.',
           array('@timeout' => $timeout)
@@ -351,15 +351,14 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
       $this->pass(format_string('Tests will be halted for @seconds seconds.', array('@seconds' => $delay)));
       sleep($delay);
 
-      for ($i = 0; $i < count($timeouts); $i++) {
+      foreach ($this->locks as $name => $lock) {
         $message = format_string(
           'The lock is available after a timeout of @timeout seconds.',
-          array('@timeout' => $timeouts[$i])
+          array('@timeout' => $timeouts[$name])
         );
 
-        $this->assertTrue($this->locks[$i]->maybeAvailable(), $message);
+        $this->assertTrue($lock->maybeAvailable(), $message);
       }
-
     }
   }
 

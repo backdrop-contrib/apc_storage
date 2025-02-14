@@ -55,17 +55,6 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo(): array {
-    return array(
-      'name' => 'APC Storage lock test',
-      'description' => 'Tests locks.',
-      'group' => 'APC Storage',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp(): void {
     if (!extension_loaded('apcu') && !apcu_enabled()) {
       $this->skipTest = TRUE;
@@ -318,7 +307,7 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
 
     // Since no lock has been acquired, no APCu key should be created for locks.
     $this->assertNoApcuKeysByPrefix(
-      '/^apc_storage_lock::[a-zA-Z0-9-_]+::/',
+      'apc_storage_lock::[a-zA-Z0-9-_]+::',
       array(
         'message' => 'No APCu key has been created for locks.',
         'regexp' => TRUE

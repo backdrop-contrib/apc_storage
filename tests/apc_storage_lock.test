@@ -196,13 +196,8 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
   /**
    * Initializes a set of locks with random names.
    *
-   * This method generates an array of lock names using random strings and
-   * retrieves the corresponding locks from the ApcStorageLock class. It
-   * asserts that the number of locks created matches the number of lock
-   * names generated.
-   *
    * @return bool
-   *   An array of ApcStorageLock objects.
+   *   TRUE if all the locks have been created, FALSE otherwise.
    */
   protected function initLocks(): bool {
     $lock_names = array(

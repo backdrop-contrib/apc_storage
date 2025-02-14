@@ -42,17 +42,6 @@ class ApcStorageQueueTestCase extends BackdropWebTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo(): array {
-    return array(
-      'name' => 'APC Storage queue test',
-      'description' => 'Tests the APCu queue implementation.',
-      'group' => 'APC Storage',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp(): void {
     $this->queues = array(
       'apc_storage_test_first_queue' => (object) array(),

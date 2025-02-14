@@ -37,6 +37,11 @@ class ApcStorageQueueTestCase extends BackdropWebTestCase {
    */
   protected Randomizer $randomizer;
 
+  /**
+   * The queues used from tests.
+   *
+   * @var array
+   */
   protected array $queues = array();
 
   /**

@@ -219,6 +219,40 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
     return FALSE;
   }
 
+  protected function acquireLocks(float $from, float $to, bool $expected_to_fail = FALSE): float {
+    $timeouts = array();
+
+    foreach ($this->locks as $name => $lock) {
+      $timeouts[] = $timeout = $this->randomFloat($from, $to);
+      if ($expected_to_fail) {
+        $message = format_string(
+          'It was not possible to acquire the lock @name for @timeout seconds.',
+          array('@name' => $name, '@timeout' => $timeout)
+        );
+
+        $this->assertFalse($lock->acquire($timeout), $message);
+      }
+      else {
+        $message = format_string(
+          'The lock @name has been acquired for @timeout seconds.',
+          ['@name' => $name, '@timeout' => $timeout]
+        );
+
+        $this->assertTrue($lock->acquire($timeout), $message);
+      }
+    }
+
+    $this->assertApcuKeysByPrefix(
+      'apc_storage_lock::[a-zA-Z0-9-_]+::',
+      array(
+        'message' => 'Data for all the locks has been stored on the APCu storage.',
+        'regexp' => TRUE,
+      )
+    );
+
+    return max($timeouts);
+  }
+
   /**
    * Asserts that the APCu storage is empty.
    */
@@ -313,7 +347,7 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
   }
 
   /**
-   * Tests that locks are acquired and expire after a maximum of 4 seconds.
+   * Tests that locks are acquired and expire after a maximum of 10 seconds.
    */
   public function testAcquireLockShortTimeout(): void {
     if ($this->skipTest) {
@@ -324,37 +358,17 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
       return;
     }
 
-    $timeouts = array();
-
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
-      foreach ($this->locks as $name => $lock) {
-        $timeouts[$name] = $timeout = $this->randomFloat(2.0, 4.0);
-        $message = format_string(
-          'The lock has been acquired for @timeout seconds.',
-          array('@timeout' => $timeout)
-        );
-
-        $this->assertTrue($lock->acquire($timeout), $message);
-      }
-
-      $this->assertApcuKeysByPrefix(
-        'apc_storage_lock::[a-zA-Z0-9-_]+::',
-        array(
-          'message' => 'Data for all the locks has been stored on the APCu storage.',
-          'regexp' => TRUE,
-        )
-      );
-
-      // Wait for the locks to expire.
-      $delay = 5 + $this->randomInt(1, 4);
+      $max_timeout = $this->acquireLocks(6.0, 10.0);
+      $delay = (int) $max_timeout + 1;
 
       $this->pass(format_string('Tests will be halted for @seconds seconds.', array('@seconds' => $delay)));
       sleep($delay);
 
       foreach ($this->locks as $name => $lock) {
         $message = format_string(
-          'The lock is available after a timeout of @timeout seconds.',
-          array('@timeout' => $timeouts[$name])
+          'The lock @name is available after @delay seconds.',
+          array('@name' => $name, '@delay' => $delay)
         );
 
         $this->assertTrue($lock->maybeAvailable(), $message);
@@ -363,7 +377,7 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
   }
 
   /**
-   * Tests that locks are acquired and expire after a maximum of 4 seconds.
+   * Tests that locks are acquired and expire after a maximum of 50 seconds.
    */
   public function testAcquireLockLongTimeout(): void {
     if ($this->skipTest) {
@@ -374,46 +388,42 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
       return;
     }
 
-    $timeouts = array();
-
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
-      foreach ($this->locks as $lock) {
-        $timeouts[] = $timeout = $this->randomFloat(40.0, 60.0);
-        $message = format_string(
-          'The lock has been acquired for @timeout seconds.',
-          array('@timeout' => $timeout)
-        );
+      $max_timeout = $this->acquireLocks(40.0, 50.0);
+      $delay = (int) ($max_timeout / 4);
 
-        $this->assertTrue($lock->acquire($timeout), $message);
-      }
-
-      $this->assertApcuKeysByPrefix(
-        'apc_storage_lock::[a-zA-Z0-9-_]+::',
-        array(
-          'message' => 'Data for all the locks has been stored on the APCu storage.',
-          'regexp' => TRUE,
-        )
-      );
-
-      // Wait for the locks to expire.
-      $delay = 54 + $this->randomInt(6, 15);
-
-      $this->pass(format_string('Tests will be halted for @seconds seconds.', array('@seconds' => $delay)));
+      $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
       sleep($delay);
 
-      for ($i = 0; $i < count($timeouts); $i++) {
+      foreach ($this->locks as $name => $lock) {
         $message = format_string(
-          'The lock is available after a timeout of @timeout seconds.',
-          array('@timeout' => $timeouts[$i])
+          'The lock @name is not available after @delay seconds.',
+          array('@name' => $name, '@delay' => $delay)
         );
 
-        $this->assertTrue($this->locks[$i]->maybeAvailable(), $message);
+        $this->assertFalse($lock->maybeAvailable(), $message);
+      }
+
+      $delay = (int) ($max_timeout / 4 * 3) + 1;
+
+      $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
+      sleep($delay);
+
+      foreach ($this->locks as $name => $lock) {
+        $message = format_string(
+          'The lock @name is available after further @delay seconds.',
+          array('@name' => $name, '@delay' => $delay)
+        );
+
+        $this->assertTrue($lock->maybeAvailable(), $message);
       }
     }
-
   }
 
-  public function testAcquireLockTwice(): void {
+  /**
+   * Tests that locks can be acquired twice, after the first acquire expired.
+   */
+  public function testAcquireLockTwiceWithDelay(): void {
     if ($this->skipTest) {
       return;
     }
@@ -422,70 +432,58 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
       return;
     }
 
-    $timeouts = array();
-
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
-      foreach ($this->locks as $lock) {
-        $timeouts[] = $timeout = $this->randomFloat(30.0, 45.0);
+      $max_timeout = $this->acquireLocks(15.0, 35.0);
+      $delay = (int) ($max_timeout / 4);
 
-        $message = format_string(
-          'The lock has been acquired for @timeout seconds.',
-          array('@timeout' => $timeout)
-        );
-
-        $this->assertTrue($lock->acquire($timeout), $message);
-      }
-
-      $this->assertApcuKeysByPrefix(
-        'apc_storage_lock::[a-zA-Z0-9-_]+::',
-        array(
-          'message' => 'Data for all the locks has been stored on the APCu storage.',
-          'regexp' => TRUE,
-        )
-      );
-
-      // Wait for 6-9 seconds.
-      $delay = 5 + $this->randomInt(1, 4);
-
-      $this->pass(format_string('Tests will be halted for @seconds seconds.', array('@seconds' => $delay)));
+      $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
       sleep($delay);
 
-      for ($i = 0; $i < count($this->locks); $i++) {
+      foreach ($this->locks as $name => $lock) {
         $message = format_string(
-          'The lock is still not available after @delay seconds.',
-          array('@delay' => $delay)
+          'The lock @name is still not available after @delay seconds.',
+          array('@name' => $name, '@delay' => $delay)
         );
 
-        $this->assertFalse($this->locks[$i]->maybeAvailable(), $message);
+        $this->assertFalse($lock->maybeAvailable(), $message);
       }
 
-      foreach ($this->locks as $lock) {
-        $timeouts[] = $timeout = $this->randomFloat(45.0, 60.0);
+      $from = $max_timeout + $this->randomFloat(2.0, 4.0);
+      $to = $max_timeout + $this->randomFloat(4.0, 6.0);
+      $max_timeout = $this->acquireLocks($from, $to);
 
-        $message = format_string(
-          'The lock has been acquired for @timeout seconds.',
-          array('@timeout' => $timeout)
-        );
+      $delay = ($max_timeout / 4 * 3) + 1;
 
-        $this->assertTrue($lock->acquire($timeout), $message);
-      }
-
-      $delay = (int) max($timeouts) + 10;
-
-      $this->pass(format_string('Tests will be halted for @seconds seconds.', array('@seconds' => $delay)));
+      $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
       sleep($delay);
-
-      for ($i = 0; $i < count($timeouts); $i++) {
-        $message = format_string(
-          'The lock is available after a timeout of @timeout seconds.',
-          array('@timeout' => $timeouts[$i])
-        );
-
-        $this->assertTrue($this->locks[$i]->maybeAvailable(), $message);
-      }
+      $this->acquireLocks(1.0, 2.0);
     }
   }
 
+  /**
+   * Tests that locks cannot be acquired twice.
+   *
+   * This test does not wait for the first acquire to expire, so the second
+   * acquire will fail.
+   */
+  public function testAcquireLockTwiceWithoutDelay(): void {
+    if ($this->skipTest) {
+      return;
+    }
+
+    if (!$this->assertApcuEmpty()) {
+      return;
+    }
+
+    if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
+      $this->acquireLocks(15.0, 35.0);
+      $this->acquireLocks(1.0, 2.0, TRUE);
+    }
+  }
+
+  /**
+   * Tests that ApcStorageLock::waitForLock() correctly works.
+   */
   public function testWaitForLock(): void {
     if ($this->skipTest) {
       return;
@@ -498,22 +496,16 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
     $timeouts = array();
 
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
-      foreach ($this->locks as $lock) {
-        $timeouts[] = $timeout = $this->randomFloat(20.0, 40.0);
-        $message = format_string(
-          'The lock has been acquired for @timeout seconds.',
-          array('@timeout' => $timeout)
-        );
+      $max_timeout = $this->acquireLocks(20.0, 40.0);
 
-        $this->assertTrue($lock->acquire($timeout), $message);
-      }
-
-      $timeout = max($timeouts) + 10.0;
+      $lock = reset($this->locks);
       $message = format_string(
-        'The lock is available after a timeout of @timeout seconds.',
-        array('@timeout' => $timeout)
+        'The lock is available after waiting for @timeout seconds.',
+        array('@timeout' => (int) round($max_timeout))
       );
-      $this->assertFalse($this->locks[0]->waitForLock($timeout), $message);
+
+      // If the lock is available, ApcStorageLock::waitForLock() returns FALSE.
+      $this->assertFalse($lock->waitForLock($max_timeout), $message);
     }
   }
 

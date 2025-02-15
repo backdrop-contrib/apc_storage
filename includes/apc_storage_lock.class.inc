@@ -184,7 +184,7 @@ class ApcStorageLock {
       $delay = $delay - $sleep;
       $sleep = min(500000, $sleep + 25000, $delay);
 
-      if (!apcu_exists($this->key)) {
+      if ($this->maybeAvailable()) {
         // No longer need to wait.
         return FALSE;
       }

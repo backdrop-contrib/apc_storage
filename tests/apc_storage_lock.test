@@ -239,8 +239,8 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
       $timeouts[] = $timeout = $this->randomFloat($from, $to);
       if ($expected_to_fail) {
         $message = format_string(
-          'It was not possible to acquire the lock @name for @timeout seconds.',
-          array('@name' => $name, '@timeout' => $timeout)
+          'It was not possible to acquire the @name lock for @timeout seconds.',
+          array('@name' => $name, '@timeout' => (int) round($timeout))
         );
 
         $this->assertFalse($lock->acquire($timeout), $message);
@@ -248,7 +248,7 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
       else {
         $message = format_string(
           'The lock @name has been acquired for @timeout seconds.',
-          ['@name' => $name, '@timeout' => $timeout]
+          array('@name' => $name, '@timeout' => (int) round($timeout))
         );
 
         $this->assertTrue($lock->acquire($timeout), $message);

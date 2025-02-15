@@ -43,13 +43,6 @@ class ApcStorageLock {
   protected string $key;
 
   /**
-   * The expiration time of the lock.
-   *
-   * @var float
-   */
-  protected float $expire;
-
-  /**
    * Retrieves the lock with a given name.
    *
    * @param string $name
@@ -93,17 +86,15 @@ class ApcStorageLock {
    *   TRUE if the lock was acquired, FALSE otherwise.
    */
   public function acquire(float $timeout = 30.0): bool {
-    if (apcu_exists($this->key)) {
-      $this->expire = microtime(TRUE) + $timeout;
+    $expire = microtime(TRUE) + $timeout;
 
+    if (apcu_exists($this->key)) {
       // Try to extend the expiration of an already acquired lock.
-      $success = apcu_store($this->key, array('expire' => $this->expire));
+      $success = apcu_store($this->key, array('expire' => $expire));
 
       if (!$success) {
         // The lock was broken.
         apcu_delete($this->key);
-
-        $this->expire = 0;
       }
 
       return $success;
@@ -115,7 +106,7 @@ class ApcStorageLock {
 
       // We always want to do this code at least once.
       do {
-        $success = apcu_store($this->key, array('expire' => $this->expire));
+        $success = apcu_store($this->key, array('expire' => $expire));
 
         if (!$success) {
           // If this is our first pass through the loop, then $retry is FALSE.
@@ -124,7 +115,7 @@ class ApcStorageLock {
           // We decide whether to retry by checking
           // ApcStorageLock::maybeAvailable(), since this will break the lock in
           // case it is expired.
-          $retry = $retry ? FALSE : $this->maybeAvailable();
+          $retry = !$retry && $this->maybeAvailable();
         }
       } while ($retry);
 
@@ -145,21 +136,20 @@ class ApcStorageLock {
       return TRUE;
     }
 
-    $lock = apcu_fetch($this->key, $success);
+    $data = apcu_fetch($this->key, $success);
 
     if (!$success) {
       return TRUE;
     }
 
-    $this->expire = (float) $lock['expire'];
     $now = microtime(TRUE);
 
-    if ($now < $this->expire) {
+    if ($now < (float) $data['expire']) {
       return FALSE;
     }
 
-    $this->expire = 0;
     apcu_delete($this->key);
+
     return TRUE;
   }
 
@@ -217,7 +207,6 @@ class ApcStorageLock {
   public function release(): void {
     // The lock is unconditionally removed, since the caller assumes the lock is
     // released.
-    $this->expire = 0;
     apcu_delete($this->key);
   }
 

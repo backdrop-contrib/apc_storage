@@ -236,4 +236,172 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
     );
   }
 
+  /**
+   * Asserts that the APCu storage is empty.
+   */
+  protected function assertApcuEmpty(): bool {
+    $iterator = new APCUIterator('/^.+/', APC_ITER_KEY);
+
+    return $this->assertTrue($iterator->getTotalCount() === 0, 'The APCu storage is empty.');
+  }
+
+  /**
+   * Asserts that the APCu storage is not empty.
+   *
+   * @return bool
+   *   TRUE if the APCu storage is not empty, FALSE otherwise.
+   */
+  protected function assertApcuNotEmpty(): bool {
+    $iterator = new APCUIterator('/^.+/', APC_ITER_KEY);
+
+    return $this->assertTrue($iterator->getTotalCount() > 0, 'The APCu storage is not empty.');
+  }
+
+  /**
+   * Asserts that a key-value pair was successfully stored in APCu.
+   *
+   * @param string $key
+   *   The name of the APCu key to store.
+   * @param mixed $value
+   *   The value to store in APCu.
+   * @param int $ttl
+   *   The time to live for the stored value.
+   *
+   * @return bool
+   *   TRUE if the key-value pair was stored, FALSE otherwise.
+   */
+  protected function assertApcuKeySaved(string $key, mixed $value, int $ttl = 0): bool {
+    $message = format_string('@key was stored in APCu.', array('@key' => $this->varExport($key)));
+
+    $result = apcu_store($key, $value, $ttl);
+
+    return $this->assertTrue($result, $message);
+  }
+
+  /**
+   * Asserts there is an APCu key matching the given name.
+   *
+   * @param string $key
+   *   The name of the APCu key to search for.
+   * @param array $options
+   *   An array of options, which can contain the following keys:
+   *     - message: A custom message to display upon assertion.
+   *     - value: The expected value of the APCu key.
+   *
+   * @return bool
+   *   TRUE if the APCu key exists and its value matches the expected value,
+   *   FALSE otherwise.
+   */
+  protected function assertApcuKeyByName(string $key, array $options = array()): bool {
+    $args = array('@key' => $this->varExport($key));
+
+    if (!empty($options['message'])) {
+      $string = $options['message'];
+    }
+    else {
+      $string = '@key was found in APCu.';
+    }
+
+    $message = format_string($string, $args);
+
+    if ($this->assertTrue(apcu_exists($key), $message)) {
+      if (array_key_exists('value', $options)) {
+        $message = format_string('The value for @key is the expected one.', array('@key' => $this->varExport($key)));
+
+        $retrieved = apcu_fetch($key, $success);
+
+        return $this->assertTrue($success && $retrieved === $options['value'], $message);
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Asserts that there is not an APCu key matching the given name.
+   *
+   * @param string $key
+   *   The name of the APCu key to search for.
+   * @param array $options
+   *   An array of options, which can contain the following keys:
+   *     - message: A custom message to display upon assertion.
+   *
+   * @return bool
+   *   TRUE if the APCu key exists, FALSE otherwise.
+   */
+  protected function assertNoApcuKeyByName(string $key, array $options = array()): bool {
+    $args = array('@key' => $this->varExport($key));
+
+    if (!empty($options['message'])) {
+      $string = $options['message'];
+    }
+    else {
+      $string = '@key was found in APCu.';
+    }
+
+    $message = format_string($string, $args);
+
+    return $this->assertFalse(apcu_exists($key), $message);
+  }
+
+  /**
+   * Asserts that there are APCu keys matching the given prefix.
+   *
+   * @param string $key
+   *   The prefix to search for in APCu keys, excluding the regular expression
+   *   delimiters and the ^ anchor.
+   * @param array $options
+   *   An array of options, which can contain the following keys:
+   *     - message: A custom message to display upon assertion.
+   *     - regexp: If TRUE, $key is a regular expression that does not need to
+   *       be passed to preg_quote().
+   *
+   * @return bool
+   *   TRUE if there are APCu keys matching the prefix, FALSE otherwise.
+   */
+  protected function assertApcuKeysByPrefix(string $key, array $options = array()): bool {
+    $options += array(
+      'message' => 'There are APCu keys matching @key.',
+      'regexp' => FALSE,
+    );
+    $escaped_key = $options['regexp'] ? $key : preg_quote($key, '/');
+    $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
+    $message = format_string(
+      $options['message'],
+      array('@key' => $this->varExport("/^$escaped_key/"))
+    );
+
+    return $this->assertTrue($iterator->getTotalCount() > 0, $message);
+  }
+
+  /**
+   * Asserts that there are no APCu keys matching the given prefix.
+   *
+   * @param string $key
+   *   The prefix to search for in APCu keys, excluding the regular expression
+   *   delimiters and the ^ anchor.
+   * @param array $options
+   *   An array of options, which can contain the following keys:
+   *     - message: A custom message to display upon assertion.
+   *     - regexp: If TRUE, $key is a regular expression that does not need to
+   *       be passed to preg_quote().
+   *
+   * @return bool
+   *   TRUE if there are no APCu keys matching the prefix, FALSE otherwise.
+   */
+  protected function assertNoApcuKeysByPrefix(string $key, array $options = array()): bool {
+    $options += array(
+      'message' => 'There are no APCu keys matching @key.',
+      'regexp' => FALSE,
+    );
+    $escaped_key = $options['regexp'] ? $key : preg_quote($key, '/');
+    $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
+    $message = format_string(
+      $options['message'],
+      array('@key' => $this->varExport("/^$escaped_key/"))
+    );
+
+    return $this->assertTrue($iterator->getTotalCount() === 0, $message);
+  }
+
 }

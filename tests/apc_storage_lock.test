@@ -493,8 +493,6 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
       return;
     }
 
-    $timeouts = array();
-
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
       $max_timeout = $this->acquireLocks(20.0, 40.0);
 

@@ -159,19 +159,6 @@ class ApcStorageCacheBaseTestCase extends BackdropWebTestCase {
   }
 
   /**
-   * Converts a binary string to a hexadecimal representation.
-   *
-   * @param string $data
-   *   The binary string to convert.
-   *
-   * @return string
-   *   The hexadecimal representation of the binary string.
-   */
-  protected static function binaryToHex(string $data): string {
-    return unpack('H*', $data)[1];
-  }
-
-  /**
    * Returns a parsable string representation of a variable.
    *
    * This method is similar to drupal_var_export(), but it accepts a single

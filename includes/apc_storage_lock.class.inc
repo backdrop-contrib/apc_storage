@@ -93,13 +93,12 @@ class ApcStorageLock {
    *   TRUE if the lock was acquired, FALSE otherwise.
    */
   public function acquire(float $timeout = 30.0): bool {
-    // Ensure that the timeout is at least one second. APCu works with integer
-    // TTLs where 0 means the value is persistent.
-    $timeout = (int) round(max($timeout, 1.0));
-    $this->expire = microtime(TRUE) + $timeout;
+    // Ensure the timeout is at least one second. The APCu extension consider a
+    // key with a zero TTL a permanent key.
+    $this->expire = microtime(TRUE) + max($timeout, 1.0);
 
     // Try to extend the expiration of an already acquired lock.
-    $success = apcu_store($this->key, array('expire' => $this->expire), $timeout);
+    $success = apcu_store($this->key, array('expire' => $this->expire));
 
     if (!$success) {
       // The lock was broken.
@@ -112,7 +111,7 @@ class ApcStorageLock {
       $retry = FALSE;
 
       do {
-        $success = apcu_store($this->key, array('expire' => $this->expire), $timeout);
+        $success = apcu_store($this->key, array('expire' => $this->expire));
 
         if (!$success) {
           $retry = !$retry && $this->maybeAvailable();

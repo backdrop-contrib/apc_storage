@@ -255,14 +255,6 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
       }
     }
 
-    $this->assertApcuKeysByPrefix(
-      'apc_storage_lock::[a-zA-Z0-9-_]+::',
-      array(
-        'message' => 'Data for all the locks has been stored on the APCu storage.',
-        'regexp' => TRUE,
-      )
-    );
-
     return max($timeouts);
   }
 

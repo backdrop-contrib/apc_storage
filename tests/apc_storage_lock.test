@@ -409,7 +409,7 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
         $this->assertFalse($lock->maybeAvailable(), $message);
       }
 
-      $delay = (int) ($max_timeout / 4 * 3) + 1;
+      $delay = (int) ($max_timeout - $delay) + 1;
 
       $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
       sleep($delay);
@@ -428,7 +428,7 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
   /**
    * Tests that ApcStorageLock::waitForLock() correctly works.
    */
-  public function testWaitForLock(): void {
+  public function testWait(): void {
     if ($this->skipTest) {
       return;
     }

@@ -129,7 +129,7 @@ class ApcStorageLock {
    * If an existing lock has expired, it is removed.
    *
    * @return bool
-   *   TRUE if there is no lock, or it was removed, FALSE otherwise.
+   *   TRUE if the lock can be acquired, FALSE otherwise.
    */
   public function maybeAvailable(): bool {
     if (!apcu_exists($this->key)) {

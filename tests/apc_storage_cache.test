@@ -124,7 +124,7 @@ class ApcStorageCacheBaseTestCase extends BackdropWebTestCase {
         return $min;
       }
 
-      return $this->randomizer->getFloat(1.0, 8.0, IntervalBoundary::ClosedClosed);
+      return $this->randomizer->getFloat($min, $max, IntervalBoundary::ClosedClosed);
     }
     catch (ValueError) {
       // This exception should never be thrown.

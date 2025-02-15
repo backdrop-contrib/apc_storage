@@ -219,6 +219,19 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
     return FALSE;
   }
 
+  /**
+   * Acquires a set of locks with random timeouts between the specified bounds.
+   *
+   * @param float $from
+   *   The lower bound of the timeout range.
+   * @param float $to
+   *   The upper bound of the timeout range.
+   * @param bool $expected_to_fail
+   *   (optional) Whether all the locks should fail to acquire.
+   *
+   * @return float
+   *   The maximum timeout value used for acquiring the locks.
+   */
   protected function acquireLocks(float $from, float $to, bool $expected_to_fail = FALSE): float {
     $timeouts = array();
 

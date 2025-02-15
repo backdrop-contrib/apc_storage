@@ -142,15 +142,11 @@ class ApcStorageLock {
       return TRUE;
     }
 
-    $now = microtime(TRUE);
-
-    if ($now < (float) $data['expire']) {
-      return FALSE;
+    if (microtime(TRUE) > (float) $data['expire']) {
+      return apcu_delete($this->key);
     }
 
-    apcu_delete($this->key);
-
-    return TRUE;
+    return FALSE;
   }
 
   /**

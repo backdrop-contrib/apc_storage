@@ -158,7 +158,7 @@ class ApcStorageLock {
    * @return bool
    *   FALSE if the lock is available, TRUE otherwise.
    */
-  public function waitForLock(float $delay = 30.0): bool {
+  public function wait(float $delay = 30.0): bool {
     // Pause the process for short periods between calling
     // lock_may_be_available(). However, if the wait period is too long, there
     // is the potential for a large number of processes to be blocked waiting

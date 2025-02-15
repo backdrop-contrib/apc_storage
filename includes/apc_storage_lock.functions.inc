@@ -70,10 +70,10 @@ function lock_may_be_available(string $name): bool {
  * @return bool
  *   FALSE if the lock is available, TRUE otherwise.
  *
- * @see ApcStorageLock::waitForLock()
+ * @see ApcStorageLock::wait()
  */
 function lock_wait(string $name, float $delay = 30.0): bool {
-  return ApcStorageLock::get($name)->waitForLock($delay);
+  return ApcStorageLock::get($name)->wait($delay);
 }
 
 /**

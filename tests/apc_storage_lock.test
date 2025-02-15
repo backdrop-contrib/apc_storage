@@ -10,6 +10,7 @@ declare(strict_types=1);
 use Random\Engine\Xoshiro256StarStar;
 use Random\IntervalBoundary;
 use Random\Randomizer;
+
 /**
  * Unit tests for the lock implementation.
  *

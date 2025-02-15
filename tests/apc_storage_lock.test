@@ -226,8 +226,6 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
    *   The lower bound of the timeout range.
    * @param float $to
    *   The upper bound of the timeout range.
-   * @param bool $expected_to_fail
-   *   (optional) Whether all the locks should fail to acquire.
    *
    * @return float
    *   The maximum timeout value used for acquiring the locks.

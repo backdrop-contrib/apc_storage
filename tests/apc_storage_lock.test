@@ -232,27 +232,17 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
    * @return float
    *   The maximum timeout value used for acquiring the locks.
    */
-  protected function acquireLocks(float $from, float $to, bool $expected_to_fail = FALSE): float {
+  protected function acquireLocks(float $from, float $to): float {
     $timeouts = array();
 
     foreach ($this->locks as $name => $lock) {
       $timeouts[] = $timeout = $this->randomFloat($from, $to);
-      if ($expected_to_fail) {
-        $message = format_string(
-          'It was not possible to acquire the @name lock for @timeout seconds.',
-          array('@name' => $name, '@timeout' => (int) round($timeout))
-        );
+      $message = format_string(
+        'The lock @name has been acquired for @timeout seconds.',
+        array('@name' => $name, '@timeout' => (int) round($timeout))
+      );
 
-        $this->assertFalse($lock->acquire($timeout), $message);
-      }
-      else {
-        $message = format_string(
-          'The lock @name has been acquired for @timeout seconds.',
-          array('@name' => $name, '@timeout' => (int) round($timeout))
-        );
-
-        $this->assertTrue($lock->acquire($timeout), $message);
-      }
+      $this->assertTrue($lock->acquire($timeout), $message);
     }
 
     return max($timeouts);

@@ -10,7 +10,7 @@ declare(strict_types=1);
 /**
  * Class for the APCu-based locking mechanism implementation.
  *
- * @internal This class should only be used from third-party modules.
+ * @internal This class should not be used from third-party modules.
  */
 class ApcStorageLock {
 
@@ -93,33 +93,43 @@ class ApcStorageLock {
    *   TRUE if the lock was acquired, FALSE otherwise.
    */
   public function acquire(float $timeout = 30.0): bool {
-    // Ensure the timeout is at least one second. The APCu extension consider a
-    // key with a zero TTL a permanent key.
-    $this->expire = microtime(TRUE) + max($timeout, 1.0);
+    if (apcu_exists($this->key)) {
+      $this->expire = microtime(TRUE) + $timeout;
 
-    // Try to extend the expiration of an already acquired lock.
-    $success = apcu_store($this->key, array('expire' => $this->expire));
+      // Try to extend the expiration of an already acquired lock.
+      $success = apcu_store($this->key, array('expire' => $this->expire));
 
-    if (!$success) {
-      // The lock was broken.
-      apcu_delete($this->key);
+      if (!$success) {
+        // The lock was broken.
+        apcu_delete($this->key);
 
-      $this->expire = 0;
+        $this->expire = 0;
+      }
+
+      return $success;
     }
     else {
-      // Try to acquire the lock.
+      // Optimistically try to acquire the lock, then retry once if it fails.
+      // The first time through the loop cannot be a retry.
       $retry = FALSE;
 
+      // We always want to do this code at least once.
       do {
         $success = apcu_store($this->key, array('expire' => $this->expire));
 
         if (!$success) {
-          $retry = !$retry && $this->maybeAvailable();
+          // If this is our first pass through the loop, then $retry is FALSE.
+          // In this case, the insert must have failed meaning some other
+          // request  acquired the lock but did not release it.
+          // We decide whether to retry by checking
+          // ApcStorageLock::maybeAvailable(), since this will break the lock in
+          // case it is expired.
+          $retry = $retry ? FALSE : $this->maybeAvailable();
         }
       } while ($retry);
-    }
 
-    return TRUE;
+      return apcu_exists($this->key);
+    }
   }
 
   /**

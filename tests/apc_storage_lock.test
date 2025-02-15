@@ -465,7 +465,7 @@ class ApcStorageLockTestCase extends BackdropWebTestCase {
       $to = $max_timeout + $this->randomFloat(4.0, 6.0);
       $max_timeout = $this->acquireLocks($from, $to);
 
-      $delay = ($max_timeout / 4 * 3) + 1;
+      $delay = (int) ($max_timeout / 4 * 3) + 1;
 
       $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
       sleep($delay);

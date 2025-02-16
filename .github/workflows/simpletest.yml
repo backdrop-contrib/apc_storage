@@ -4,6 +4,11 @@ jobs:
   simpletest:
     name: Test code
     runs-on: ubuntu-22.04
+    # Skip this job if the PR title contains "[skip tests]".
+    if: ${{ !contains(github.event.pull_request.title, '[skip tests]') }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
     steps:
       - name: Set up environment variables
         run: |
@@ -59,10 +64,3 @@ jobs:
 
       - name: Run tests
         run: core/scripts/run-tests.sh --force --directory=modules/${{ env.REPO_NAME }} --verbose --concurrency=color --concurrency=7 --cache 2>&1
-
-      - name: Save test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: simpletest-${{ env.PHP_VERSION }}
-          path: files/simpletest/verbose

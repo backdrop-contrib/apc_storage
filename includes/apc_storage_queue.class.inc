@@ -87,7 +87,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
 
         // If the previously set lease time has expired, reset the expiration
         // time.
-        elseif (!empty($item['value']->expire) && $item['value']->expire < time()) {
+        if (!empty($item['value']->expire) && $item['value']->expire < time()) {
           $item['value']->expire = 0;
         }
 

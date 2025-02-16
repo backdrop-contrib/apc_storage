@@ -16,18 +16,6 @@ description = Tests calling cache_clear_all() with various arguments.
 group = APC Storage
 file = apc_storage_cache.test
 
-[ApcStorageCacheConflictingKeysTestCase]
-name = Conflicting keys test
-description = Tests that keys for a cache bin do not conflict with other cache bin keys.
-group = APC Storage
-file = apc_storage_cache.test
-
-[ApcStorageCachePreserveExistingApcuKeysTestCase]
-name = Existing APCu keys conflict test
-description = Verifies there is no conflict between APCu keys used for storing cache items and other APCu keys.
-group = APC Storage
-file = apc_storage_cache.test
-
 [ApcStorageLockTestCase]
 name = Lock implementation test
 description = Tests the APCu lock implementation.

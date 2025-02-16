@@ -210,7 +210,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
               array('@queue' => $name),
             );
 
-            if ($this->assertTrue($obj instanceof stdClass, $message)) {
+            if ($this->assertFalse(is_null($obj), $message)) {
               $data->claimedItems++;
             }
           }
@@ -227,7 +227,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
               array('@queue' => $name),
             );
 
-            $this->assertTrue($obj === NULL, $message);
+            $this->assertTrue(is_null($obj), $message);
           }
         }
       }
@@ -265,7 +265,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
             array('@queue' => $name),
           );
 
-          if ($this->assertTrue($obj instanceof stdClass, $message)) {
+          if ($this->assertFalse(is_null($obj), $message)) {
             $data->claimedItems++;
           }
         }
@@ -282,7 +282,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
             array('@queue' => $name),
           );
 
-          $this->assertTrue($obj === NULL, $message);
+          $this->assertTrue(is_null($obj), $message);
         }
       }
 
@@ -309,7 +309,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
             );
             $obj = $queue->claimItem();
 
-            $this->assertTrue($obj instanceof stdClass, $message);
+            $this->assertFalse(is_null($obj), $message);
           }
 
           $message = format_string(
@@ -324,7 +324,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
               array('@queue' => $name),
             );
 
-            $this->assertTrue($obj === NULL, $message);
+            $this->assertTrue(is_null($obj), $message);
           }
         }
       }
@@ -358,7 +358,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
             array('@queue' => $name),
           );
 
-          if ($this->assertTrue($obj instanceof stdClass, $message)) {
+          if ($this->assertFalse(is_null($obj), $message)) {
             $data->claimedItems++;
           }
         }
@@ -375,7 +375,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
             array('@queue' => $name),
           );
 
-          $this->assertTrue($obj === NULL, $message);
+          $this->assertTrue(is_null($obj), $message);
         }
       }
 
@@ -399,7 +399,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
             array('@queue' => $name),
           );
 
-          $this->assertTrue($obj instanceof stdClass, $message);
+          $this->assertFalse(is_null($obj), $message);
         }
 
         $message = format_string(
@@ -414,7 +414,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
             array('@queue' => $name),
           );
 
-          $this->assertTrue($obj === NULL, $message);
+          $this->assertTrue(is_null($obj), $message);
         }
       }
     }
@@ -462,7 +462,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
         }
 
         $message = format_string(
-          'No item was claimed from the @queue queue.',
+          'No items were claimed from the @queue queue.',
           array('@queue' => $name),
         );
 

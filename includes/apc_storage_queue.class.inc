@@ -52,7 +52,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
       $item->item_id = ApcStorageHelper::uniqueId();
       $item->expire = 0;
 
-      return apcu_store($this->queueKeyName($item), $item, 0);
+      return apcu_store($this->queueKeyName($item), $item);
     }
 
     return FALSE;
@@ -95,7 +95,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
         if ($item['value']->expire == 0) {
           $item['value']->expire = time() + $lease_time;
 
-          if (apcu_store($item['key'], $item['value'], 0)) {
+          if (apcu_store($item['key'], $item['value'])) {
             return $item['value'];
           }
         }
@@ -121,7 +121,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
     $item->expire = 0;
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      return apcu_store($this->queueKeyName($item), $item, 0);
+      return apcu_store($this->queueKeyName($item), $item);
     }
 
     return FALSE;

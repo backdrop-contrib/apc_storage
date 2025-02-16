@@ -348,10 +348,10 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
         $count = count($data->items);
         $queue = BackdropQueue::get($name);
         $data->claimedItems = 0;
-        $data->claimedObjects = [];
+        $data->claimedObjects = array();
 
         for ($i = 0; $i < $count; $i++) {
-          $obj = $queue->claimItem();
+          $data->claimedObjects[] = $obj = $queue->claimItem();
 
           $message = format_string(
             'An item was claimed from the @queue queue.',

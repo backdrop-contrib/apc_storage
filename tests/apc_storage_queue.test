@@ -66,23 +66,23 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
    *   TRUE if the queues are successfully initialized, FALSE otherwise.
    */
   protected function initQueues(): bool {
-    foreach ($this->queues as $name => $queue) {
-      $queue->instance = BackdropQueue::get($name);
+    foreach ($this->queues as $name => $data) {
+      $queue = BackdropQueue::get($name);
 
-      if (!$this->assertTrue($queue->instance instanceof ApcStorageQueue, 'The queue is an instance of ApcStorageQueue.')) {
+      if (!$this->assertTrue($queue instanceof ApcStorageQueue, 'The queue is an instance of ApcStorageQueue.')) {
         return FALSE;
       }
 
       $i = 0;
-      $queue->items = iterator_to_array($this->storageData());
+      $data->items = iterator_to_array($this->storageData());
 
-      foreach ($queue->items as $id => $item) {
+      foreach ($data->items as $id => $item) {
         $message = format_string(
           'Item @name has been added to the @queue queue.',
           array('@name' => $id, '@queue' => $name),
         );
 
-        if ($this->assertTrue($queue->instance->createItem($item['value']), $message)) {
+        if ($this->assertTrue($queue->createItem($item['value']), $message)) {
           $i++;
         }
       }
@@ -92,7 +92,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
         array('@queue' => $name),
       );
 
-      if (!$this->assertTrue($i == count($queue->items), $message)) {
+      if (!$this->assertTrue($i == count($data->items), $message)) {
         return FALSE;
       }
     }
@@ -113,7 +113,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
     }
 
     if ($this->initQueues()) {
-      foreach ($this->queues as $name => $queue) {
+      foreach ($this->queues as $name => $data) {
         $message = format_string(
           'Data for the @queue queue has been stored on the APCu storage.',
           array('@queue' => $name),
@@ -128,10 +128,11 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
           'numberOfItems() returns the correct number of items for the @queue queue.',
           array('@queue' => $name),
         );
+        $queue = BackdropQueue::get($name);
 
         $this->assertEqual(
-          $queue->instance->numberOfItems(),
-          count($queue->items),
+          $queue->numberOfItems(),
+          count($data->items),
           $message
         );
       }
@@ -140,8 +141,10 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
 
   /**
    * Tests that items are correctly claimed from the queue.
+   *
+   * This test uses a random lease time lower than the default one.
    */
-  public function testClaimItems(): void {
+  public function testClaimItem(): void {
     if ($this->skipTest) {
       return;
     }
@@ -151,12 +154,16 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
     }
 
     if ($this->initQueues()) {
-      foreach ($this->queues as $name => $queue) {
+      $lease_times = array();
+
+      foreach ($this->queues as $name => $data) {
         $claimed_items = 0;
-        $count = count($queue->items);
+        $count = count($data->items);
+        $queue = BackdropQueue::get($name);
 
         for ($i = 0; $i < $count + 2; $i++) {
-          $obj = $queue->instance->claimItem();
+          $lease_times[] = $lease_time = $this->randomInt(5, 10);
+          $obj = $queue->claimItem($lease_time);
 
           if ($i < $count) {
             $message = format_string(
@@ -178,18 +185,25 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
           }
         }
 
-        $queue->claimedItems = $claimed_items;
+        $data->claimedItems = $claimed_items;
       }
 
-      $this->pass('Tests will be halted for 45 seconds.');
-      sleep(45);
+      $delay = max($lease_times);
+      $message = format_string(
+        'Tests will be halted for @delay seconds.',
+        array('@delay' => $delay),
+      );
 
-      foreach ($this->queues as $name => $queue) {
-        if (!empty($queue->claimedItems)) {
-          $count = count($queue->items);
+      $this->pass($message);
+      sleep($delay);
+
+      foreach ($this->queues as $name => $data) {
+        if (!empty($data->claimedItems)) {
+          $count = count($data->items);
+          $queue = BackdropQueue::get($name);
 
           for ($i = 0; $i < $count + 2; $i++) {
-            $obj = $queue->instance->claimItem();
+            $obj = $queue->claimItem();
 
             if ($i < $count) {
               $message = format_string(
@@ -214,6 +228,94 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
   }
 
   /**
+   * Tests that items are correctly claimed from the queue.
+   *
+   * This test uses a random lease time higher than the default one.
+   */
+  public function testClaimItemLongerLeaseTime(): void {
+    if ($this->skipTest) {
+      return;
+    }
+
+    if (!$this->assertApcuEmpty()) {
+      return;
+    }
+
+    if ($this->initQueues()) {
+      $lease_times = array();
+
+      foreach ($this->queues as $name => $data) {
+        $claimed_items = 0;
+        $count = count($data->items);
+        $queue = BackdropQueue::get($name);
+
+        for ($i = 0; $i < $count + 1; $i++) {
+          $lease_times[] = $lease_time = $this->randomInt(31, 35);
+          $obj = $queue->claimItem($lease_time);
+
+          if ($i >= $count) {
+            $message = format_string(
+              'No more items were claimed from the @queue queue.',
+              array('@queue' => $name),
+            );
+
+            $this->assertTrue($obj === NULL, $message);
+          }
+          else {
+            $message = format_string(
+              'An item was claimed from the @queue queue.',
+              array('@queue' => $name),
+            );
+
+            if ($this->assertTrue(!empty($obj), $message)) {
+              $claimed_items++;
+            }
+          }
+        }
+
+        $data->claimedItems = $claimed_items;
+      }
+
+      $delay = max($lease_times);
+      $message = format_string(
+        'Tests will be halted for @delay seconds.',
+        array('@delay' => $delay),
+      );
+
+      $this->pass($message);
+      sleep($delay);
+
+      foreach ($this->queues as $name => $data) {
+        if (!empty($data->claimedItems)) {
+          $count = count($data->items);
+          $queue = BackdropQueue::get($name);
+
+          for ($i = 0; $i < $count + 1; $i++) {
+            $obj = $queue->claimItem();
+
+            if ($i >= $count) {
+              $message = format_string(
+                'No more items were claimed from the @queue queue.',
+                array('@queue' => $name),
+              );
+
+              $this->assertTrue($obj === NULL, $message);
+            }
+            else {
+              $message = format_string(
+                'An item was claimed from the @queue queue.',
+                array('@queue' => $name),
+              );
+
+              $this->assertTrue(!empty($obj), $message);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Tests that items cannot be claimed after the queue is deleted.
    */
   public function testDeleteQueue(): void {
@@ -226,8 +328,9 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
     }
 
     if ($this->initQueues()) {
-      foreach ($this->queues as $name => $queue) {
-        $queue->instance->deleteQueue();
+      foreach ($this->queues as $name => $data) {
+        $queue = BackdropQueue::get($name);
+        $queue->deleteQueue();
 
         $message = format_string(
           'Data for the @queue queue has been removed from the APCu storage.',
@@ -240,11 +343,12 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
         );
       }
 
-      foreach ($this->queues as $name => $queue) {
-        $count = count($queue->items);
+      foreach ($this->queues as $name => $data) {
+        $count = count($data->items);
+        $queue = BackdropQueue::get($name);
 
         for ($i = 0; $i < $count + 2; $i++) {
-          $obj = $queue->instance->claimItem();
+          $obj = $queue->claimItem();
 
           $message = format_string(
             'No item was claimed from the @queue queue.',

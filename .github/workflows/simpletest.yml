@@ -2,7 +2,7 @@ name: Simpletest
 on: [push, pull_request]
 jobs:
   simpletest:
-    name: Run Simpletest
+    name: Test code
     runs-on: ubuntu-22.04
     steps:
       - name: Set up environment variables
@@ -59,3 +59,10 @@ jobs:
 
       - name: Run tests
         run: core/scripts/run-tests.sh --force --directory=modules/${{ env.REPO_NAME }} --verbose --concurrency=color --concurrency=7 --cache 2>&1
+
+      - name: Save test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: simpletest-${{ env.PHP_VERSION }}
+          path: files/simpletest/verbose

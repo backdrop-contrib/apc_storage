@@ -129,11 +129,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
         );
         $queue = BackdropQueue::get($name);
 
-        $this->assertEqual(
-          $queue->numberOfItems(),
-          count($data->items),
-          $message
-        );
+        $this->assertEqual($queue->numberOfItems(), count($data->items), $message);
       }
     }
   }
@@ -166,7 +162,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
 
           $message = format_string(
             'An item was claimed from the @queue queue.',
-            ['@queue' => $name],
+            array('@queue' => $name),
           );
 
           if ($this->assertTrue($obj instanceof stdClass, $message)) {
@@ -176,14 +172,14 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
 
         $message = format_string(
           'All items have been claimed from the @queue queue.',
-          ['@queue' => $name],
+          array('@queue' => $name),
         );
 
         if ($this->assertTrue($data->claimedItems == $count, $message)) {
           $obj = $queue->claimItem();
           $message = format_string(
             'It was not possible to claim further items from the @queue queue.',
-            ['@queue' => $name],
+            array('@queue' => $name),
           );
 
           $this->assertTrue($obj === NULL, $message);
@@ -193,7 +189,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
       $delay = max($lease_times);
       $message = format_string(
         'Tests will be halted for @delay seconds.',
-        ['@delay' => $delay],
+        array('@delay' => $delay),
       );
 
       $this->pass($message);
@@ -210,8 +206,8 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
             $obj = $queue->claimItem();
 
             $message = format_string(
-              'An item was claimed for the second time from the @queue queue.',
-              ['@queue' => $name],
+              'An item was claimed from the @queue queue for the second time.',
+              array('@queue' => $name),
             );
 
             if ($this->assertTrue($obj instanceof stdClass, $message)) {
@@ -359,7 +355,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
 
           $message = format_string(
             'An item was claimed from the @queue queue.',
-            ['@queue' => $name],
+            array('@queue' => $name),
           );
 
           if ($this->assertTrue($obj instanceof stdClass, $message)) {
@@ -369,14 +365,14 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
 
         $message = format_string(
           'All items have been claimed from the @queue queue.',
-          ['@queue' => $name],
+          array('@queue' => $name),
         );
 
         if ($this->assertTrue($data->claimedItems == $count, $message)) {
           $obj = $queue->claimItem();
           $message = format_string(
             'It was not possible to claim further items from the @queue queue.',
-            ['@queue' => $name],
+            array('@queue' => $name),
           );
 
           $this->assertTrue($obj === NULL, $message);
@@ -400,7 +396,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
           $obj = $queue->claimItem();
           $message = format_string(
             'An item was claimed from the @queue queue for the second time.',
-            ['@queue' => $name],
+            array('@queue' => $name),
           );
 
           $this->assertTrue($obj instanceof stdClass, $message);
@@ -408,14 +404,14 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
 
         $message = format_string(
           'All items have been claimed from the @queue queue for the second time.',
-          ['@queue' => $name],
+          array('@queue' => $name),
         );
 
         if ($this->assertTrue($data->claimedItems == $count, $message)) {
           $obj = $queue->claimItem();
           $message = format_string(
             'It was not possible to claim further items from the @queue queue for the second time.',
-            ['@queue' => $name],
+            array('@queue' => $name),
           );
 
           $this->assertTrue($obj === NULL, $message);

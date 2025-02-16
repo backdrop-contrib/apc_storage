@@ -19,11 +19,11 @@ require_once __DIR__ . '/apc_storage_base_test.class.inc';
 class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
 
   /**
-   * The locks used from tests.
+   * The names of the locks used by tests.
    *
-   * @var ApcStorageLock[]
+   * @var array
    */
-  protected array $locks;
+  protected array $lockNames = array();
 
   /**
    * {@inheritdoc}
@@ -43,17 +43,26 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
    *   TRUE if all the locks have been created, FALSE otherwise.
    */
   protected function initLocks(): bool {
-    $lock_names = array(
-      $this->randomName(),
-      $this->randomName(),
-      $this->randomName(),
+    $this->lockNames = array(
+      'lock_' . $this->randomName(),
+      'lock_' . $this->randomName(),
+      'lock_' . $this->randomName(),
     );
+    $count = 0;
 
-    foreach ($lock_names as $lock_name) {
-      $this->locks[$lock_name] = ApcStorageLock::get($lock_name);
+    foreach ($this->lockNames as $name) {
+      $lock = ApcStorageLock::get($name);
+      $message = format_string(
+        'The @name lock is an instance of ApcStorageLock.',
+        array('@name' => $name)
+      );
+
+      if ($this->assertTrue($lock instanceof ApcStorageLock, $message)) {
+        $count++;
+      }
     }
 
-    if ($this->assertEqual(count($this->locks), count($lock_names), 'All the locks have been created.')) {
+    if ($this->assertEqual($count, count($this->lockNames), 'All the locks have been created/retrieved.')) {
       return TRUE;
     }
 
@@ -74,7 +83,8 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
   protected function acquireLocks(float $from, float $to): float {
     $timeouts = array();
 
-    foreach ($this->locks as $name => $lock) {
+    foreach ($this->lockNames as $name) {
+      $lock = ApcStorageLock::get($name);
       $timeouts[] = $timeout = $this->randomFloat($from, $to);
       $message = format_string(
         'The lock @name has been acquired for @timeout seconds.',
@@ -130,7 +140,8 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       $this->pass(format_string('Tests will be halted for @seconds seconds.', array('@seconds' => $delay)));
       sleep($delay);
 
-      foreach ($this->locks as $name => $lock) {
+      foreach ($this->lockNames as $name) {
+        $lock = ApcStorageLock::get($name);
         $message = format_string(
           'The lock @name is available after @delay seconds.',
           array('@name' => $name, '@delay' => $delay)
@@ -160,9 +171,15 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
       sleep($delay);
 
-      foreach ($this->locks as $name => $lock) {
+      $locks = array();
+
+      foreach ($this->lockNames as $name) {
+        $locks[$name] = ApcStorageLock::get($name);
+      }
+
+      foreach ($locks as $name => $lock) {
         $message = format_string(
-          'The lock @name is not available after @delay seconds.',
+          'The @name lock is not available after @delay seconds.',
           array('@name' => $name, '@delay' => $delay)
         );
 
@@ -174,7 +191,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
       sleep($delay);
 
-      foreach ($this->locks as $name => $lock) {
+      foreach ($locks as $name => $lock) {
         $message = format_string(
           'The lock @name is available after further @delay seconds.',
           array('@name' => $name, '@delay' => $delay)
@@ -200,7 +217,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
       $max_timeout = $this->acquireLocks(20.0, 40.0);
 
-      $lock = reset($this->locks);
+      $lock = ApcStorageLock::get($this->lockNames[0]);
       $message = format_string(
         'The lock is available after waiting for @timeout seconds.',
         array('@timeout' => (int) round($max_timeout))

@@ -38,7 +38,7 @@ jobs:
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: apcu
-          ini-values: apc.enabled=1, apc.enable_cli=1, apc.shm_segments = 10, apc.shm_size = 256M
+          ini-values: apc.enabled=1, apc.enable_cli=1, apc.shm_size = 512M
           coverage: none
 
       - name: Set up Apache

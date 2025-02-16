@@ -90,7 +90,7 @@ class ApcStorageLock {
 
     if (apcu_exists($this->key)) {
       // Try to extend the expiration of an already acquired lock.
-      if (!apcu_store($this->key, array('expire' => $expire))) {
+      if (!apcu_store($this->key, array('expire' => $expire), 0)) {
         // The lock was broken.
         apcu_delete($this->key);
 
@@ -108,7 +108,7 @@ class ApcStorageLock {
 
       // We always want to do this code at least once.
       do {
-        $success = apcu_store($this->key, array('expire' => $expire));
+        $success = apcu_store($this->key, array('expire' => $expire), 0);
 
         if (!$success) {
           // If this is our first pass through the loop, then $retry is FALSE.

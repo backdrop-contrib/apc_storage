@@ -80,7 +80,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       $lock = ApcStorageLock::get($name);
       $timeouts[] = $timeout = $this->randomFloat($from, $to);
       $message = format_string(
-        'The lock @name has been acquired for @timeout seconds.',
+        'The @name lock has been acquired for @timeout seconds.',
         array('@name' => $name, '@timeout' => (int) round($timeout))
       );
 
@@ -161,7 +161,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
 
       foreach ($locks as $name => $lock) {
         $message = format_string(
-          'The lock @name is available after further @delay seconds.',
+          'The @name lock is available after further @delay seconds.',
           array('@name' => $name, '@delay' => $delay)
         );
 

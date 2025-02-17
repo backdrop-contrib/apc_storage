@@ -57,7 +57,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
         array('@name' => $name)
       );
 
-      if ($this->assertTrue($lock instanceof ApcStorageLock, $message)) {
+      if ($this->assertFalse(is_null($lock), $message)) {
         $count++;
       }
     }

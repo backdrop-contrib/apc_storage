@@ -154,7 +154,7 @@ class ApcStorageLock {
       return FALSE;
     }
 
-    if (microtime(TRUE) > (float) $data['expire']) {
+    if (empty($data['expire']) || microtime(TRUE) > (float) $data['expire']) {
       return apcu_delete($this->key);
     }
 

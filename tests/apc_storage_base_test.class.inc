@@ -272,7 +272,6 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
    */
   protected function assertApcuKeySaved(string $key, mixed $value, int $ttl = 0): bool {
     $message = format_string('@key was stored in APCu.', array('@key' => $this->varExport($key)));
-
     $result = apcu_store($key, $value, $ttl);
 
     return $this->assertTrue($result, $message);

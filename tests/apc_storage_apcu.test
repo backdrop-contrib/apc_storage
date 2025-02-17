@@ -54,10 +54,13 @@ class ApcStorageApcuStoreAndRetrieveTestCase extends ApcStorageBaseTestCase {
     }
 
     if ($this->assertApcuEmpty()) {
+      $max_ttl = 0;
+
       foreach ($this->storageData() as $id => $data) {
         $key = "store_delay_retrieve_$id";
 
         if ($this->assertApcuKeySaved($key, $data['value'], $data['ttl'])) {
+          $max_ttl = max($max_ttl, $data['ttl']);
           $stored[$key] = $data;
         }
       }
@@ -65,15 +68,13 @@ class ApcStorageApcuStoreAndRetrieveTestCase extends ApcStorageBaseTestCase {
       $message = 'New items were stored in APCu.';
 
       if ($this->assertTrue(!empty($stored), $message)) {
-        // Halt the tests for 10 seconds, which is 2 seconds more than the
-        // maximum TTL set by
-        // ApcStorageApcuStoreAndRetrieveTestCase::storageData().
-        $message = format_string('The test will be halted for @delay seconds.', array('@delay' => 10));
+        $max_ttl++;
+        $message = format_string('The test will be halted for @delay seconds.', array('@delay' => $max_ttl));
         $persistent_key_message = '@key persists and it was found.';
         $purgeable_key_message = '@key was purgeable and it was not found.';
 
         $this->pass($message);
-        sleep(10);
+        sleep($max_ttl);
 
         foreach ($stored as $key => $data) {
           $options = array('value' => $data['value']);

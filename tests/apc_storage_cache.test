@@ -55,7 +55,7 @@ class ApcStorageCacheBaseTestCase extends ApcStorageBaseTestCase {
    *   The cache bins to add.
    */
   protected function setCacheBins(string ...$bins): void {
-    $this->cacheBins = array_unique(array_merge($this->cacheBins, $bins));
+    $this->cacheBins = array_merge($this->cacheBins, $bins);
   }
 
   /**
@@ -65,6 +65,8 @@ class ApcStorageCacheBaseTestCase extends ApcStorageBaseTestCase {
    *   The cache bins stored on APCu.
    */
   protected function getCacheBins(): array {
+    $this->cacheBins = array_unique($this->cacheBins);
+
     return $this->cacheBins;
   }
 
@@ -308,11 +310,13 @@ class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCas
 
     if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
       $bin = $this->getCacheBins()[0];
+      $max_ttl = 0;
 
       foreach ($this->storageData() as $id => $data) {
         $cid = "store_delay_retrieve_cache_item_$id";
 
         if ($this->assertCacheItemSaved($bin, $cid, $data['value'], $data['ttl'])) {
+          $max_ttl = max($max_ttl, $data['ttl']);
           $stored[$cid] = $data;
         }
       }
@@ -320,13 +324,11 @@ class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCas
       $message = 'New items were stored in the cache.';
 
       if ($this->assertTrue(!empty($stored), $message)) {
-        // Add 2 seconds to the maximum TTL
-        // ApcStorageCacheBaseTestCase::storageData() sets to be sure that
-        // non-permanent values are purged when the cache is read.
-        $message = format_string('The test will be halted for @delay seconds.', array('@delay' => 10));
+        $max_ttl++;
+        $message = format_string('The test will be halted for @delay seconds.', array('@delay' => $max_ttl));
 
         $this->pass($message);
-        sleep(10);
+        sleep($max_ttl);
 
         foreach ($stored as $cid => $data) {
           if (!empty($data['ttl'])) {
@@ -385,12 +387,14 @@ class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCas
     }
 
     if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+      $max_ttl = 0;
       $bin = $this->getCacheBins()[0];
 
       foreach ($this->storageData() as $id => $data) {
         $cid = "store_retrieve_cache_item_$id";
 
         if ($this->assertCacheItemSaved($bin, $cid, $data['value'], $data['ttl'] + 2)) {
+          $max_ttl = max($max_ttl, $data['ttl'] + 2);
           $stored[] = $cid;
         }
       }
@@ -398,16 +402,11 @@ class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCas
       $message = 'New items were stored in the cache.';
 
       if ($this->assertTrue(!empty($stored), $message)) {
-        // 12 is the maximum TTL set by
-        // ApcStorageCacheStoreAndRetrieveTestCase::storageData(),
-        // plus 2 to make the permanent cache items
-        // ApcStorageCacheStoreAndRetrieveTestCase::storageData() returns, plus
-        // 2 to be sure that all the cached items are purged when
-        // cache_get_multiple() is called.
-        $message = format_string('The test will be halted for @delay seconds.', array('@delay' => 12));
+        $max_ttl++;
+        $message = format_string('The test will be halted for @delay seconds.', array('@delay' => $max_ttl));
 
         $this->pass($message);
-        sleep(12);
+        sleep($max_ttl);
 
         foreach (array_chunk($stored, 3) as $chunk) {
           $this->assertNoCacheItems($bin, $stored, ...$chunk);

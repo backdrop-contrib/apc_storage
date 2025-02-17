@@ -114,7 +114,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
     if ($this->initQueues()) {
       foreach ($this->queues as $name => $data) {
         $message = format_string(
-          'Data for the @queue queue has been stored on the APCu storage.',
+          'Data for the @queue queue has been stored in the APCu storage.',
           array('@queue' => $name),
         );
 

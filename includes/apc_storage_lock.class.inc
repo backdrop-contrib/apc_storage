@@ -10,7 +10,7 @@ declare(strict_types=1);
 /**
  * Class for the APCu-based locking mechanism implementation.
  *
- * @internal This class should not be used from third-party modules.
+ * @internal This class should only be used by the APC Storage module.
  */
 class ApcStorageLock {
 
@@ -74,6 +74,16 @@ class ApcStorageLock {
     $this->key = 'apc_storage_lock::' .
       backdrop_base64_encode(self::$uniqueId) . '::' .
       ApcStorageHelper::binaryToHex($this->name);
+  }
+
+  /**
+   * Gets the key name for the lock in APCu.
+   *
+   * @return string
+   *   The key name for the lock.
+   */
+  public function keyName(): string {
+    return $this->key;
   }
 
   /**

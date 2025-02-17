@@ -47,6 +47,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       'lock_' . $this->randomName(),
       'lock_' . $this->randomName(),
       'lock_' . $this->randomName(),
+      'lock_' . $this->randomName(),
     );
     $count = 0;
 
@@ -185,7 +186,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
   }
 
   /**
-   * Tests that ApcStorageLock::waitForLock() correctly works.
+   * Tests that ApcStorageLock::waitForLock() works correctly.
    */
   public function testWait(): void {
     if ($this->skipTest) {
@@ -210,4 +211,31 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
     }
   }
 
+  /**
+   * Tests that ApcStorageLock::releaseAll() works correctly.
+   */
+  public function testReleaseAll(): void {
+    if ($this->skipTest) {
+      return;
+    }
+
+    if (!$this->assertApcuEmpty()) {
+      return;
+    }
+
+    if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
+      $this->acquireLocks(2.0, 4.0);
+
+      ApcStorageLock::releaseAll();
+
+      foreach ($this->lockNames as $name) {
+        $message = format_string(
+          'The @name lock is available after all locks have been released.',
+          array('@name' => $name)
+        );
+
+        $this->assertTrue(ApcStorageLock::get($name)->maybeAvailable(), $message);
+      }
+    }
+  }
 }

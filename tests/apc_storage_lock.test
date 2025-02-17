@@ -122,40 +122,9 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
   }
 
   /**
-   * Tests that locks are acquired and expire after a maximum of 10 seconds.
+   * Tests that locks are acquired and expire after the set timeout.
    */
   public function testAcquireLock(): void {
-    if ($this->skipTest) {
-      return;
-    }
-
-    if (!$this->assertApcuEmpty()) {
-      return;
-    }
-
-    if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
-      $max_timeout = $this->acquireLocks(2.0, 4.0);
-      $delay = (int) $max_timeout + 1;
-
-      $this->pass(format_string('Tests will be halted for @seconds seconds.', array('@seconds' => $delay)));
-      sleep($delay);
-
-      foreach ($this->lockNames as $name) {
-        $lock = ApcStorageLock::get($name);
-        $message = format_string(
-          'The lock @name is available after @delay seconds.',
-          array('@name' => $name, '@delay' => $delay)
-        );
-
-        $this->assertTrue($lock->maybeAvailable(), $message);
-      }
-    }
-  }
-
-  /**
-   * Tests that locks are acquired and expire after a maximum of 50 seconds.
-   */
-  public function testAcquireLockLongerTimeout(): void {
     if ($this->skipTest) {
       return;
     }

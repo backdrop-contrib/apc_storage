@@ -38,7 +38,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
    *   A string representing the key name used to store the item in the
    *   APCu queue.
    */
-  protected function queueKeyName(object $item): string {
+  protected function keyName(object $item): string {
     return 'apc_storage_queue::' . $this->name . '::' . ApcStorageHelper::binaryToHex($item->item_id);
   }
 
@@ -52,7 +52,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
       $item->item_id = ApcStorageHelper::uniqueId();
       $item->expire = 0;
 
-      return apcu_store($this->queueKeyName($item), $item);
+      return apcu_store($this->keyName($item), $item);
     }
 
     return FALSE;
@@ -110,7 +110,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
    */
   public function deleteItem($item): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      apcu_delete($this->queueKeyName($item));
+      apcu_delete($this->keyName($item));
     }
   }
 
@@ -121,7 +121,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
     $item->expire = 0;
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      return apcu_store($this->queueKeyName($item), $item);
+      return apcu_store($this->keyName($item), $item);
     }
 
     return FALSE;

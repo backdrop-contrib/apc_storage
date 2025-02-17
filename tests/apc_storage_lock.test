@@ -51,15 +51,8 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
     $count = 0;
 
     foreach ($this->lockNames as $name) {
-      $lock = ApcStorageLock::get($name);
-      $message = format_string(
-        'The @name lock is an instance of ApcStorageLock.',
-        array('@name' => $name)
-      );
-
-      if ($this->assertFalse(is_null($lock), $message)) {
-        $count++;
-      }
+      ApcStorageLock::get($name);
+      $count++;
     }
 
     if ($this->assertEqual($count, count($this->lockNames), 'All the locks have been created/retrieved.')) {

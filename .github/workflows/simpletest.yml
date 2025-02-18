@@ -1,6 +1,11 @@
 name: Simpletest
-on: [ pull_request, push ]
-paths-ignore: [ '**.md', '**.txt' ]
+on:
+  pull_request:
+    paths-ignore: [ '**.md', '**.txt' ]
+    branches: [ '1.*' ]
+  push:
+    paths-ignore: [ '**.md', '**.txt' ]
+    branches: [ '1.*' ]
 jobs:
   simpletest:
     name: Test code

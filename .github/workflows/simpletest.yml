@@ -1,5 +1,6 @@
 name: Simpletest
-on: [push, pull_request]
+on: [ pull_request, push ]
+paths-ignore: [ '**.md', '**.txt' ]
 jobs:
   simpletest:
     name: Test code
@@ -9,16 +10,18 @@ jobs:
     timeout-minutes: 20
     strategy:
       fail-fast: false
+      matrix:
+        php-versions: [ '8.3' ]
+        database-versions: [ 'mariadb-10.3' ]
     steps:
       - name: Set up environment variables
         run: |
           echo "REPO_NAME=${PWD##*/}" >> $GITHUB_ENV
-          echo 'PHP_VERSION=8.3' >> $GITHUB_ENV
 
       - name: Install MariaDB
         uses: shogo82148/actions-setup-mysql@v1
         with:
-          mysql-version: 'mariadb-10.5'
+          mysql-version: ${{ matrix.database-versions }}
           root-password: 'root'
           auto-start: true
 
@@ -41,7 +44,7 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ env.PHP_VERSION }}
+          php-version: ${{ matrix.php-versions }}
           extensions: apcu
           ini-values: apc.enabled=1, apc.enable_cli=1, apc.ttl = 480, apc.shm_size = 512M
           coverage: none
@@ -49,13 +52,13 @@ jobs:
       - name: Set up Apache
         run: |
           sudo cp -f modules/${{ env.REPO_NAME }}/.github/misc/default.conf /etc/apache2/sites-available/000-default.conf
-          sudo sed -i -e "s?_PWD?$PWD?g" -e "s/_PHP_V/${{ env.PHP_VERSION }}/g" /etc/apache2/sites-available/000-default.conf
+          sudo sed -i -e "s?_PWD?$PWD?g" -e "s/_PHP_V/${{ matrix.php-versions }}/g" /etc/apache2/sites-available/000-default.conf
           sudo apt-get install libapache2-mod-fcgid
           sudo a2enmod rewrite proxy fcgid proxy_fcgi
           sudo systemctl start apache2.service
-          sudo sed -i -e 's/user = www-data/user = runner/' /etc/php/${{ env.PHP_VERSION }}/fpm/pool.d/www.conf
-          sudo sed -i -e 's/listen.owner = www-data/listen.owner = runner/' /etc/php/${{ env.PHP_VERSION }}/fpm/pool.d/www.conf
-          sudo systemctl restart php${{ env.PHP_VERSION }}-fpm.service
+          sudo sed -i -e 's/user = www-data/user = runner/' /etc/php/${{ matrix.php-versions }}/fpm/pool.d/www.conf
+          sudo sed -i -e 's/listen.owner = www-data/listen.owner = runner/' /etc/php/${{ matrix.php-versions }}/fpm/pool.d/www.conf
+          sudo systemctl restart php${{ matrix.php-versions }}-fpm.service
 
       - name: Install Backdrop
         run: |

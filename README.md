@@ -29,7 +29,12 @@ Bugs and Feature requests should be reported in the
 [issue queue](https://github.com/backdrop-contrib/apc_storage/issues).
 
 
-## Current Maintainers
+## License
+This project is GPL v2 software. See the LICENSE.txt file in this directory for
+the complete text.
+
+
+## Current maintainers
 
 - [Alberto Paderno](https://github.com/avpaderno)
 

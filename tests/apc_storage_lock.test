@@ -134,7 +134,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       $delay = (int) ($max_timeout / 4);
 
       foreach ($this->lockNames as $name) {
-        $locks[$name] = $lock =ApcStorageLock::get($name);
+        $locks[$name] = $lock = ApcStorageLock::get($name);
         $message = format_string(
           'Data for the @name lock has been stored in the APCu storage.',
           array('@name' => $name)

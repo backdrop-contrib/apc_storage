@@ -130,7 +130,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
     }
 
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
-      $max_timeout = $this->acquireLocks(12.0, 16.0);
+      $max_timeout = $this->acquireLocks(8.0, 12.0);
       $delay = (int) ($max_timeout / 4);
 
       foreach ($this->lockNames as $name) {

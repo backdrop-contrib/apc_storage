@@ -193,7 +193,7 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
     // Avoid using NULL as value, since that fails tests.
     yield '_01_' . $this->randomName() => array(
       'value' => $this->randomString(),
-      'ttl' => $this->randomInt(1, 6),
+      'ttl' => $this->randomInt(1, 4),
     );
     yield '_02_' . $this->randomName() => array(
       'value' => TRUE,
@@ -201,7 +201,7 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
     );
     yield '_03_' . $this->randomName() => array(
       'value' => FALSE,
-      'ttl' => $this->randomInt(2, 8),
+      'ttl' => $this->randomInt(2, 5),
     );
     yield '_04_' . $this->randomName() => array(
       'value' => $this->randomFloat(),
@@ -209,7 +209,7 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
     );
     yield '_05_' . $this->randomName() => array(
       'value' => $this->randomInt(),
-      'ttl' => $this->randomInt(2, 8),
+      'ttl' => $this->randomInt(2, 4),
     );
     yield '_06_' . $this->randomName() => array(
       'value' => array(
@@ -220,11 +220,11 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
         $this->randomName() => NULL,
         $this->randomName() => FALSE,
       ),
-      'ttl' => $this->randomInt(1, 7),
+      'ttl' => $this->randomInt(3, 5),
     );
     yield '_07_' . $this->randomName() => array(
       'value' => $this->randomString(),
-      'ttl' => $this->randomInt(1, 8),
+      'ttl' => $this->randomInt(1, 3),
     );
     yield '_08_' . $this->randomName() => array(
       'value' => FALSE,
@@ -232,7 +232,7 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
     );
     yield '_09_' . $this->randomName() => array(
       'value' => $this->randomFloat(),
-      'ttl' => $this->randomInt(2, 6),
+      'ttl' => $this->randomInt(1, 3),
     );
   }
 

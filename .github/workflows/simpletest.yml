@@ -1,10 +1,10 @@
 name: Simpletest
 on:
   pull_request:
-    paths-ignore: [ '**.md', '**.txt' ]
+    paths-ignore: [ '.editorconfig', '.gitattributes', '**.md', '**.txt' ]
     branches: [ '1.*' ]
   push:
-    paths-ignore: [ '**.md', '**.txt' ]
+    paths-ignore: [ '.editorconfig', '.gitattributes', '**.md', '**.txt' ]
     branches: [ '1.*' ]
 jobs:
   simpletest:

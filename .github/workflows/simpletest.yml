@@ -51,7 +51,7 @@ jobs:
       - name: Set up Apache
         run: |
           sudo cp -f modules/${{ env.REPOSITORY_NAME }}/.github/misc/default.conf /etc/apache2/sites-available/000-default.conf
-          sudo sed -i -e "s?_PWD?$PWD?g" -e "s/_PHP_V/${{ matrix.php-versions }}/g" /etc/apache2/sites-available/000-default.conf
+          sudo sed -i -e "s?_PWD?$PWD?g" -e "s/_PHP_VERSION/${{ matrix.php-versions }}/g" /etc/apache2/sites-available/000-default.conf
           sudo apt-get install libapache2-mod-fcgid
           sudo a2enmod rewrite proxy fcgid proxy_fcgi
           sudo systemctl start apache2.service

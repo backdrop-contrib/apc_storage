@@ -393,8 +393,8 @@ class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCas
       foreach ($this->storageData() as $id => $data) {
         $cid = "store_retrieve_cache_item_$id";
 
-        if ($this->assertCacheItemSaved($bin, $cid, $data['value'], $data['ttl'] + 2)) {
-          $max_ttl = max($max_ttl, $data['ttl'] + 2);
+        if ($this->assertCacheItemSaved($bin, $cid, $data['value'], $data['ttl'])) {
+          $max_ttl = max($max_ttl, $data['ttl']);
           $stored[] = $cid;
         }
       }

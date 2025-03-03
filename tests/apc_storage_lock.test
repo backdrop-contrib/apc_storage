@@ -143,6 +143,23 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
         $this->assertApcuKeyByName($lock->keyName(), array('message' => $message));
       }
 
+      $keys = array(
+        'apc_storage_lock::::',
+        '[a-zA-Z0-9-_]+$',
+      );
+      $options = array(
+        'regexp' => TRUE,
+      );
+
+      foreach ($keys as $key) {
+        $options['message'] = format_string(
+          'No APCu key matching @key has been created.',
+          array('@key' => "/^$key/")
+        );
+
+        $this->assertNoApcuKeysByPrefix($key, $options);
+      }
+
       $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
       sleep($delay);
 

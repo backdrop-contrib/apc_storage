@@ -160,6 +160,8 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
       sleep($delay);
 
+      $count = 0;
+
       foreach ($locks as $name => $lock) {
         $message = format_string(
           'The @name lock is available after further @delay seconds.',
@@ -167,6 +169,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
         );
 
         if ($this->assertTrue($lock->maybeAvailable(), $message)) {
+          $count++;
           $message = format_string(
             'Data for the @name lock stored in @key has been removed from the APCu storage.',
             array('@name' => $name)
@@ -175,6 +178,10 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
           $this->assertNoApcuKeyByName($lock->keyName(), array('message' => $message));
         }
       }
+
+      $message = 'All the acquired locks are now available.';
+
+      $this->assertTrue(count($locks) == $count, $message);
     }
   }
 

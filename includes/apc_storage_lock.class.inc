@@ -73,7 +73,7 @@ class ApcStorageLock {
     $this->name = $name;
     $this->key = 'apc_storage_lock::' .
       backdrop_base64_encode(self::$uniqueId) . '::' .
-      ApcStorageHelper::binaryToHex($this->name);
+      backdrop_base64_encode($this->name);
   }
 
   /**

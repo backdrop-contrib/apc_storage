@@ -225,7 +225,7 @@ class ApcStorageLock {
     if (!empty(self::$uniqueId)) {
       if (extension_loaded('apcu') && apcu_enabled()) {
         $key = preg_quote('apc_storage_lock::' . backdrop_base64_encode(self::$uniqueId) . '::', '/');
-        $iterator = new APCUIterator("/^$key/", APC_ITER_KEY);
+        $iterator = new APCUIterator('/^' . $key. '[a-zA-Z0-9-_]+$/', APC_ITER_KEY);
 
         apcu_delete($iterator);
       }
@@ -240,7 +240,7 @@ class ApcStorageLock {
    */
   public static function deleteAllStoredData(): bool {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $iterator = new APCUIterator('/^apc_storage_lock::[a-zA-Z0-9-_]+::/', APC_ITER_KEY);
+      $iterator = new APCUIterator('/^apc_storage_lock::[a-zA-Z0-9-_]+::[a-zA-Z0-9-_]+$/', APC_ITER_KEY);
       apcu_delete($iterator);
 
       return TRUE;

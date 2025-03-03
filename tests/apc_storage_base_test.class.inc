@@ -298,7 +298,7 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
       $string = $options['message'];
     }
     else {
-      $string = '@key was found in APCu.';
+      $string = '@key was found in the APCu storage.';
     }
 
     $message = format_string($string, $args);
@@ -335,7 +335,7 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
       $string = $options['message'];
     }
     else {
-      $string = '@key was found in APCu.';
+      $string = '@key was not found in the APCu storage.';
     }
 
     $message = format_string($string, $args);

@@ -136,11 +136,11 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       foreach ($this->lockNames as $name) {
         $locks[$name] = $lock = ApcStorageLock::get($name);
         $message = format_string(
-          'Data for the @name lock has been stored in the APCu storage.',
+          'Data for the @name lock has been stored in the APCu storage in @key.',
           array('@name' => $name)
         );
 
-        $this->assertTrue(apcu_exists($lock->keyName()), $message);
+        $this->assertApcuKeyByName($lock->keyName(), array('message' => $message));
       }
 
       $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));

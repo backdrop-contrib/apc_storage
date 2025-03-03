@@ -81,7 +81,7 @@ class ApcStorageCacheBaseTestCase extends ApcStorageBaseTestCase {
 
     foreach ($this->getCacheBins() as $bin) {
       $cache = cache($bin);
-      $args = array('@bin' => $this->varExport($bin));
+      $args = array('@bin' => $bin);
       $message = format_string('Data for the @bin cache bin is stored on APCu.', $args);
 
       if (!$this->assertTrue($cache instanceof ApcStorageCache, $message)) {
@@ -132,7 +132,7 @@ class ApcStorageCacheBaseTestCase extends ApcStorageBaseTestCase {
    *   TRUE if the cache item exists, FALSE otherwise.
    */
   protected function assertCacheItem(string $bin, string $cid, array $options = array()): bool {
-    $args = array('@id' => $this->varExport("$bin/$cid"));
+    $args = array('@id' => "$bin/$cid");
     $item = cache_get($cid, $bin);
 
     if (!empty($options['message'])) {
@@ -145,13 +145,11 @@ class ApcStorageCacheBaseTestCase extends ApcStorageBaseTestCase {
     $message = format_string($string, $args);
 
     if ($this->assertNotIdentical($item, FALSE, $message)) {
-      $args = array('@id' => $this->varExport("$bin/$cid"));
       $message = format_string('@id was correctly stored in the cache.', $args);
 
       if ($this->assertTrue(is_object($item) && isset($item->data), $message)) {
         if (array_key_exists('value', $options)) {
           $value = $options['value'];
-          $args = array('@id' => $this->varExport("$bin/$cid"));
           $message = format_string('The value of @id is the expected one.', $args);
 
           return $this->assertIdentical($item->data, $value, $message);
@@ -179,7 +177,7 @@ class ApcStorageCacheBaseTestCase extends ApcStorageBaseTestCase {
    *   TRUE if the cache item does not exist, FALSE otherwise.
    */
   protected function assertNoCacheItem(string $bin, string $cid, array $options = array()): bool {
-    $args = array('@id' => $this->varExport("$bin/$cid"));
+    $args = array('@id' => "$bin/$cid");
 
     if (array_key_exists('message', $options) && !empty($options['message'])) {
       $string = $options['message'];
@@ -215,7 +213,7 @@ class ApcStorageCacheBaseTestCase extends ApcStorageBaseTestCase {
     $result = TRUE;
 
     foreach ($cids as $cid) {
-      $args = array('@id' => $this->varExport("$bin/$cid"));
+      $args = array('@id' => "$bin/$cid");
       $message = format_string('@id was found in the cache.', $args);
 
       if (!$this->assertTrue(isset($items[$cid]), $message)) {
@@ -249,7 +247,7 @@ class ApcStorageCacheBaseTestCase extends ApcStorageBaseTestCase {
     $result = TRUE;
 
     foreach ($non_existent_cids as $cid) {
-      $args = array('@id' => $this->varExport("$bin/$cid"));
+      $args = array('@id' => "$bin/$cid");
       $message = format_string('@id was not found in the cache.', $args);
 
       if (!$this->assertFalse(isset($items[$cid]), $message)) {

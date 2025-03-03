@@ -132,57 +132,6 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
   }
 
   /**
-   * Returns a parsable string representation of a variable.
-   *
-   * This method is similar to drupal_var_export(), but it accepts a single
-   * argument, and it outputs an array on a single line.
-   *
-   * @param mixed $var
-   *   The variable to export.
-   *
-   * @return string
-   *   The exported variable.
-   */
-  protected static function varExport(mixed $var): string {
-    if (is_array($var)) {
-      if (empty($var)) {
-        $output = 'array()';
-      }
-      else {
-        // Don't export keys if the array is non-associative.
-        $export_keys = array_values($var) != $var;
-        $output = 'array(';
-
-        foreach ($var as $key => $value) {
-          $output .= ($export_keys ? self::varExport($key) . ' => ' : '') . self::varExport($value) . ', ';
-        }
-
-        $output = rtrim($output, ', ') . ')';
-      }
-    }
-    elseif (is_bool($var)) {
-      $output = $var ? 'TRUE' : 'FALSE';
-    }
-    elseif (is_string($var)) {
-      if (str_contains($var, "\n") || str_contains($var, "'")) {
-        // If the string contains a line break or a single quote, use the
-        // double quote export mode. Encode backslash and double quotes and
-        // transform some common control characters.
-        $var = str_replace(array('\\', '"', "\n", "\r", "\t"), array('\\\\', '\"', '\n', '\r', '\t'), $var);
-        $output = '"' . $var . '"';
-      }
-      else {
-        $output = "'" . $var . "'";
-      }
-    }
-    else {
-      $output = var_export($var, TRUE);
-    }
-
-    return $output;
-  }
-
-  /**
    * Returns data to be stored.
    *
    * This method is called from any test that needs to store data either
@@ -271,7 +220,7 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
    *   TRUE if the key-value pair was stored, FALSE otherwise.
    */
   protected function assertApcuKeySaved(string $key, mixed $value, int $ttl = 0): bool {
-    $message = format_string('@key was stored in APCu.', array('@key' => $this->varExport($key)));
+    $message = format_string('@key was stored in APCu.', array('@key' => $key));
     $result = apcu_store($key, $value, $ttl);
 
     return $this->assertTrue($result, $message);
@@ -292,7 +241,7 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
    *   FALSE otherwise.
    */
   protected function assertApcuKeyByName(string $key, array $options = array()): bool {
-    $args = array('@key' => $this->varExport($key));
+    $args = array('@key' => $key);
 
     if (!empty($options['message'])) {
       $string = $options['message'];
@@ -305,7 +254,7 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
 
     if ($this->assertTrue(apcu_exists($key), $message)) {
       if (array_key_exists('value', $options)) {
-        $message = format_string('The value for @key is the expected one.', array('@key' => $this->varExport($key)));
+        $message = format_string('The value for @key is the expected one.', array('@key' => $key));
 
         $retrieved = apcu_fetch($key, $success);
 
@@ -329,7 +278,7 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
    *   TRUE if the APCu key exists, FALSE otherwise.
    */
   protected function assertNoApcuKeyByName(string $key, array $options = array()): bool {
-    $args = array('@key' => $this->varExport($key));
+    $args = array('@key' => $key);
 
     if (!empty($options['message'])) {
       $string = $options['message'];
@@ -367,7 +316,7 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
     $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
     $message = format_string(
       $options['message'],
-      array('@key' => $this->varExport("/^$escaped_key/"))
+      array('@key' => "/^$escaped_key/")
     );
 
     return $this->assertTrue($iterator->getTotalCount() > 0, $message);
@@ -397,7 +346,7 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
     $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
     $message = format_string(
       $options['message'],
-      array('@key' => $this->varExport("/^$escaped_key/"))
+      array('@key' => "/^$escaped_key/")
     );
 
     return $this->assertTrue($iterator->getTotalCount() === 0, $message);

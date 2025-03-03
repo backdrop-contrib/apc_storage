@@ -160,8 +160,6 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
       sleep($delay);
 
-      $count = 0;
-
       foreach ($locks as $name => $lock) {
         $message = format_string(
           'The @name lock is available after further @delay seconds.',
@@ -169,18 +167,13 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
         );
 
         if ($this->assertTrue($lock->maybeAvailable(), $message)) {
-          $count++;
-        }
-      }
+          $message = format_string(
+            'Data for the @name lock stored in @key has been removed from the APCu storage.',
+            array('@name' => $name)
+          );
 
-      if ($count == count($this->lockNames)) {
-        $this->assertNoApcuKeysByPrefix(
-          'apc_storage_lock::[a-zA-Z0-9-_]+::',
-          array(
-            'message' => 'All locks are available and no lock data is stored in the APCu storage.',
-            'regexp' => TRUE
-          )
-        );
+          $this->assertNoApcuKeyByName($lock->keyName(), array('message' => $message));
+        }
       }
     }
   }
@@ -202,8 +195,11 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
 
       $lock = ApcStorageLock::get($this->lockNames[0]);
       $message = format_string(
-        'The lock is available after waiting for @timeout seconds.',
-        array('@timeout' => (int) round($max_timeout))
+        'The @name lock is available after waiting for @timeout seconds.',
+        array(
+          '@name' => $this->lockNames[0],
+          '@timeout' => (int) round($max_timeout),
+        )
       );
 
       // If the lock is available, ApcStorageLock::wait() returns FALSE.

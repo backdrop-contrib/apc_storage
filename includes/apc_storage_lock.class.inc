@@ -55,7 +55,7 @@ class ApcStorageLock {
       require_once __DIR__ . '/apc_storage_helper.class.inc';
     }
 
-    if (!isset(self::$uniqueId)) {
+    if (empty(self::$uniqueId)) {
       self::$uniqueId = ApcStorageHelper::uniqueId();
     }
 

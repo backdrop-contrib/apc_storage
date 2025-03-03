@@ -186,7 +186,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
   }
 
   /**
-   * Tests that ApcStorageLock::waitForLock() works correctly.
+   * Tests that ApcStorageLock::wait() works correctly.
    */
   public function testWait(): void {
     if ($this->skipTest) {

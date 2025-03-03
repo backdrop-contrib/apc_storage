@@ -202,7 +202,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
 
               $message = format_string(
                 'The expiration time for @queue::@id is correct.',
-                array('@queue' => $name, '@id' => $item['value']->item_id)
+                array('@queue' => $name, '@id' => $item_id)
               );
 
               $this->assertEqual($item['value']->expire, $expire_time, $message);

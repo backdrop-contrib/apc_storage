@@ -99,10 +99,6 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       return;
     }
 
-    if (!$this->assertApcuEmpty()) {
-      return;
-    }
-
     $this->assertTrue($this->initLocks(), 'All the locks have been created.');
 
     // Since no lock has been acquired, no APCu key should be created for locks.
@@ -122,10 +118,6 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
     $locks = array();
 
     if ($this->skipTest) {
-      return;
-    }
-
-    if (!$this->assertApcuEmpty()) {
       return;
     }
 
@@ -210,10 +202,6 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       return;
     }
 
-    if (!$this->assertApcuEmpty()) {
-      return;
-    }
-
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
       $max_timeout = $this->acquireLocks(2.0, 4.0) + 1.0;
 
@@ -236,10 +224,6 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
    */
   public function testReleaseAll(): void {
     if ($this->skipTest) {
-      return;
-    }
-
-    if (!$this->assertApcuEmpty()) {
       return;
     }
 

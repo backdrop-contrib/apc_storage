@@ -275,7 +275,7 @@ class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCas
       return;
     }
 
-    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+    if ($this->assertCacheBinsOnApcu()) {
       $bin = $this->getCacheBins()[0];
 
       foreach ($this->storageData() as $id => $data) {
@@ -306,7 +306,7 @@ class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCas
       return;
     }
 
-    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+    if ($this->assertCacheBinsOnApcu()) {
       $bin = $this->getCacheBins()[0];
       $max_ttl = 0;
 
@@ -350,7 +350,7 @@ class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCas
       return;
     }
 
-    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+    if ($this->assertCacheBinsOnApcu()) {
       $bin = $this->getCacheBins()[0];
 
       foreach ($this->storageData() as $id => $data) {
@@ -384,7 +384,7 @@ class ApcStorageCacheStoreAndRetrieveTestCase extends ApcStorageCacheBaseTestCas
       return;
     }
 
-    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+    if ($this->assertCacheBinsOnApcu()) {
       $max_ttl = 0;
       $bin = $this->getCacheBins()[0];
 
@@ -433,7 +433,7 @@ class ApcStorageCacheClearTestCase extends ApcStorageCacheBaseTestCase {
       return;
     }
 
-    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+    if ($this->assertCacheBinsOnApcu()) {
       $bin = $this->getCacheBins()[0];
 
       foreach ($this->storageData() as $id => $data) {
@@ -473,7 +473,7 @@ class ApcStorageCacheClearTestCase extends ApcStorageCacheBaseTestCase {
       return;
     }
 
-    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+    if ($this->assertCacheBinsOnApcu()) {
       $bin = $this->getCacheBins()[0];
 
       foreach ($this->storageData() as $id => $data) {
@@ -522,7 +522,7 @@ class ApcStorageCacheClearTestCase extends ApcStorageCacheBaseTestCase {
       return;
     }
 
-    if ($this->assertApcuEmpty() && $this->assertCacheBinsOnApcu()) {
+    if ($this->assertCacheBinsOnApcu()) {
       $bin = $this->getCacheBins()[0];
 
       foreach ($cache_id_prefixes as $prefix) {

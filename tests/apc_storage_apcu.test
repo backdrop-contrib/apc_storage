@@ -24,21 +24,19 @@ class ApcStorageApcuStoreAndRetrieveTestCase extends ApcStorageBaseTestCase {
       return;
     }
 
-    if ($this->assertApcuEmpty()) {
-      foreach ($this->storageData() as $id => $data) {
-        $key = "store_read_$id";
+    foreach ($this->storageData() as $id => $data) {
+      $key = "store_read_$id";
 
-        if ($this->assertApcuKeySaved($key, $data['value'], $data['ttl'])) {
-          $stored[$key] = $data;
-        }
+      if ($this->assertApcuKeySaved($key, $data['value'], $data['ttl'])) {
+        $stored[$key] = $data;
       }
+    }
 
-      $message = 'New items were stored in APCu.';
+    $message = 'New items were stored in APCu.';
 
-      if ($this->assertTrue(!empty($stored), $message)) {
-        foreach ($stored as $key => $data) {
-          $this->assertApcuKeyByName($key, array('value' => $data['value']));
-        }
+    if ($this->assertTrue(!empty($stored), $message)) {
+      foreach ($stored as $key => $data) {
+        $this->assertApcuKeyByName($key, array('value' => $data['value']));
       }
     }
   }
@@ -53,42 +51,40 @@ class ApcStorageApcuStoreAndRetrieveTestCase extends ApcStorageBaseTestCase {
       return;
     }
 
-    if ($this->assertApcuEmpty()) {
-      $max_ttl = 0;
+    $max_ttl = 0;
 
-      foreach ($this->storageData() as $id => $data) {
-        $key = "store_delay_retrieve_$id";
+    foreach ($this->storageData() as $id => $data) {
+      $key = "store_delay_retrieve_$id";
 
-        if ($this->assertApcuKeySaved($key, $data['value'], $data['ttl'])) {
-          $max_ttl = max($max_ttl, $data['ttl']);
-          $stored[$key] = $data;
-        }
+      if ($this->assertApcuKeySaved($key, $data['value'], $data['ttl'])) {
+        $max_ttl = max($max_ttl, $data['ttl']);
+        $stored[$key] = $data;
       }
+    }
 
-      $message = 'New items were stored in APCu.';
+    $message = 'New items were stored in APCu.';
 
-      if ($this->assertTrue(!empty($stored), $message)) {
-        $max_ttl++;
-        $message = format_string('The test will be halted for @delay seconds.', array('@delay' => $max_ttl));
-        $persistent_key_message = '@key persists and it was found.';
-        $purgeable_key_message = '@key was purgeable and it was not found.';
+    if ($this->assertTrue(!empty($stored), $message)) {
+      $max_ttl++;
+      $message = format_string('The test will be halted for @delay seconds.', array('@delay' => $max_ttl));
+      $persistent_key_message = '@key persists and it was found.';
+      $purgeable_key_message = '@key was purgeable and it was not found.';
 
-        $this->pass($message);
-        sleep($max_ttl);
+      $this->pass($message);
+      sleep($max_ttl);
 
-        foreach ($stored as $key => $data) {
-          $options = array('value' => $data['value']);
+      foreach ($stored as $key => $data) {
+        $options = array('value' => $data['value']);
 
-          if ($data['ttl']) {
-            $options['message'] = $purgeable_key_message;
+        if ($data['ttl']) {
+          $options['message'] = $purgeable_key_message;
 
-            $this->assertNoApcuKeyByName($key, $options);
-          }
-          else {
-            $options['message'] = $persistent_key_message;
+          $this->assertNoApcuKeyByName($key, $options);
+        }
+        else {
+          $options['message'] = $persistent_key_message;
 
-            $this->assertApcuKeyByName($key, $options);
-          }
+          $this->assertApcuKeyByName($key, $options);
         }
       }
     }

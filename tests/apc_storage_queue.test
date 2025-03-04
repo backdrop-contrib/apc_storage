@@ -107,10 +107,6 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
       return;
     }
 
-    if (!$this->assertApcuEmpty()) {
-      return;
-    }
-
     if ($this->initQueues()) {
       foreach ($this->queues as $name => $data) {
         $message = format_string(
@@ -141,10 +137,6 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
    */
   public function testClaimItem(): void {
     if ($this->skipTest) {
-      return;
-    }
-
-    if (!$this->assertApcuEmpty()) {
       return;
     }
 
@@ -226,10 +218,6 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
    */
   public function testReleaseItem(): void {
     if ($this->skipTest) {
-      return;
-    }
-
-    if (!$this->assertApcuEmpty()) {
       return;
     }
 

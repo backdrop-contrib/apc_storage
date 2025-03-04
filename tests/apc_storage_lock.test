@@ -220,7 +220,51 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
   }
 
   /**
+   * Tests that ApcStorageLock::release() works correctly.
+   *
+   * After ApcStorageLock::release() has been called,
+   * ApcStorageLock::maybeAvailable() will return TRUE.
+   */
+  public function testRelease(): void {
+    if ($this->skipTest) {
+      return;
+    }
+
+    if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
+      $this->acquireLocks(4.0, 8.0);
+
+      foreach ($this->lockNames as $name) {
+        if ($lock = ApcStorageLock::get($name)) {
+          $lock->release();
+        }
+      }
+
+      $count = 0;
+
+      foreach ($this->lockNames as $name) {
+        if ($lock = ApcStorageLock::get($name)) {
+          $message = format_string(
+            'The @name lock is available after it has been released.',
+            array('@name' => $name)
+          );
+
+          if ($this->assertTrue($lock->maybeAvailable(), $message)) {
+            $count++;
+          }
+        }
+      }
+
+      $message = 'All the acquired locks are available after they have been released.';
+
+      $this->assertTrue($count == count($this->lockNames), $message);
+    }
+  }
+
+  /**
    * Tests that ApcStorageLock::releaseAll() works correctly.
+   *
+   * After ApcStorageLock::releaseAll() has been called,
+   * ApcStorageLock::maybeAvailable() will return FALSE.
    */
   public function testReleaseAll(): void {
     if ($this->skipTest) {
@@ -228,7 +272,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
     }
 
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
-      $this->acquireLocks(2.0, 4.0);
+      $this->acquireLocks(4.0, 8.0);
 
       $count = 0;
       $extra_keys = array();

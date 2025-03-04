@@ -52,6 +52,8 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
       $this->pass('This test only runs when the APCu extension is loaded and enabled.');
     }
     else {
+      apcu_clear_cache();
+
       try {
         $this->engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_test_' . hrtime(TRUE), TRUE));
         $this->randomizer = new Randomizer($this->engine);

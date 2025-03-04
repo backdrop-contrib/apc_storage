@@ -48,6 +48,19 @@ class ApcStorageCache implements BackdropCacheInterface {
   protected string $modulePrefix = 'apc_storage_cache';
 
   /**
+   * Converts a binary string to a hexadecimal representation.
+   *
+   * @param string $data
+   *   The binary string to convert.
+   *
+   * @return string
+   *   The hexadecimal representation of the binary string.
+   */
+  protected static function binaryToHex(string $data): string {
+    return unpack('H*', $data)[1];
+  }
+
+  /**
    * Sets the one of the strings used for the APCu storage key.
    */
   protected function setBinPrefix(): void {
@@ -55,7 +68,7 @@ class ApcStorageCache implements BackdropCacheInterface {
 
     if (is_string($prefixes) && !empty($prefixes)) {
       // $prefixes can be a string used for all the cache bins.
-      $this->prefixes[0] = ApcStorageHelper::binaryToHex($prefixes);
+      $this->prefixes[0] = $this->binaryToHex($prefixes);
       return;
     }
 
@@ -64,23 +77,23 @@ class ApcStorageCache implements BackdropCacheInterface {
         if ($prefixes[$this->bin] === FALSE) {
           // If $prefixes[$this->bin] is FALSE, no prefix is used for that cache
           // bin, whichever value is used for $prefixes['default'].
-          $this->prefixes[0] = ApcStorageHelper::binaryToHex('');
+          $this->prefixes[0] = $this->binaryToHex('');
           return;
         }
 
         if (is_string($prefixes[$this->bin])) {
           // If $prefixes[$this->bin] is set and not FALSE, that value is used
           // for the cache bin.
-          $this->prefixes[0] = ApcStorageHelper::binaryToHex($prefixes[$this->bin]);
+          $this->prefixes[0] = $this->binaryToHex($prefixes[$this->bin]);
         }
       }
       elseif (isset($prefixes['default']) && is_string($prefixes['default'])) {
-        $this->prefixes[0] = ApcStorageHelper::binaryToHex($prefixes['default']);
+        $this->prefixes[0] = $this->binaryToHex($prefixes['default']);
       }
     }
 
     if (empty($prefixes)) {
-      $this->prefixes[0] = ApcStorageHelper::binaryToHex('');
+      $this->prefixes[0] = $this->binaryToHex('');
     }
   }
 
@@ -107,22 +120,18 @@ class ApcStorageCache implements BackdropCacheInterface {
         }
       }
 
-      $this->prefixes[2] = ApcStorageHelper::binaryToHex(serialize($data));
+      $this->prefixes[2] = $this->binaryToHex(serialize($data));
     }
 
     if ($test_prefix = backdrop_valid_test_ua()) {
-      $this->prefixes[1] = ApcStorageHelper::binaryToHex($test_prefix);
+      $this->prefixes[1] = $this->binaryToHex($test_prefix);
     }
     else {
-      $this->prefixes[1] = ApcStorageHelper::binaryToHex('');
+      $this->prefixes[1] = $this->binaryToHex('');
     }
   }
 
   public function __construct($bin) {
-    if (!class_exists(ApcStorageHelper::class)) {
-      require_once __DIR__ . '/apc_storage_helper.class.inc';
-    }
-
     $this->bin = $bin;
 
     $this->setBinPrefix();
@@ -147,7 +156,7 @@ class ApcStorageCache implements BackdropCacheInterface {
     $key_name = $this->modulePrefix . '::' . $this->binPrefix . '::';
 
     if ($cid != '') {
-      $key_name .= ApcStorageHelper::binaryToHex($cid);
+      $key_name .= $this->binaryToHex($cid);
     }
 
     return $key_name;

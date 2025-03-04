@@ -119,7 +119,7 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
         );
 
         $this->assertApcuKeysByPrefix(
-          'apc_storage_queue::' . preg_quote($name, '/') . '::[0-9a-f]{64}',
+          'apc_storage_queue::' . preg_quote(backdrop_base64_encode($name), '/') . '::[a-zA-Z0-9-_]+$',
           array('message' => $message, 'regexp' => TRUE),
         );
 
@@ -183,16 +183,17 @@ class ApcStorageQueueTestCase extends ApcStorageBaseTestCase {
           );
 
           if ($this->assertTrue($obj === NULL, $message)) {
-            $escaped_name = preg_quote($name, '/');
-            $iterator = new APCUIterator("/^apc_storage_queue::$escaped_name::[0-9a-f]{64}/");
+            $escaped_name = preg_quote(backdrop_base64_encode($name), '/');
+            $iterator = new APCUIterator("/^apc_storage_queue::$escaped_name::[a-zA-Z0-9-_]+$/");
 
             foreach ($iterator as $item) {
               $count++;
-              $item_id = str_replace("apc_storage_queue::$name::", '', $item['key']);
+              $encoded_name = backdrop_base64_encode($name);
+              $item_id = str_replace("apc_storage_queue::$encoded_name::", '', $item['key']);
               $condition = (
                 isset($item['value']->expire) &&
                 isset($item['value']->item_id) &&
-                 ApcStorageHelper::binaryToHex($item['value']->item_id) == $item_id
+                 backdrop_base64_encode($item['value']->item_id) == $item_id
               );
               $message = format_string("The data for @queue::@id has been correctly stored.",
                 array('@queue' => $name, '@id' => $item_id)

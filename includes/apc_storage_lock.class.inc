@@ -7,6 +7,10 @@
 
 declare(strict_types=1);
 
+use Random\Engine\Xoshiro256StarStar;
+use Random\RandomException;
+use Random\Randomizer;
+
 /**
  * Class for the APCu-based locking mechanism implementation.
  *
@@ -51,12 +55,23 @@ class ApcStorageLock {
    * @return $this
    */
   public static function get(string $name): self {
-    if (!class_exists(ApcStorageHelper::class)) {
-      require_once __DIR__ . '/apc_storage_helper.class.inc';
-    }
-
     if (empty(self::$uniqueId)) {
-      self::$uniqueId = ApcStorageHelper::uniqueId();
+      try {
+        self::$uniqueId = random_bytes(32);
+      }
+      catch (RandomException) {
+        // Use a fallback in case random_bytes() fails.
+        try {
+          $engine = new Xoshiro256StarStar(hash('sha256', hrtime(TRUE) . 'apc_storage_lock_', TRUE));
+          $randomizer = new Randomizer($engine);
+          self::$uniqueId = $randomizer->getBytes(32);
+        }
+        catch (\ValueError) {
+          // This exception should never be thrown because the seed passed to
+          // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
+          // and those are not all zeros.
+        }
+      }
     }
 
     if (isset(self::$locks[$name])) {

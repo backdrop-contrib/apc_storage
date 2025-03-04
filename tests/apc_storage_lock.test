@@ -138,6 +138,7 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       $keys = array(
         'apc_storage_lock::::',
         '[a-zA-Z0-9-_]+$',
+        '::::[a-zA-Z0-9-_]+$',
       );
       $options = array(
         'regexp' => TRUE,

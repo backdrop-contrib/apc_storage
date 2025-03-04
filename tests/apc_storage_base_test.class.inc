@@ -78,6 +78,31 @@ class ApcStorageBaseTestCase extends BackdropWebTestCase {
   }
 
   /**
+   * Generates a random binary string of the given length.
+   *
+   * Differently from BackdropTestCase::randomName() and
+   * BackdropTestCase::randomString(), this method can generate not printable
+   * characters.
+   *
+   * @param int $length
+   *   The length of the string to generate.
+   *
+   * @return string
+   *   A random string of the given length. If the length is negative, the
+   *   absolute value is used; if the length is 0, an empty string is returned.
+   */
+  protected function randomBytes(int $length): string {
+    if ($length < 0) {
+      $length = abs($length);
+    }
+    elseif ($length === 0) {
+      return '';
+    }
+
+    return $this->randomizer->getBytes($length);
+  }
+
+  /**
    * Generates a random floating-point number between two values.
    *
    * @param float $from

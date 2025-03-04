@@ -246,10 +246,21 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
       $this->acquireLocks(2.0, 4.0);
 
-
       $count = 0;
+      $extra_keys = array();
+
+      while ($count < 4) {
+        $extra_keys[] = $extra_key = 'apc_storage_lock::' .
+          backdrop_base64_encode($this->randomBytes(32)) . '::' .
+          backdrop_base64_encode($this->randombytes(24));
+        $count++;
+
+        $this->assertApcuKeySaved($extra_key, array());
+      }
 
       ApcStorageLock::releaseAll();
+
+      $count = 0;
 
       foreach ($this->lockNames as $name) {
         if ($lock = ApcStorageLock::get($name)) {
@@ -269,6 +280,15 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
       $message = 'All the acquired locks are available after they have been released.';
 
       $this->assertTrue($count == count($this->lockNames), $message);
+
+      foreach ($extra_keys as $key) {
+        $message = format_string(
+          'The @key key has not been removed from the APCu storage.',
+          array('@key' => $key)
+        );
+
+        $this->assertApcuKeyByName($key, array('message' => $message, 'value' => array()));
+      }
     }
   }
 

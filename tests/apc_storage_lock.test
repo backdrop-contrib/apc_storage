@@ -231,4 +231,45 @@ class ApcStorageLockTestCase extends ApcStorageBaseTestCase {
     }
   }
 
+  /**
+   * Tests that ApcStorageLock::releaseAll() works correctly.
+   */
+  public function testReleaseAll(): void {
+    if ($this->skipTest) {
+      return;
+    }
+
+    if (!$this->assertApcuEmpty()) {
+      return;
+    }
+
+    if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
+      $this->acquireLocks(2.0, 4.0);
+
+
+      $count = 0;
+
+      ApcStorageLock::releaseAll();
+
+      foreach ($this->lockNames as $name) {
+        if ($lock = ApcStorageLock::get($name)) {
+          $message = format_string(
+            "The @name lock is available.",
+            array(
+              '@name' => $name,
+            )
+          );
+
+          if ($this->assertTrue($lock->maybeAvailable(), $message)) {
+            $count++;
+          }
+        }
+      }
+
+      $message = 'All the acquired locks are available after they have been released.';
+
+      $this->assertTrue($count == count($this->lockNames), $message);
+    }
+  }
+
 }

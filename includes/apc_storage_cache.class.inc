@@ -27,119 +27,35 @@ class ApcStorageCache implements BackdropCacheInterface {
   protected string $bin;
 
   /**
-   * The strings used to build the name of the APCu keys for the cached data.
-   *
-   * @var array
-   */
-  protected array $prefixes = array();
-
-  /**
-   * The part of the APCu key which identifies the cache bin.
+   * Prefix for all keys in this cache bin.
    *
    * @var string
    */
   protected string $binPrefix;
 
   /**
-   * The first part of the APCu key.
+   * Prefix for all keys in the storage that belong to this site.
    *
    * @var string
    */
-  protected string $modulePrefix = 'apc_storage_cache';
-
-  /**
-   * Converts a binary string to a hexadecimal representation.
-   *
-   * @param string $data
-   *   The binary string to convert.
-   *
-   * @return string
-   *   The hexadecimal representation of the binary string.
-   */
-  protected static function binaryToHex(string $data): string {
-    return unpack('H*', $data)[1];
-  }
-
-  /**
-   * Sets the one of the strings used for the APCu storage key.
-   */
-  protected function setBinPrefix(): void {
-    $prefixes = settings_get('apc_storage_cache_prefix', '');
-
-    if (is_string($prefixes) && !empty($prefixes)) {
-      // $prefixes can be a string used for all the cache bins.
-      $this->prefixes[0] = $this->binaryToHex($prefixes);
-      return;
-    }
-
-    if (is_array($prefixes)) {
-      if (isset($prefixes[$this->bin]) && $prefixes[$this->bin] !== TRUE) {
-        if ($prefixes[$this->bin] === FALSE) {
-          // If $prefixes[$this->bin] is FALSE, no prefix is used for that cache
-          // bin, whichever value is used for $prefixes['default'].
-          $this->prefixes[0] = $this->binaryToHex('');
-          return;
-        }
-
-        if (is_string($prefixes[$this->bin])) {
-          // If $prefixes[$this->bin] is set and not FALSE, that value is used
-          // for the cache bin.
-          $this->prefixes[0] = $this->binaryToHex($prefixes[$this->bin]);
-        }
-      }
-      elseif (isset($prefixes['default']) && is_string($prefixes['default'])) {
-        $this->prefixes[0] = $this->binaryToHex($prefixes['default']);
-      }
-    }
-
-    if (empty($prefixes)) {
-      $this->prefixes[0] = $this->binaryToHex('');
-    }
-  }
-
-  /**
-   * Sets two of the strings used for the APCu storage key.
-   */
-  protected function setDatabasePrefix(): void {
-    global $databases;
-
-    if (isset($databases) && is_array($databases)) {
-      $data = array();
-
-      if (isset($databases['default']['default']) && is_array($databases['default']['default'])) {
-        if (isset($databases['default']['default']['host'])) {
-          $data['host'] = $databases['default']['default']['host'];
-        }
-
-        if (isset($databases['default']['default']['database'])) {
-          $data['database'] = $databases['default']['default']['database'];
-        }
-
-        if (isset($databases['default']['default']['prefix'])) {
-          $data['prefix'] = $databases['default']['default']['prefix'];
-        }
-      }
-
-      $this->prefixes[2] = $this->binaryToHex(serialize($data));
-    }
-
-    if ($test_prefix = backdrop_valid_test_ua()) {
-      $this->prefixes[1] = $this->binaryToHex($test_prefix);
-    }
-    else {
-      $this->prefixes[1] = $this->binaryToHex('');
-    }
-  }
+  protected string $sitePrefix;
 
   public function __construct($bin) {
+    $identifier = 'apc_storage';
+    $prefix = 'backdrop.' . $identifier . '.' . BACKDROP_VERSION . '.' .
+      settings_get('apc_storage_deployment_identifier', '') . '.';
+    $site_path = conf_path();
+
+    if (settings_get('apc_storage_ensure_unique_prefix', TRUE)) {
+      $prefix .= hash_hmac('sha256', $identifier, backdrop_get_hash_salt() . '.' . BACKDROP_ROOT . '/' . $site_path);
+    }
+    else {
+      $prefix .= backdrop_hash_base64(BACKDROP_ROOT . '/' . $site_path);
+    }
+
     $this->bin = $bin;
-
-    $this->setBinPrefix();
-    $this->setDatabasePrefix();
-
-    $data = $this->prefixes[0] . $this->bin . $this->prefixes[1];
-    $data = $this->prefixes[2] . hash('sha256', $data, TRUE);
-    $this->binPrefix = backdrop_base64_encode($data);
+    $this->sitePrefix = $prefix;
+    $this->binPrefix = $this->sitePrefix . '::' . backdrop_base64_encode($this->bin) . '::';
   }
 
   /**
@@ -152,14 +68,8 @@ class ApcStorageCache implements BackdropCacheInterface {
    *   The key which can be used in APC calls to avoid conflicts with other
    *   keys.
    */
-  protected function keyName(string $cid = ''): string {
-    $key_name = $this->modulePrefix . '::' . $this->binPrefix . '::';
-
-    if ($cid != '') {
-      $key_name .= $this->binaryToHex($cid);
-    }
-
-    return $key_name;
+  public function getApcuKey(string $cid = ''): string {
+    return $this->binPrefix . $cid;
   }
 
   /**
@@ -173,7 +83,7 @@ class ApcStorageCache implements BackdropCacheInterface {
     ));
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $data = apcu_fetch($this->keyName($cid), $success);
+      $data = apcu_fetch($this->getApcuKey($cid), $success);
 
       if (!$success) {
         return FALSE;
@@ -204,7 +114,7 @@ class ApcStorageCache implements BackdropCacheInterface {
 
     if (extension_loaded('apcu') && apcu_enabled()) {
       foreach ($cids as $cid) {
-        $data = apcu_fetch($this->keyName($cid), $success);
+        $data = apcu_fetch($this->getApcuKey($cid), $success);
 
         if ($success) {
           $cache[$cid] = $this->prepareItem($data);
@@ -272,7 +182,7 @@ class ApcStorageCache implements BackdropCacheInterface {
           break;
       }
 
-      apcu_store($this->keyName($cid), $cache, $ttl);
+      apcu_store($this->getApcuKey($cid), $cache, $ttl);
     }
   }
 
@@ -287,7 +197,7 @@ class ApcStorageCache implements BackdropCacheInterface {
     ));
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      apcu_delete($this->keyName($cid));
+      apcu_delete($this->getApcuKey($cid));
     }
   }
 
@@ -303,7 +213,7 @@ class ApcStorageCache implements BackdropCacheInterface {
 
     if (extension_loaded('apcu') && apcu_enabled()) {
       foreach ($cids as $cid) {
-        apcu_delete($this->keyName($cid));
+        apcu_delete($this->getApcuKey($cid));
       }
     }
   }
@@ -320,7 +230,7 @@ class ApcStorageCache implements BackdropCacheInterface {
       ));
 
       if (extension_loaded('apcu') && apcu_enabled()) {
-        $escaped_key = preg_quote($this->keyName($prefix), '/');
+        $escaped_key = preg_quote($this->getApcuKey() . $prefix, '/');
         $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
         apcu_delete($iterator);
       }
@@ -390,7 +300,7 @@ class ApcStorageCache implements BackdropCacheInterface {
    */
   public function isEmpty(): bool {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $escaped_key = preg_quote($this->keyName(), '/');
+      $escaped_key = preg_quote($this->getApcuKey(), '/');
       $iterator = new APCUIterator('/^' . $escaped_key . '/', APC_ITER_KEY);
 
       return $iterator->getTotalCount() === 0;

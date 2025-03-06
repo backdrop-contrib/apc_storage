@@ -47,14 +47,14 @@ class ApcStorageCache implements BackdropCacheInterface {
     $site_path = conf_path();
 
     if (settings_get('apc_storage_ensure_unique_prefix', TRUE)) {
-      $prefix .= hash_hmac('sha256', $identifier, backdrop_get_hash_salt() . '.' . BACKDROP_ROOT . '/' . $site_path);
+      $prefix .= hash_hmac('sha256', $identifier, backdrop_get_hash_salt() . '.' . BACKDROP_ROOT . '/' . $site_path, TRUE);
     }
     else {
-      $prefix .= backdrop_hash_base64(BACKDROP_ROOT . '/' . $site_path);
+      $prefix .= BACKDROP_ROOT . '/' . $site_path;
     }
 
     $this->bin = $bin;
-    $this->sitePrefix = $prefix;
+    $this->sitePrefix = backdrop_base64_encode($prefix);
     $this->binPrefix = $this->sitePrefix . '::' . backdrop_base64_encode($this->bin) . '::';
   }
 

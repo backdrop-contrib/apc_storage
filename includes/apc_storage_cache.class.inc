@@ -40,6 +40,34 @@ class ApcStorageCache implements BackdropCacheInterface {
    */
   protected string $sitePrefix;
 
+  /**
+   * Retrieves the list of operations done on the cache.
+   *
+   * @return array
+   *   The list of cache operations.
+   */
+  public static function operations(): array {
+    return self::$operations;
+  }
+
+  /**
+   * Adds a new operation to the list of operations.
+   *
+   * @param array $operation
+   *   The new operation to add.
+   */
+  protected static function addOperation(array $operation): void {
+    // Add the default values for bin and cid.
+    $operation += array(
+      'bin' => '',
+      'cid' => '',
+    );
+
+    if (config_get('apc_storage.admin', 'gather_debug_info')) {
+      self::$operations[] = $operation;
+    }
+  }
+
   public function __construct($bin) {
     $identifier = 'apc_storage';
     $prefix = 'backdrop.' . $identifier . '.' . BACKDROP_VERSION . '.' .
@@ -50,7 +78,7 @@ class ApcStorageCache implements BackdropCacheInterface {
       $prefix .= hash_hmac('sha256', $identifier, backdrop_get_hash_salt() . '.' . BACKDROP_ROOT . '/' . $site_path, TRUE);
     }
     else {
-      $prefix .= BACKDROP_ROOT . '/' . $site_path;
+      $prefix .= hash('sha256', BACKDROP_ROOT . '/' . $site_path, TRUE);
     }
 
     $this->bin = $bin;
@@ -280,34 +308,6 @@ class ApcStorageCache implements BackdropCacheInterface {
     }
 
     return TRUE;
-  }
-
-  /**
-   * Retrieves the list of operations done on the cache.
-   *
-   * @return array
-   *   The list of cache operations.
-   */
-  public static function operations(): array {
-    return self::$operations;
-  }
-
-  /**
-   * Adds a new operation to the list of operations.
-   *
-   * @param array $operation
-   *   The new operation to add.
-   */
-  protected static function addOperation(array $operation): void {
-    // Add the default values for bin and cid.
-    $operation += array(
-      'bin' => '',
-      'cid' => '',
-    );
-
-    if (config_get('apc_storage.admin', 'gather_debug_info')) {
-      self::$operations[] = $operation;
-    }
   }
 
 }

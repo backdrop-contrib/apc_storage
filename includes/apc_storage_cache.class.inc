@@ -260,7 +260,7 @@ class ApcStorageCache implements BackdropCacheInterface {
     ));
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $iterator = new APCUIterator('/^apc_storage_cache::[a-zA-Z0-9-_]{40,46}::[0-9a-f]{2,}/', APC_ITER_KEY);
+      $iterator = new APCUIterator('/^apc_storage_cache::[a-zA-Z0-9-_]{4,}::[0-9a-f]{2,}/', APC_ITER_KEY);
       apcu_delete($iterator);
       return TRUE;
     }

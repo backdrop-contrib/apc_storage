@@ -271,30 +271,6 @@ class ApcStorageCache implements BackdropCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public function clear($cid = NULL, $wildcard = FALSE): void {
-    if (empty($cid) || ($wildcard && $cid == '*')) {
-      $this->deletePrefix();
-      return;
-    }
-
-    if ($wildcard) {
-      if (is_string($cid)) {
-        $this->deletePrefix($cid);
-      }
-    }
-    elseif (is_array($cid)) {
-      foreach ($cid as $entry) {
-        $this->delete($entry);
-      }
-    }
-    elseif (is_string($cid)) {
-      $this->delete($cid);
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function isEmpty(): bool {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $escaped_key = preg_quote($this->getApcuKey(), '/');

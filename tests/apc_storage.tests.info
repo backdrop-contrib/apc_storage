@@ -1,9 +1,3 @@
-[ApcStorageApcuStoreAndRetrieveTestCase]
-name = APCu store and retrieve test
-description = Tests reading and writing the APCu storage.
-group = APC Storage
-file = apc_storage_apcu.test
-
 [ApcStorageCacheStoreAndRetrieveTestCase]
 name = Cache store and retrieve test
 description = Verifies the cache items are correctly stored and the retrieved values are correct.

@@ -221,7 +221,7 @@ class ApcStorageCache implements BackdropCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public function deletePrefix($prefix): void {
+  public function deletePrefix($prefix = ''): void {
     if (is_string($prefix)) {
       $this->addOperation(array(
         'method' => 'deletePrefix()',
@@ -241,7 +241,7 @@ class ApcStorageCache implements BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function flush(): void {
-    $this->deletePrefix('');
+    $this->deletePrefix();
   }
 
   public function garbageCollection() {
@@ -273,12 +273,12 @@ class ApcStorageCache implements BackdropCacheInterface {
    */
   public function clear($cid = NULL, $wildcard = FALSE): void {
     if (empty($cid)) {
-      $this->deletePrefix('');
+      $this->deletePrefix();
     }
     else {
       if ($wildcard) {
         if ($cid == '*') {
-          $this->deletePrefix('');
+          $this->deletePrefix();
         }
         else {
           $this->deletePrefix($cid);

@@ -1,6 +1,6 @@
-name = APC Storage - Admin Pages
+name = APC Storage Admin Pages
 description = Administration pages for the APC Storage module.
-package = User Interface
+package = Development
 backdrop = 1.x
 php = 8.3
 type = module

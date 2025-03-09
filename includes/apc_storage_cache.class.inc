@@ -260,6 +260,7 @@ class ApcStorageCache implements BackdropCacheInterface {
       if (extension_loaded('apcu') && apcu_enabled()) {
         $escaped_key = preg_quote($this->getApcuKey() . $prefix, '/');
         $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
+
         apcu_delete($iterator);
       }
     }

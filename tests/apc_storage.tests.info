@@ -1,14 +1,8 @@
-[ApcStorageCacheStoreAndRetrieveTestCase]
-name = Cache store and retrieve test
-description = Verifies the cache items are correctly stored and the retrieved values are correct.
+[ApcStorageApcuCacheTestCase]
+name = APCu cache implementation test
+description = Tests the APCu cache implementation.
 group = APC Storage
-file = apc_storage_cache.test
-
-[ApcStorageCacheClearTestCase]
-name = Cache clear test
-description = Tests calling cache_clear_all() with various arguments.
-group = APC Storage
-file = apc_storage_cache.test
+file = apc_storage_apcu_cache.test
 
 [ApcStorageLockTestCase]
 name = Lock implementation test

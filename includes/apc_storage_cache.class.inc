@@ -240,9 +240,7 @@ class ApcStorageCache implements BackdropCacheInterface {
     ));
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      foreach ($cids as $cid) {
-        apcu_delete($this->getApcuKey($cid));
-      }
+      apcu_delete(array_map(array($this, 'getApcuKey'), $cids));
     }
   }
 

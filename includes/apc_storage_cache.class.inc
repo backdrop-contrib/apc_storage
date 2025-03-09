@@ -249,7 +249,7 @@ class ApcStorageCache implements BackdropCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public function deletePrefix($prefix = ''): void {
+  public function deletePrefix($prefix): void {
     if (is_string($prefix)) {
       $this->addOperation(array(
         'method' => 'deletePrefix()',
@@ -270,7 +270,14 @@ class ApcStorageCache implements BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function flush(): void {
-    $this->deletePrefix();
+    $this->addOperation(array('method' => 'flush()', 'bin' => $this->bin));
+
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      $escaped_key = preg_quote($this->getApcuKey(), '/');
+      $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
+
+      apcu_delete($iterator);
+    }
   }
 
   public function garbageCollection() {

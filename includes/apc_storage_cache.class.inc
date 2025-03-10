@@ -93,8 +93,7 @@ class ApcStorageCache implements BackdropCacheInterface {
    *   The cache ID.
    *
    * @return string
-   *   The key which can be used in APC calls to avoid conflicts with other
-   *   keys.
+   *   The key to use with APCu functions to get, set, or delete a cache item.
    */
   public function getApcuKey(string $cid = ''): string {
     return $this->binPrefix . $cid;

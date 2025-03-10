@@ -128,6 +128,7 @@ class ApcStorageCache implements BackdropCacheInterface {
    */
   public function getMultiple(&$cids): array {
     $cache = array();
+    $map = array();
 
     // Add a get to our statistics.
     $this->addOperation(array(
@@ -142,10 +143,17 @@ class ApcStorageCache implements BackdropCacheInterface {
 
     if (extension_loaded('apcu') && apcu_enabled()) {
       foreach ($cids as $cid) {
-        $data = apcu_fetch($this->getApcuKey($cid), $success);
+        $map[$this->getApcuKey($cid)] = $cid;
+      }
 
-        if ($success) {
-          $cache[$cid] = $this->prepareItem($data);
+      $result = apcu_fetch(array_keys($map), $success);
+
+      if ($success) {
+        foreach ($result as $key => $item) {
+          $item = $this->prepareItem($item);
+          if ($item) {
+            $cache[$map[$key]] = $item;
+          }
         }
       }
 

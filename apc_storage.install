@@ -22,7 +22,7 @@ function apc_storage_requirements($phase): array {
     $apcu_version = phpversion('apcu');
 
     if ($apcu_version === FALSE) {
-      $severity = drupal_is_cli() ? REQUIREMENT_INFO : REQUIREMENT_ERROR;
+      $severity = backdrop_is_cli() ? REQUIREMENT_INFO : REQUIREMENT_ERROR;
       $requirements['apc_storage']['description'] = $t(
         'The APC Storage module requires the APCu extension.'
       );
@@ -60,7 +60,7 @@ function apc_storage_requirements($phase): array {
       $requirements['apc_storage']['severity'] = REQUIREMENT_INFO;
     }
     elseif (!apcu_enabled()) {
-      $severity = drupal_is_cli() ? REQUIREMENT_INFO : REQUIREMENT_ERROR;
+      $severity = backdrop_is_cli() ? REQUIREMENT_INFO : REQUIREMENT_ERROR;
       $requirements['apc_storage']['description'] = $t(
         'The APC Storage module requires the APCu extension.'
       );

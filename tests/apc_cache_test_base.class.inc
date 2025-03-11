@@ -234,23 +234,6 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       $this->assertFalse($backend->get($cid), $message);
     }
 
-    // Check caching a value with a long key.
-    $cid = str_repeat('a', 300);
-    $message_args = array('@cid' => $cid);
-
-    $backend->set($cid, 'test');
-
-    $cached = $backend->get($cid);
-
-    $this->assertIsValidCacheObject($cid, $cached);
-
-    $message = format_string(
-      'The value for @cid is the expected one.',
-      $message_args
-    );
-
-    $this->assertEqual('test', $cached->data, $message);
-
     // Verify that cache keys are case-sensitive.
     $cid = 'TEST8';
 

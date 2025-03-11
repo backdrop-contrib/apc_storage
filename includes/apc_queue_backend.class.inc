@@ -49,7 +49,7 @@ class ApcQueueBackend implements BackdropQueueInterface {
     if ($length < 0) {
       $length = abs($length);
     }
-    else if ($length === 0) {
+    elseif ($length === 0) {
       return '';
     }
 

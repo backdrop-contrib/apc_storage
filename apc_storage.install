@@ -81,7 +81,7 @@ function apc_storage_requirements($phase): array {
 /**
  * Implements hook_uninstall().
  */
-function apc_uninstall(): void {
-  ApcStorageCache::deleteAllStoredData();
-  ApcStorageLock::deleteAllStoredData();
+function apc_storage_uninstall(): void {
+  ApcCacheBackend::deleteAllStoredData();
+  ApcLockBackend::deleteAllStoredData();
 }

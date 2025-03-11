@@ -84,4 +84,5 @@ function apc_storage_requirements($phase): array {
 function apc_storage_uninstall(): void {
   ApcCacheBackend::deleteAllStoredData();
   ApcLockBackend::deleteAllStoredData();
+  ApcQueueBackend::deleteAllStoredData();
 }

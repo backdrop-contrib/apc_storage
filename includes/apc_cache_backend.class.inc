@@ -290,7 +290,7 @@ class ApcCacheBackend implements \BackdropCacheInterface {
   }
 
   /**
-   * Deletes all the cache data stored by ApcStorageCache.
+   * Deletes all the cache data stored by ApcCacheBackend.
    *
    * @return bool
    *   TRUE if the data was successfully deleted, FALSE otherwise.

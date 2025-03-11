@@ -140,7 +140,7 @@ class ApcLockBackend {
           // In this case, the insert must have failed meaning some other
           // request acquired the lock but did not release it.
           // We decide whether to retry by checking
-          // ApcStorageLock::maybeAvailable(), since this will break the lock in
+          // ApcLockBackend::maybeAvailable(), since this will break the lock in
           // case it is expired.
           $retry = !$retry && $this->maybeAvailable();
         }
@@ -222,7 +222,7 @@ class ApcLockBackend {
   }
 
   /**
-   * Releases a lock previously acquired by ApcStorageLock::acquire().
+   * Releases a lock previously acquired by ApcLockBackend::acquire().
    *
    * This will release the named lock if it is still held by the current
    * request.
@@ -248,7 +248,7 @@ class ApcLockBackend {
   }
 
   /**
-   * Deletes all the lock data stored by ApcStorageLock.
+   * Deletes all the lock data stored by ApcLockBackend.
    *
    * @return bool
    *   TRUE if the data was successfully deleted, FALSE otherwise.

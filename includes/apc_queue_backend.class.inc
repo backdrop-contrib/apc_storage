@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcStorageQueue.
+ * Contains ApcQueueBackend.
  */
 
 declare(strict_types=1);
@@ -14,7 +14,7 @@ use Random\Randomizer;
 /**
  * An APCu-based queue implementation.
  */
-class ApcStorageQueue implements BackdropQueueInterface {
+class ApcQueueBackend implements BackdropQueueInterface {
 
   /**
    * The randomizer instance used for generating random IDs.
@@ -55,7 +55,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
 
     if (!isset(self::$randomizer)) {
       try {
-        $engine = new Xoshiro256StarStar(hash('sha256', hrtime(TRUE) . 'apc_storage_queue_', TRUE));
+        $engine = new Xoshiro256StarStar(hash('sha256', hrtime(TRUE) . 'apc_storage_apcu_queue_', TRUE));
         self::$randomizer = new Randomizer($engine);
       }
       catch (ValueError) {
@@ -97,7 +97,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
    *   APCu queue.
    */
   protected function keyName(object $item): string {
-    return 'apc_storage_queue::' .
+    return 'apc_storage_apcu_queue::' .
       backdrop_base64_encode($this->name) . '::' .
       backdrop_base64_encode($item->item_id);
   }
@@ -124,7 +124,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
   public function numberOfItems(): int {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $name = preg_quote(backdrop_base64_encode($this->name), '/');
-      $iterator = new APCUIterator("/^apc_storage_queue::$name::[a-zA-Z0-9-_]+$/");
+      $iterator = new APCUIterator("/^apc_storage_apcu_queue::$name::[a-zA-Z0-9-_]+$/");
 
       return $iterator->getTotalCount();
     }
@@ -138,7 +138,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
   public function claimItem($lease_time = 30): ?object {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $name = preg_quote(backdrop_base64_encode($this->name), '/');
-      $iterator = new APCUIterator("/^apc_storage_queue::$name::[a-zA-Z0-9-_]+$/");
+      $iterator = new APCUIterator("/^apc_storage_apcu_queue::$name::[a-zA-Z0-9-_]+$/");
 
       foreach ($iterator as $item) {
         if (!isset($item['value']->expire)) {
@@ -200,7 +200,7 @@ class ApcStorageQueue implements BackdropQueueInterface {
   public function deleteQueue(): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $name = preg_quote(backdrop_base64_encode($this->name), '/');
-      $iterator = new APCUIterator("/^apc_storage_queue::$name::[a-zA-Z0-9-_]+$/");
+      $iterator = new APCUIterator("/^apc_storage_apcu_queue::$name::[a-zA-Z0-9-_]+$/");
 
       apcu_delete($iterator);
     }

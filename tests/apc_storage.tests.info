@@ -1,17 +1,17 @@
-[ApcStorageApcuCacheTestCase]
+[ApcCacheTestCase]
 name = APCu cache implementation test
 description = Tests the APCu cache implementation.
 group = APC Storage
-file = apc_storage_apcu_cache.test
+file = apc_cache.test
 
-[ApcStorageLockTestCase]
+[ApcLockTestCase]
 name = Lock implementation test
 description = Tests the APCu lock implementation.
 group = APC Storage
-file = apc_storage_lock.test
+file = apc_lock.test
 
-[ApcStorageQueueTestCase]
+[ApcQueueTestCase]
 name = Queue implementation test
 description = Tests the APCu queue implementation.
 group = APC Storage
-file = apc_storage_queue.test
+file = apc_queue.test

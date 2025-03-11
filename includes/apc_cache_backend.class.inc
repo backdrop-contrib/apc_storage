@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcStorageCache.
+ * Contains ApcCacheBackend.
  */
 
 declare(strict_types=1);
@@ -10,7 +10,7 @@ declare(strict_types=1);
 /**
  * APCu cache implementation.
  */
-class ApcStorageCache implements BackdropCacheInterface {
+class ApcCacheBackend implements \BackdropCacheInterface {
 
   /**
    * The list of all the operations done to the cache.
@@ -190,7 +190,7 @@ class ApcStorageCache implements BackdropCacheInterface {
 
     if (extension_loaded('apcu') && apcu_enabled()) {
       // Create new cache object.
-      $cache = new stdClass();
+      $cache = new \stdClass();
       $cache->cid = $cid;
       $cache->created = REQUEST_TIME;
       $cache->expire = $expire;
@@ -264,7 +264,7 @@ class ApcStorageCache implements BackdropCacheInterface {
 
       if (extension_loaded('apcu') && apcu_enabled()) {
         $escaped_key = preg_quote($this->getApcuKey() . $prefix, '/');
-        $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
+        $iterator = new \APCUIterator("/^$escaped_key/", APC_ITER_KEY);
 
         apcu_delete($iterator);
       }
@@ -279,7 +279,7 @@ class ApcStorageCache implements BackdropCacheInterface {
 
     if (extension_loaded('apcu') && apcu_enabled()) {
       $escaped_key = preg_quote($this->getApcuKey(), '/');
-      $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
+      $iterator = new \APCUIterator("/^$escaped_key/", APC_ITER_KEY);
 
       apcu_delete($iterator);
     }
@@ -301,7 +301,7 @@ class ApcStorageCache implements BackdropCacheInterface {
     ));
 
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $iterator = new APCUIterator('/^apc_storage_cache::[a-zA-Z0-9-_]{4,}::[0-9a-f]{2,}/', APC_ITER_KEY);
+      $iterator = new \APCUIterator('/^apc_storage_apcu_cache::[a-zA-Z0-9-_]{4,}::[0-9a-f]{2,}/', APC_ITER_KEY);
       apcu_delete($iterator);
       return TRUE;
     }
@@ -315,7 +315,7 @@ class ApcStorageCache implements BackdropCacheInterface {
   public function isEmpty(): bool {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $escaped_key = preg_quote($this->getApcuKey(), '/');
-      $iterator = new APCUIterator('/^' . $escaped_key . '/', APC_ITER_KEY);
+      $iterator = new \APCUIterator('/^' . $escaped_key . '/', APC_ITER_KEY);
 
       return $iterator->getTotalCount() === 0;
     }

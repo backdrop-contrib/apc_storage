@@ -7,6 +7,8 @@
 
 declare(strict_types=1);
 
+use apc_storage\Cache\ApcuBackend;
+
 function apc_storage_admin_menu(): array {
   return array(
     'admin/config/development/apc_storage' => array(
@@ -39,7 +41,7 @@ function apc_storage_admin_permission(): array {
  */
 function apc_storage_admin_page_alter(&$page): void {
   if (config_get('apc_storage.admin', 'gather_debug_info') && user_access('access APC Storage reports')) {
-    $operations = ApcStorageCache::operations();
+    $operations = ApcuBackend::operations();
     $rows = array();
 
     if (!empty($operations)) {
@@ -93,7 +95,7 @@ function apc_storage_admin_form_system_performance_settings_alter(&$form, &$form
  * Submission form handler for system_performance_settings().
  */
 function apc_storage_admin_clear_apcu_cache(): void {
-  if (ApcStorageCache::deleteAllStoredData()) {
+  if (ApcuBackend::deleteAllStoredData()) {
     backdrop_set_message(t('The APCu cache has been cleared.'));
   }
   else {

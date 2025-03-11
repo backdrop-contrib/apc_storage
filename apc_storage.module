@@ -10,8 +10,8 @@
  */
 function apc_storage_autoload_info(): array {
   return array(
-    'ApcStorageCache' => 'includes/apc_storage_cache.class.inc',
-    'ApcStorageLock' => 'includes/apc_storage_lock.class.inc',
-    'ApcStorageQueue' => 'includes/apc_storage_queue.class.inc',
+    'ApcCacheBackend' => 'includes/apc_cache_backend.class.inc',
+    'ApcLockBackend' => 'includes/apc_lock_backend.class.inc',
+    'ApcQueueBackend' => 'includes/apc_queue_backend.class.inc',
   );
 }

@@ -2,17 +2,17 @@
 
 /**
  * @file
- * Contains ApcStorageLockTestCase.
+ * Contains ApcLockTestCase.
  */
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/apc_storage_test_base.class.inc';
+require_once __DIR__ . '/apc_test_base.class.inc';
 
 /**
  * Tests for the lock implementation.
  */
-class ApcStorageLockTestCase extends ApcStorageTestBase {
+class ApcLockTestCase extends ApcTestBase {
 
   /**
    * The names of the locks used by tests.
@@ -26,7 +26,7 @@ class ApcStorageLockTestCase extends ApcStorageTestBase {
    */
   protected function tearDown(): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      ApcStorageLock::releaseAll();
+      ApcLockBackend::releaseAll();
     }
 
     parent::tearDown();
@@ -48,7 +48,7 @@ class ApcStorageLockTestCase extends ApcStorageTestBase {
     $count = 0;
 
     foreach ($this->lockNames as $name) {
-      ApcStorageLock::get($name);
+      ApcLockBackend::get($name);
       $count++;
     }
 
@@ -67,7 +67,7 @@ class ApcStorageLockTestCase extends ApcStorageTestBase {
    */
   protected function acquireLocks(float $timeout): void {
     foreach ($this->lockNames as $name) {
-      $lock = ApcStorageLock::get($name);
+      $lock = ApcLockBackend::get($name);
       $message = format_string(
         'The @name lock has been acquired for @timeout seconds.',
         array('@name' => $name, '@timeout' => (int) round($timeout))
@@ -89,7 +89,7 @@ class ApcStorageLockTestCase extends ApcStorageTestBase {
       sleep($delay);
 
       foreach ($this->lockNames as $name) {
-        $lock = ApcStorageLock::get($name);
+        $lock = ApcLockBackend::get($name);
         $message = format_string(
           'The @name lock is not available after @delay seconds.',
           array('@name' => $name, '@delay' => $delay)
@@ -106,7 +106,7 @@ class ApcStorageLockTestCase extends ApcStorageTestBase {
       $count = 0;
 
       foreach ($this->lockNames as $name) {
-        $lock = ApcStorageLock::get($name);
+        $lock = ApcLockBackend::get($name);
         $message = format_string(
           'The @name lock is available after further @delay seconds.',
           array('@name' => $name, '@delay' => $delay)
@@ -124,13 +124,13 @@ class ApcStorageLockTestCase extends ApcStorageTestBase {
   }
 
   /**
-   * Tests that ApcStorageLock::wait() works correctly.
+   * Tests that ApcLockBackend::wait() works correctly.
    */
   public function testWait(): void {
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
       $this->acquireLocks(2.0);
 
-      $lock = ApcStorageLock::get($this->lockNames[0]);
+      $lock = ApcLockBackend::get($this->lockNames[0]);
       $message = format_string(
         'The @name lock is available after waiting for @timeout seconds.',
         array(
@@ -139,23 +139,23 @@ class ApcStorageLockTestCase extends ApcStorageTestBase {
         )
       );
 
-      // If the lock is available, ApcStorageLock::wait() returns FALSE.
+      // If the lock is available, ApcLockBackend::wait() returns FALSE.
       $this->assertFalse($lock->wait(2.0), $message);
     }
   }
 
   /**
-   * Tests that ApcStorageLock::release() works correctly.
+   * Tests that ApcLockBackend::release() works correctly.
    *
-   * After ApcStorageLock::release() has been called,
-   * ApcStorageLock::maybeAvailable() will return TRUE.
+   * After ApcLockBackend::release() has been called,
+   * ApcLockBackend::maybeAvailable() will return TRUE.
    */
   public function testRelease(): void {
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
       $this->acquireLocks(4.0);
 
       foreach ($this->lockNames as $name) {
-        if ($lock = ApcStorageLock::get($name)) {
+        if ($lock = ApcLockBackend::get($name)) {
           $lock->release();
         }
       }
@@ -163,7 +163,7 @@ class ApcStorageLockTestCase extends ApcStorageTestBase {
       $count = 0;
 
       foreach ($this->lockNames as $name) {
-        if ($lock = ApcStorageLock::get($name)) {
+        if ($lock = ApcLockBackend::get($name)) {
           $message = format_string(
             'The @name lock is available after it has been released.',
             array('@name' => $name)
@@ -182,20 +182,20 @@ class ApcStorageLockTestCase extends ApcStorageTestBase {
   }
 
   /**
-   * Tests that ApcStorageLock::releaseAll() works correctly.
+   * Tests that ApcLockBackend::releaseAll() works correctly.
    *
-   * After ApcStorageLock::releaseAll() has been called,
-   * ApcStorageLock::maybeAvailable() will return FALSE.
+   * After ApcLockBackend::releaseAll() has been called,
+   * ApcLockBackend::maybeAvailable() will return FALSE.
    */
   public function testReleaseAll(): void {
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
       $this->acquireLocks(4.0);
-      ApcStorageLock::releaseAll();
+      ApcLockBackend::releaseAll();
 
       $count = 0;
 
       foreach ($this->lockNames as $name) {
-        if ($lock = ApcStorageLock::get($name)) {
+        if ($lock = ApcLockBackend::get($name)) {
           $message = format_string(
             "The @name lock is available.",
             array(

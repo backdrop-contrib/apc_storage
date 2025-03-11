@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcStorageTestBase.
+ * Contains ApcTestBase.
  */
 
 declare(strict_types=1);
@@ -14,7 +14,7 @@ use Random\Randomizer;
 /**
  * Base class for the APC Storage tests.
  */
-class ApcStorageTestBase extends BackdropWebTestCase {
+class ApcTestBase extends BackdropWebTestCase {
 
   /**
    * {@inheritdoc}

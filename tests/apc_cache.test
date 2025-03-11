@@ -2,23 +2,23 @@
 
 /**
  * @file
- * Contains ApcStorageApcuCacheTestCase.
+ * Contains ApcCacheTestCase.
  */
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/apc_storage_cache_test_base.class.inc';
+require_once __DIR__ . '/apc_cache_test_base.class.inc';
 
 /**
  * Tests for the APCu cache implementation.
  */
-class ApcStorageApcuCacheTestCase extends ApcStorageCacheTestBase {
+class ApcCacheTestCase extends ApcCacheTestBase {
 
   /**
    * {@inheritdoc}
    */
   protected function createCacheBackend(string $bin): BackdropCacheInterface {
-    return new ApcStorageCache($bin);
+    return new ApcCacheBackend($bin);
   }
 
 }

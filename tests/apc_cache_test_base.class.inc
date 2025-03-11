@@ -2,14 +2,14 @@
 
 /**
  * @file
- * Contains ApcStorageCacheTestBase.
+ * Contains ApcCacheTestBase.
  */
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/apc_storage_test_base.class.inc';
+require_once __DIR__ . '/apc_test_base.class.inc';
 
-abstract class ApcStorageCacheTestBase extends ApcStorageTestBase {
+abstract class ApcCacheTestBase extends ApcTestBase {
 
   /**
    * The default cache bin used for the tests.

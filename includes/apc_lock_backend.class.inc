@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcStorageLock.
+ * Contains ApcLockBackend.
  */
 
 declare(strict_types=1);
@@ -16,12 +16,12 @@ use Random\Randomizer;
  *
  * @internal This class should only be used by the APC Storage module.
  */
-class ApcStorageLock {
+class ApcLockBackend {
 
   /**
    * The locks acquired in the current request.
    *
-   * @var ApcStorageLock[]
+   * @var self[]
    */
   protected static array $locks = array();
 
@@ -62,11 +62,11 @@ class ApcStorageLock {
       catch (RandomException) {
         // Use a fallback in case random_bytes() fails.
         try {
-          $engine = new Xoshiro256StarStar(hash('sha256', hrtime(TRUE) . 'apc_storage_lock_', TRUE));
+          $engine = new Xoshiro256StarStar(hash('sha256', hrtime(TRUE) . 'apc_storage_apcu_lock_', TRUE));
           $randomizer = new Randomizer($engine);
           self::$uniqueId = $randomizer->getBytes(32);
         }
-        catch (\ValueError) {
+        catch (ValueError) {
           // This exception should never be thrown because the seed passed to
           // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
           // and those are not all zeros.
@@ -86,7 +86,7 @@ class ApcStorageLock {
 
   private function __construct(string $name) {
     $this->name = $name;
-    $this->key = 'apc_storage_lock::' .
+    $this->key = 'apc_storage_apcu_lock::' .
       backdrop_base64_encode(self::$uniqueId) . '::' .
       backdrop_base64_encode($this->name);
   }
@@ -239,7 +239,7 @@ class ApcStorageLock {
   public static function releaseAll(): void {
     if (!empty(self::$uniqueId)) {
       if (extension_loaded('apcu') && apcu_enabled()) {
-        $key = preg_quote('apc_storage_lock::' . backdrop_base64_encode(self::$uniqueId) . '::', '/');
+        $key = preg_quote('apc_storage_apcu_lock::' . backdrop_base64_encode(self::$uniqueId) . '::', '/');
         $iterator = new APCUIterator('/^' . $key. '[a-zA-Z0-9-_]+$/', APC_ITER_KEY);
 
         apcu_delete($iterator);
@@ -255,7 +255,7 @@ class ApcStorageLock {
    */
   public static function deleteAllStoredData(): bool {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $iterator = new APCUIterator('/^apc_storage_lock::[a-zA-Z0-9-_]+::[a-zA-Z0-9-_]+$/', APC_ITER_KEY);
+      $iterator = new APCUIterator('/^apc_storage_apcu_lock::[a-zA-Z0-9-_]+::[a-zA-Z0-9-_]+$/', APC_ITER_KEY);
       apcu_delete($iterator);
 
       return TRUE;

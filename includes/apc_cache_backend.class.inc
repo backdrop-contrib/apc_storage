@@ -38,7 +38,7 @@ class ApcCacheBackend implements BackdropCacheInterface {
    *
    * @var string
    */
-  protected string $sitePrefix;
+  protected string $sitePrefix = 'apc_storage_apcu_cache::';
 
   /**
    * Retrieves the list of operations done on the cache.
@@ -82,7 +82,7 @@ class ApcCacheBackend implements BackdropCacheInterface {
     }
 
     $this->bin = $bin;
-    $this->sitePrefix = backdrop_base64_encode($prefix);
+    $this->sitePrefix .= backdrop_base64_encode($prefix);
     $this->binPrefix = $this->sitePrefix . '::' . backdrop_base64_encode($this->bin) . '::';
   }
 
@@ -287,26 +287,6 @@ class ApcCacheBackend implements BackdropCacheInterface {
 
   public function garbageCollection() {
     // Expired items are automatically deleted by the APCu extension.
-  }
-
-  /**
-   * Deletes all the cache data stored by ApcCacheBackend.
-   *
-   * @return bool
-   *   TRUE if the data was successfully deleted, FALSE otherwise.
-   */
-  public static function deleteAllStoredData(): bool {
-    self::addOperation(array(
-      'method' => 'deleteAllStoredData()',
-    ));
-
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      $iterator = new APCUIterator('/^apc_storage_apcu_cache::[a-zA-Z0-9-_]{4,}::[0-9a-f]{2,}/', APC_ITER_KEY);
-      apcu_delete($iterator);
-      return TRUE;
-    }
-
-    return FALSE;
   }
 
   /**

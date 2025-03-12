@@ -247,21 +247,4 @@ class ApcLockBackend {
     }
   }
 
-  /**
-   * Deletes all the lock data stored by ApcLockBackend.
-   *
-   * @return bool
-   *   TRUE if the data was successfully deleted, FALSE otherwise.
-   */
-  public static function deleteAllStoredData(): bool {
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      $iterator = new APCUIterator('/^apc_storage_apcu_lock::[a-zA-Z0-9-_]+::[a-zA-Z0-9-_]+$/', APC_ITER_KEY);
-      apcu_delete($iterator);
-
-      return TRUE;
-    }
-
-    return FALSE;
-  }
-
 }

@@ -82,7 +82,9 @@ function apc_storage_requirements($phase): array {
  * Implements hook_uninstall().
  */
 function apc_storage_uninstall(): void {
-  ApcCacheBackend::deleteAllStoredData();
-  ApcLockBackend::deleteAllStoredData();
-  ApcQueueBackend::deleteAllStoredData();
+  if (extension_loaded('apcu') && apcu_enabled()) {
+    $regex = '/^(apc_storage_apcu_cache|apc_storage_apcu_lock|apc_storage_apcu_queue)::/';
+
+    apcu_delete(new APCUIterator($regex));
+  }
 }

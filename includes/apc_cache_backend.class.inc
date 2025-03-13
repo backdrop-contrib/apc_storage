@@ -20,6 +20,13 @@ class ApcCacheBackend implements BackdropCacheInterface {
   protected static array $operations = array();
 
   /**
+   * The identifier used to generate unique APCu keys.
+   *
+   * @var string
+   */
+  protected string $identifier = 'apc_storage_cache';
+
+  /**
    * The cache bin.
    *
    * @var string
@@ -69,16 +76,24 @@ class ApcCacheBackend implements BackdropCacheInterface {
   }
 
   public function __construct($bin) {
-    $identifier = 'apc_storage';
-    $prefix = 'backdrop.' . $identifier . '.' . BACKDROP_VERSION . '.' .
+    $prefix = $this->identifier . '.' . 'backdrop.' . BACKDROP_VERSION . '.' .
       settings_get('apc_storage_deployment_identifier', '') . '.';
     $site_path = conf_path();
 
     if (settings_get('apc_storage_ensure_unique_prefix', TRUE)) {
-      $prefix .= hash_hmac('sha256', $identifier, backdrop_get_hash_salt() . '.' . BACKDROP_ROOT . '/' . $site_path, TRUE);
+      $prefix .= hash_hmac(
+        'sha256',
+        $this->identifier,
+        backdrop_get_hash_salt() . '.' . BACKDROP_ROOT . '/' . $site_path,
+        TRUE
+      );
     }
     else {
-      $prefix .= hash('sha256', BACKDROP_ROOT . '/' . $site_path, TRUE);
+      $prefix .= hash(
+        'sha256',
+        BACKDROP_ROOT . '/' . $site_path,
+        TRUE
+      );
     }
 
     $this->bin = $bin;

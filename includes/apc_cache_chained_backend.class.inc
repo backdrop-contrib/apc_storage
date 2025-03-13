@@ -20,6 +20,11 @@ class ApcCacheChainedBackend extends ApcCacheBackend {
   /**
    * {@inheritdoc}
    */
+  protected string $identifier = 'apc_storage_chained_cache';
+
+  /**
+   * {@inheritdoc}
+   */
   protected string $sitePrefix = 'apc_storage_chained_cache::';
 
   /**

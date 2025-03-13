@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Contains ApcChainedCacheTestCase.
+ */
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/apc_cache_test_base.class.inc';
+
+/**
+ * Tests for the APCu cache implementation.
+ */
+class ApcChainedCacheTestCase extends ApcCacheTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function createCacheBackend(string $bin): BackdropCacheInterface {
+    return new ApcCacheChainedBackend($bin);
+  }
+
+}

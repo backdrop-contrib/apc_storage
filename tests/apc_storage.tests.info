@@ -4,6 +4,12 @@ description = Tests the APCu cache implementation.
 group = APC Storage
 file = apc_cache.test
 
+[ApcChainedCacheTestCase]
+name = APCu chained cache implementation test
+description = Tests the APCu chained cache implementation.
+group = APC Storage
+file = apc_chained_cache.test
+
 [ApcLockTestCase]
 name = Lock implementation test
 description = Tests the APCu lock implementation.

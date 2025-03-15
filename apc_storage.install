@@ -83,7 +83,7 @@ function apc_storage_requirements($phase): array {
  */
 function apc_storage_uninstall(): void {
   if (extension_loaded('apcu') && apcu_enabled()) {
-    $regex = '/^(apc_storage_apcu_cache|apc_storage_apcu_lock|apc_storage_apcu_queue)::/';
+    $regex = '/^(apc_storage_cache|apc_storage_chained_cache|apc_storage_lock|apc_storage_queue)::/';
 
     apcu_delete(new APCUIterator($regex));
   }

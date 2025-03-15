@@ -13,13 +13,6 @@ declare(strict_types=1);
 class ApcCacheBackend implements BackdropCacheInterface {
 
   /**
-   * The list of all the operations done to the cache.
-   *
-   * @var array
-   */
-  protected static array $operations = array();
-
-  /**
    * The identifier used to generate unique APCu keys.
    *
    * @var string
@@ -45,35 +38,7 @@ class ApcCacheBackend implements BackdropCacheInterface {
    *
    * @var string
    */
-  protected string $sitePrefix = 'apc_storage_apcu_cache::';
-
-  /**
-   * Retrieves the list of operations done on the cache.
-   *
-   * @return array
-   *   The list of cache operations.
-   */
-  public static function operations(): array {
-    return self::$operations;
-  }
-
-  /**
-   * Adds a new operation to the list of operations.
-   *
-   * @param array $operation
-   *   The new operation to add.
-   */
-  protected static function addOperation(array $operation): void {
-    // Add the default values for bin and cid.
-    $operation += array(
-      'bin' => '',
-      'cid' => '',
-    );
-
-    if (config_get('apc_storage.admin', 'gather_debug_info')) {
-      self::$operations[] = $operation;
-    }
-  }
+  protected string $sitePrefix = 'apc_storage_cache::';
 
   public function __construct($bin) {
     $prefix = $this->identifier . '.' . 'backdrop.' . BACKDROP_VERSION . '.' .
@@ -118,12 +83,6 @@ class ApcCacheBackend implements BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function get($cid): object|false {
-    $this->addOperation(array(
-      'method' => 'get()',
-      'bin' => $this->bin,
-      'cid' => array($cid),
-    ));
-
     if (extension_loaded('apcu') && apcu_enabled()) {
       $data = apcu_fetch($this->getApcuKey($cid), $success);
 
@@ -143,13 +102,6 @@ class ApcCacheBackend implements BackdropCacheInterface {
   public function getMultiple(&$cids): array {
     $cache = array();
     $map = array();
-
-    // Add a get to our statistics.
-    $this->addOperation(array(
-      'method' => 'getMultiple()',
-      'bin' => $this->bin,
-      'cids' => $cids,
-    ));
 
     if (!$cids) {
       return $cache;
@@ -197,12 +149,6 @@ class ApcCacheBackend implements BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function set($cid, $data, $expire = CACHE_PERMANENT): void {
-    $this->addOperation(array(
-      'method' => 'set()',
-      'bin' => $this->bin,
-      'cid' => array($cid),
-    ));
-
     if (extension_loaded('apcu') && apcu_enabled()) {
       // Create new cache object.
       $cache = new stdClass();
@@ -240,12 +186,6 @@ class ApcCacheBackend implements BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function delete($cid): void {
-    $this->addOperation(array(
-      'method' => 'delete()',
-      'bin' => $this->bin,
-      'cid' => array($cid),
-    ));
-
     if (extension_loaded('apcu') && apcu_enabled()) {
       apcu_delete($this->getApcuKey($cid));
     }
@@ -271,12 +211,6 @@ class ApcCacheBackend implements BackdropCacheInterface {
    */
   public function deletePrefix($prefix): void {
     if (is_string($prefix)) {
-      $this->addOperation(array(
-        'method' => 'deletePrefix()',
-        'bin' => $this->bin,
-        'cid' => array($prefix),
-      ));
-
       if (extension_loaded('apcu') && apcu_enabled()) {
         $escaped_key = preg_quote($this->getApcuKey() . $prefix, '/');
         $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
@@ -290,8 +224,6 @@ class ApcCacheBackend implements BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function flush(): void {
-    $this->addOperation(array('method' => 'flush()', 'bin' => $this->bin));
-
     if (extension_loaded('apcu') && apcu_enabled()) {
       $escaped_key = preg_quote($this->getApcuKey(), '/');
       $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);

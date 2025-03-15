@@ -2,23 +2,10 @@
 
 /**
  * @file
- * Hooks implementations for the APC Storage - Admin Pages module.
+ * Hooks implementations for the APC Storage Admin Pages module.
  */
 
 declare(strict_types=1);
-
-use apc_storage\Cache\ApcuBackend;
-
-function apc_storage_admin_menu(): array {
-  return array(
-    'admin/config/development/apc_storage' => array(
-      'title' => t('Enable the APC Storage debug mode and other settings.'),
-      'page callback' => 'backdrop_get_form',
-      'page arguments' => array('apc_storage_admin_settings'),
-      'access arguments' => array('administer APC Storage settings'),
-    ),
-  );
-}
 
 /**
  * Implements hook_permission().
@@ -40,41 +27,8 @@ function apc_storage_admin_permission(): array {
  * Implements hook_page_alter().
  */
 function apc_storage_admin_page_alter(&$page): void {
-  if (config_get('apc_storage.admin', 'gather_debug_info') && user_access('access APC Storage reports')) {
-    $operations = ApcuBackend::operations();
-    $rows = array();
-
-    if (!empty($operations)) {
-      foreach ($operations as $operation) {
-        $row = array(
-          $operation['method'],
-          $operation['bin'],
-          $operation['cids'],
-        );
-
-        if (is_array($row[2])) {
-          $row[2] = implode(',<br />', $row[2]);
-        }
-
-        $rows[] = $row;
-      }
-    }
-
-    $page['page_top']['apc_storage_cache_info'] = array(
-      '#type' => 'markup',
-      '#prefix' => '<div class="apc-storage-admin-cache-info">',
-      '#suffix' => '</div>',
-      '#markup' => '<h2>' . t('APCu information') . '</h2>',
-    );
-
-    $page['page_bottom']['apc_storage_admin_cache_info']['operations'] = array(
-      '#type' => 'table',
-      '#header' => array(t('Operation'), t('Bin'), t('Cache IDs')),
-      '#rows' => $rows,
-      '#empty' => t('No APC cache operations have been performed.'),
-    );
-
-    backdrop_page_is_cacheable(FALSE);
+  if (user_access('access APC Storage reports')) {
+    // @todo Rewrite this code after the new API is ready.
   }
 }
 
@@ -95,35 +49,17 @@ function apc_storage_admin_form_system_performance_settings_alter(&$form, &$form
  * Submission form handler for system_performance_settings().
  */
 function apc_storage_admin_clear_apcu_cache(): void {
-  if (ApcuBackend::deleteAllStoredData()) {
-    backdrop_set_message(t('The APCu cache has been cleared.'));
+  if (extension_loaded('apcu') && apcu_enabled()) {
+    $regex = '/^(apc_storage_cache|apc_storage_chained_cache)::/';
+
+    if (apcu_delete(new APCUIterator($regex))) {
+      backdrop_set_message(t('The APCu cache has been cleared.'));
+    }
+    else {
+      backdrop_set_message(t('The APCu cache could not be cleared.'), 'error');
+    }
   }
   else {
-    backdrop_set_message(t('The APCu cache could not be cleared.'), 'error');
+    backdrop_set_message(t('The APCu extension is not enabled.'), 'warning');
   }
-}
-
-/**
- * Form builder; Configure the APC Storage settings.
- */
-function apc_storage_admin_settings($form, &$form_state): array {
-  $config = config('apc_storage.admin');
-
-  $form['#config'] = 'apc_storage.admin';
-
-  $description = t('User accounts with the %permission permission will see which data is stored in the APCu storage.',
-    array(
-    '%permission' => l(t('Access APC Storage reports'), 'admin/config/people/permissions', array('fragment' => 'module-apc-storage-admin')),
-    )
-  );
-  $description .= ' ';
-  $description .= t('This setting should be used only for debugging purposes. It should not be enabled in production, since it increases the memory usage and it can cause performance issues.');
-  $form['gather_debug_info'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Gather information about which data is stored in the APCu storage'),
-    '#description' => $description,
-    '#default_value' => $config->get('gather_debug_info'),
-  );
-
-  return system_settings_form($form);
 }

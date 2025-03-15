@@ -62,7 +62,7 @@ class ApcLockBackend {
       catch (RandomException) {
         // Use a fallback in case random_bytes() fails.
         try {
-          $engine = new Xoshiro256StarStar(hash('sha256', hrtime(TRUE) . 'apc_storage_apcu_lock_', TRUE));
+          $engine = new Xoshiro256StarStar(hash('sha256', hrtime(TRUE) . 'apc_storage_lock_', TRUE));
           $randomizer = new Randomizer($engine);
           self::$uniqueId = $randomizer->getBytes(32);
         }
@@ -86,7 +86,7 @@ class ApcLockBackend {
 
   private function __construct(string $name) {
     $this->name = $name;
-    $this->key = 'apc_storage_apcu_lock::' .
+    $this->key = 'apc_storage_lock::' .
       backdrop_base64_encode(self::$uniqueId) . '::' .
       backdrop_base64_encode($this->name);
   }
@@ -239,7 +239,7 @@ class ApcLockBackend {
   public static function releaseAll(): void {
     if (!empty(self::$uniqueId)) {
       if (extension_loaded('apcu') && apcu_enabled()) {
-        $key = preg_quote('apc_storage_apcu_lock::' . backdrop_base64_encode(self::$uniqueId) . '::', '/');
+        $key = preg_quote('apc_storage_lock::' . backdrop_base64_encode(self::$uniqueId) . '::', '/');
         $iterator = new APCUIterator('/^' . $key. '[a-zA-Z0-9-_]+$/', APC_ITER_KEY);
 
         apcu_delete($iterator);

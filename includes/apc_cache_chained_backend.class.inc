@@ -60,17 +60,6 @@ class ApcCacheChainedBackend extends ApcCacheBackend {
   }
 
   /**
-   * Sets the last write timestamp.
-   *
-   * @param float $timestamp
-   *   The new timestamp.
-   */
-  protected function setLastWriteTimestamp(float $timestamp): void {
-    $this->lastWriteTimestamp = $timestamp;
-    $this->databaseBackend->set(self::LAST_WRITE_TIMESTAMP_KEY, $this->lastWriteTimestamp);
-  }
-
-  /**
    * Marks the fast cache bins outdated because data has been written.
    */
   protected function markAsOutdated(): void {
@@ -83,18 +72,55 @@ class ApcCacheChainedBackend extends ApcCacheBackend {
   }
 
   /**
+   * Normalizes a cache ID in order to comply with database limitations.
+   *
+   * @param string $cid
+   *   The cache ID.
+   *
+   * @return string
+   *   The normalized cache ID.
+   */
+  protected function normalizeCid(string $cid): string {
+    if (mb_strlen($cid, '8bit') <= 255 && !str_ends_with($cid, ' ')) {
+      return $cid;
+    }
+
+    // Return a string that uses as much as possible of the original cache ID
+    // with the hash appended.
+    $hash = backdrop_hash_base64($cid);
+
+    return mb_substr($cid, 0, 253 - mb_strlen($hash, '8bit')) . '%_' . $hash;
+  }
+
+  /**
+   * Sets the last write timestamp.
+   *
+   * @param float $timestamp
+   *   The new timestamp.
+   */
+  protected function setLastWriteTimestamp(float $timestamp): void {
+    $this->lastWriteTimestamp = $timestamp;
+    $this->databaseBackend->set(self::LAST_WRITE_TIMESTAMP_KEY, $this->lastWriteTimestamp);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function get($cid): object|false {
     $item = FALSE;
+    $normalized_cid = $this->normalizeCid($cid);
 
     if ($last_write_timestamp = $this->getLastWriteTimestamp()) {
-       $item = parent::get($cid);
+       $item = parent::get($normalized_cid);
 
       if ($item && $item->created < $last_write_timestamp) {
-        $item = $this->databaseBackend->get($cid);
+        $item = $this->databaseBackend->get($normalized_cid);
         parent::set($item->cid, $item->data, $item->expire);
       }
+    }
+
+    if ($item) {
+      $item->cid = $cid;
     }
 
     return $item;
@@ -104,29 +130,46 @@ class ApcCacheChainedBackend extends ApcCacheBackend {
    * {@inheritdoc}
    */
   public function getMultiple(&$cids): array {
-    $cids_copy = $cids;
+    $cid_mapping = array();
     $cache = array();
+    $normalized_cids = array();
+
+    foreach ($cids as $cid) {
+      $normalized_cid = $this->normalizeCid($cid);
+      $normalized_cids[] = $normalized_cid;
+      $cid_mapping[$normalized_cid] = $cid;
+    }
 
     if ($last_write_timestamp = $this->getLastWriteTimestamp()) {
-      $items = parent::getMultiple($cids);
+      $items = parent::getMultiple($normalized_cids);
 
       foreach ($items as $item) {
         if ($item->created < $last_write_timestamp) {
-          $cids[array_search($item->cid, $cids_copy)] = $item->cid;
+          continue;
         }
-        else {
-          $cache[$item->cid] = $item;
-        }
-      }
-    }
 
-    if ($cids) {
-      foreach ($this->databaseBackend->getMultiple($cids) as $item) {
+        $item->cid = $cid_mapping[$item->cid];
         $cache[$item->cid] = $item;
-
-        parent::set($item->cid, $item->data, $item->expire);
       }
     }
+
+    $remaining_cids = $normalized_cids;
+
+    foreach ($cache as $item) {
+      $index = array_search($this->normalizeCid($item->cid), $remaining_cids);
+      if ($index !== FALSE) {
+        unset($remaining_cids[$index]);
+      }
+    }
+
+    $database_items = $this->databaseBackend->getMultiple($remaining_cids);
+
+    foreach ($database_items as $item) {
+      $cache[$cid_mapping[$item->cid]] = $item;
+      parent::set($item->cid, $item->data, $item->expire);
+    }
+
+    $cids = array_diff($cids, array_keys($cache));
 
     return $cache;
   }
@@ -135,16 +178,18 @@ class ApcCacheChainedBackend extends ApcCacheBackend {
    * {@inheritdoc}
    */
   public function set($cid, $data, $expire = CACHE_PERMANENT): void {
-    $this->databaseBackend->set($cid, $data, $expire);
+    $normalized_cid = $this->normalizeCid($cid);
+
+    $this->databaseBackend->set($normalized_cid, $data, $expire);
     $this->markAsOutdated();
-    parent::set($cid, $data, $expire);
+    parent::set($normalized_cid, $data, $expire);
   }
 
   /**
    * {@inheritdoc}
    */
   public function delete($cid): void {
-    $this->databaseBackend->delete($cid);
+    $this->databaseBackend->delete($this->normalizeCid($cid));
     $this->markAsOutdated();
   }
 
@@ -152,7 +197,8 @@ class ApcCacheChainedBackend extends ApcCacheBackend {
    * {@inheritdoc}
    */
   public function deleteMultiple(array $cids): void {
-    $this->databaseBackend->deleteMultiple($cids);
+    $normalized_cids = array_map(array($this, 'normalizeCid'), $cids);
+    $this->databaseBackend->deleteMultiple($normalized_cids);
     $this->markAsOutdated();
   }
 
@@ -160,6 +206,7 @@ class ApcCacheChainedBackend extends ApcCacheBackend {
    * {@inheritdoc}
    */
   public function deletePrefix($prefix): void {
+    $prefix = mb_strlen($prefix, '8bit') > 255 ? mb_substr($prefix, 0, 253, '8bit') : $prefix;
     $this->databaseBackend->deletePrefix($prefix);
     $this->markAsOutdated();
   }

@@ -227,12 +227,13 @@ class ApcCacheBackend implements BackdropCacheInterface {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $escaped_key = preg_quote($this->getApcuKey(), '/');
       $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
-
-      apcu_delete($iterator);
     }
   }
 
-  public function garbageCollection() {
+  /**
+   * {@inheritdoc}
+   */
+  public function garbageCollection(): void {
     // Expired items are automatically deleted by the APCu extension.
   }
 

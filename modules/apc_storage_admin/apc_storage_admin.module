@@ -15,21 +15,8 @@ function apc_storage_admin_permission(): array {
     'access APC Storage reports' => array(
       'title' => t('Access APC Storage reports'),
       'description' => t('Allows the access to APC Storage reports.'),
-    ),
-    'administer APC Storage settings' => array(
-      'title' => t('Administer APC Storage settings'),
-      'description' => t('Allow to enable the APC Storage reports and change other settings.'),
     )
   );
-}
-
-/**
- * Implements hook_page_alter().
- */
-function apc_storage_admin_page_alter(&$page): void {
-  if (user_access('access APC Storage reports')) {
-    // @todo Rewrite this code after the new API is ready.
-  }
 }
 
 /**
@@ -62,4 +49,71 @@ function apc_storage_admin_clear_apcu_cache(): void {
   else {
     backdrop_set_message(t('The APCu extension is not enabled.'), 'warning');
   }
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function apc_storage_admin_preprocess_page(&$variables): void {
+  if (!user_access('access APC Storage reports')) {
+    return;
+  }
+
+  if (!backdrop_is_html()) {
+    // Do nothing for AJAX requests.
+    return;
+  }
+
+  try {
+    $operations = ApcDataLogger::getOperations();
+    $variables['page_bottom'] .= theme('apc_storage_admin_reports', ['operations' => $operations]);
+  }
+  catch (Exception) {
+    // Do nothing.
+  }
+}
+
+/**
+ * Returns HTML for the APC Storage operations report.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - operations: An array of operations performed by the APC Storage module.
+ *
+ * @return string
+ *   The generated HTML.
+ */
+function theme_apc_storage_admin_reports(array $variables): string {
+  $rows = array();
+  $header = array(t('Operation'), t('Bin'), t('CIDs'), t('Start'), t('End'), t('Is the APCu extension enabled?'));
+  $operations = $variables['operations'];
+
+  foreach ($operations as $operation) {
+    $row = array();
+
+    $row[] = '<code>' . $operation['backend'] . '::' . $operation['method'] . '()'. '</code>';
+    $row[] = $operation['bin'];
+    $row[] = implode('<br> ', $operation['cids']);
+    $row[] = $operation['start'];
+    $row[] = $operation['stop'];
+    $row[] = $operation['apcu_enabled'] ? t('Yes') : t('No');
+
+    $rows[] = $row;
+  }
+
+  $render_array['apc_storage_admin_reports']['details'] = array(
+    '#type' => 'details',
+    '#title' => t('APC Storage operations'),
+    '#open' => FALSE,
+    '#attributes' => array('class' => array('apc-storage-operations')),
+  );
+  $render_array['apc_storage_admin_reports']['details']['table'] = array(
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' => $rows,
+    '#empty' => t('No operations available.'),
+    '#attributes' => array('id' => 'apc-storage-operations-table'),
+  );
+
+  return render($render_array);
 }

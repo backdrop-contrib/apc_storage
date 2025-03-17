@@ -71,7 +71,7 @@ class ApcCacheChainedBackend extends ApcCacheBackend {
   }
 
   /**
-   * Marks the fast cache bin as outdated because data has been written.
+   * Marks the fast cache bins outdated because data has been written.
    */
   protected function markAsOutdated(): void {
     $last_write_timestamp = $this->getLastWriteTimestamp();

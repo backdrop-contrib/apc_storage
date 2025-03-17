@@ -11,6 +11,9 @@
 function apc_storage_autoload_info(): array {
   return array(
     'ApcCacheBackend' => 'includes/apc_cache_backend.class.inc',
+    'ApcCacheChainedBackend' => 'includes/apc_cache_chained_backend.class.inc',
+    'ApcCacheLoggedBackend' => 'includes/apc_cache_logged_backend.class.inc',
+    'ApcDataLogger' => 'includes/apc_data_collector.class.inc',
     'ApcLockBackend' => 'includes/apc_lock_backend.class.inc',
     'ApcQueueBackend' => 'includes/apc_queue_backend.class.inc',
   );

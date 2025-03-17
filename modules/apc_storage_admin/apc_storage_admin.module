@@ -47,7 +47,7 @@ function apc_storage_admin_clear_apcu_cache(): void {
     }
   }
   else {
-    backdrop_set_message(t('The APCu extension is not enabled.'), 'warning');
+    backdrop_set_message(t('The APCu extension is not available.'), 'warning');
   }
 }
 

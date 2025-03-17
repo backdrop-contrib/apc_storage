@@ -75,8 +75,29 @@ class ApcCacheBackend implements BackdropCacheInterface {
    * @return string
    *   The key to use with APCu functions to get, set, or delete a cache item.
    */
-  public function getApcuKey(string $cid = ''): string {
+  protected function getApcuKey(string $cid = ''): string {
     return $this->binPrefix . $cid;
+  }
+
+  /**
+   * Normalizes a cache ID in order to comply with database limitations.
+   *
+   * @param string $cid
+   *   The cache ID.
+   *
+   * @return string
+   *   The normalized cache ID.
+   */
+  protected function normalizeCid(string $cid): string {
+    if (mb_strlen($cid, '8bit') <= 255 && !str_ends_with($cid, ' ')) {
+      return $cid;
+    }
+
+    // Return a string that uses as much as possible of the original cache ID
+    // with the hash appended.
+    $hash = backdrop_hash_base64($cid);
+
+    return mb_substr($cid, 0, 253 - mb_strlen($hash, '8bit')) . '%_' . $hash;
   }
 
   /**
@@ -195,12 +216,6 @@ class ApcCacheBackend implements BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function deleteMultiple(array $cids): void {
-    $this->addOperation(array(
-      'method' => 'deleteMultiple()',
-      'bin' => $this->bin,
-      'cids' => $cids,
-    ));
-
     if (extension_loaded('apcu') && apcu_enabled()) {
       apcu_delete(array_map(array($this, 'getApcuKey'), $cids));
     }
@@ -227,6 +242,8 @@ class ApcCacheBackend implements BackdropCacheInterface {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $escaped_key = preg_quote($this->getApcuKey(), '/');
       $iterator = new APCUIterator("/^$escaped_key/", APC_ITER_KEY);
+
+      apcu_delete($iterator);
     }
   }
 

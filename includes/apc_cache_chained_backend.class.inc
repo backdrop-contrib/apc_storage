@@ -30,9 +30,9 @@ class ApcCacheChainedBackend extends ApcCacheBackend {
   /**
    * The time at which the last write to this cache bin happened.
    *
-   * @var ?float
+   * @var ?int
    */
-  protected ?float $lastWriteTimestamp = NULL;
+  protected ?int $lastWriteTimestamp = NULL;
 
   /**
    * The database cache backend.
@@ -53,7 +53,7 @@ class ApcCacheChainedBackend extends ApcCacheBackend {
   protected function getLastWriteTimestamp(): float {
     if (is_null($this->lastWriteTimestamp)) {
       $cache = $this->databaseBackend->get(self::LAST_WRITE_TIMESTAMP_KEY);
-      $this->lastWriteTimestamp = $cache ? $cache->data : 0.0;
+      $this->lastWriteTimestamp = $cache ? $cache->data : 0;
     }
 
     return $this->lastWriteTimestamp;
@@ -64,10 +64,10 @@ class ApcCacheChainedBackend extends ApcCacheBackend {
    */
   protected function markAsOutdated(): void {
     $last_write_timestamp = $this->getLastWriteTimestamp();
-    $now = round(microtime(TRUE) + 0.001, 3);
+    $now = time() + 1;
 
     if ($now > $last_write_timestamp) {
-      $this->setLastWriteTimestamp(round(microtime(TRUE) + 0.05, 3));
+      $this->setLastWriteTimestamp($now);
     }
   }
 
@@ -95,10 +95,10 @@ class ApcCacheChainedBackend extends ApcCacheBackend {
   /**
    * Sets the last write timestamp.
    *
-   * @param float $timestamp
+   * @param int $timestamp
    *   The new timestamp.
    */
-  protected function setLastWriteTimestamp(float $timestamp): void {
+  protected function setLastWriteTimestamp(int $timestamp): void {
     $this->lastWriteTimestamp = $timestamp;
     $this->databaseBackend->set(self::LAST_WRITE_TIMESTAMP_KEY, $this->lastWriteTimestamp);
   }

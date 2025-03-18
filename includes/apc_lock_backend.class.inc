@@ -165,11 +165,7 @@ class ApcLockBackend {
 
     $data = apcu_fetch($this->key, $success);
 
-    if (!$success) {
-      return FALSE;
-    }
-
-    if (empty($data['expire']) || microtime(TRUE) > (float) $data['expire']) {
+    if (!$success || empty($data['expire']) || microtime(TRUE) > (float) $data['expire']) {
       return apcu_delete($this->key);
     }
 
@@ -186,38 +182,20 @@ class ApcLockBackend {
    *   FALSE if the lock is available, TRUE otherwise.
    */
   public function wait(float $delay = 30.0): bool {
-    // Pause the process for short periods between calling
-    // lock_may_be_available(). However, if the wait period is too long, there
-    // is the potential for a large number of processes to be blocked waiting
-    // for a lock, especially if the item being rebuilt is commonly requested.
-    // To address both of these concerns, begin waiting for 25ms, then add 25
-    // ms to the wait period each time until it reaches 500 ms. After this
-    // point, polling will continue every 500 ms until $delay is reached.
-    // $delay is passed in seconds, but we will be using usleep(), which takes
-    // microseconds as a parameter. Multiply it by 1 million so that all
-    // further numbers are equivalent.
     $delay = (int) round($delay * 1000000);
-
-    // Start sleeping for 25ms.
     $sleep = 25000;
 
     while ($delay > 0) {
-      // This function should only be called by a request that failed to get a
-      // lock, so we sleep first to give the parallel request a chance to finish
-      // and release the lock.
       usleep($sleep);
-      // After each sleep, increase the value of $sleep until it reaches 500 ms,
-      // to reduce the potential for a lock stampede.
-      $delay = $delay - $sleep;
+
+      $delay -= $sleep;
       $sleep = min(500000, $sleep + 25000, $delay);
 
       if ($this->maybeAvailable()) {
-        // No longer need to wait.
         return FALSE;
       }
     }
 
-    // The caller must still wait longer to get the lock.
     return TRUE;
   }
 
@@ -237,13 +215,10 @@ class ApcLockBackend {
    * Releases all previously acquired locks.
    */
   public static function releaseAll(): void {
-    if (!empty(self::$uniqueId)) {
-      if (extension_loaded('apcu') && apcu_enabled()) {
-        $key = preg_quote('apc_storage_lock::' . backdrop_base64_encode(self::$uniqueId) . '::', '/');
-        $iterator = new APCUIterator('/^' . $key. '[a-zA-Z0-9-_]+$/', APC_ITER_KEY);
+    if (self::$uniqueId && extension_loaded('apcu') && apcu_enabled()) {
+      $key = preg_quote('apc_storage_lock::' . backdrop_base64_encode(self::$uniqueId) . '::', '/');
 
-        apcu_delete($iterator);
-      }
+      apcu_delete(new APCUIterator("/^" . $key . '[a-zA-Z0-9-_]+$/'));
     }
   }
 

@@ -123,8 +123,8 @@ class ApcQueueBackend implements BackdropQueueInterface {
    */
   public function numberOfItems(): int {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $name = preg_quote(backdrop_base64_encode($this->name), '/');
-      $iterator = new APCUIterator("/^apc_storage_queue::$name::[a-zA-Z0-9-_]+$/");
+      $name = preg_quote('::' . backdrop_base64_encode($this->name) . '::', '/');
+      $iterator = new APCUIterator('/^apc_storage_queue' . $name . '[a-zA-Z0-9-_]+$/');
 
       return $iterator->getTotalCount();
     }
@@ -137,8 +137,8 @@ class ApcQueueBackend implements BackdropQueueInterface {
    */
   public function claimItem($lease_time = 30): ?object {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $name = preg_quote(backdrop_base64_encode($this->name), '/');
-      $iterator = new APCUIterator("/^apc_storage_queue::$name::[a-zA-Z0-9-_]+$/");
+      $name = preg_quote('::'. backdrop_base64_encode($this->name) . '::', '/');
+      $iterator = new APCUIterator('/^apc_storage_queue' . $name . '[a-zA-Z0-9-_]+$/');
 
       foreach ($iterator as $item) {
         if (!isset($item['value']->expire)) {
@@ -199,8 +199,8 @@ class ApcQueueBackend implements BackdropQueueInterface {
    */
   public function deleteQueue(): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $name = preg_quote(backdrop_base64_encode($this->name), '/');
-      $iterator = new APCUIterator("/^apc_storage_queue::$name::[a-zA-Z0-9-_]+$/");
+      $name = preg_quote('::' . backdrop_base64_encode($this->name) . '::', '/');
+      $iterator = new APCUIterator('/^apc_storage_queue' . $name . '[a-zA-Z0-9-_]+$/');
 
       apcu_delete($iterator);
     }

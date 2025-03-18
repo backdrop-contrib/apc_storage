@@ -172,7 +172,7 @@ class ApcLockTestCase extends ApcTestBase {
       foreach ($this->lockNames as $name) {
         $lock = ApcLockBackend::get($name);
         $message = format_string("The @name lock is available.", array('@name' => $name));
-        if ($this->assertTrue($lock && $lock->maybeAvailable(), $message)) {
+        if ($this->assertTrue($lock->maybeAvailable(), $message)) {
           $count++;
         }
       }

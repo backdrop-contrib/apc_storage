@@ -46,7 +46,7 @@ function apc_storage_requirements($phase): array {
     if (apcu_enabled() && $phase == 'runtime') {
       $cache = apcu_cache_info(TRUE);
       $num_entries = $cache['num_entries'] ?? 0;
-      $start_time = $cache['start_time'] ?? time();
+      $start_time = $cache['start_time'] ?? REQUEST_TIME;
       $mem_size = $cache['mem_size'] ?? 0;
 
       $requirements['apc_storage']['description'] = $t(

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcCacheChainedBackend.
+ * Contains ApcStorageChainedCache.
  */
 
 declare(strict_types=1);
@@ -10,7 +10,7 @@ declare(strict_types=1);
 /**
  * APCu chained cache implementation.
  */
-class ApcCacheChainedBackend extends ApcCacheBackend {
+class ApcStorageChainedCache extends ApcStorageCache {
 
   /**
    * Cache key used to track the last write.

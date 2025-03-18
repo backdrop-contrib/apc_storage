@@ -41,7 +41,7 @@ class ApcQueueTestCase extends ApcTestBase {
    */
   protected function initQueues(): bool {
     foreach ($this->queues as $name => $data) {
-      $data->instance = new ApcQueueBackend($name);
+      $data->instance = new ApcStorageQueue($name);
       $data->items = array();
 
       for ($i = 0; $i < 4; $i++) {

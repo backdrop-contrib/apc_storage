@@ -18,7 +18,7 @@ class ApcCacheTestCase extends ApcCacheTestBase {
    * {@inheritdoc}
    */
   protected function createCacheBackend(string $bin): BackdropCacheInterface {
-    return new ApcCacheBackend($bin);
+    return new ApcStorageCache($bin);
   }
 
 }

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcLockBackend.
+ * Contains ApcStorageLock.
  */
 
 declare(strict_types=1);
@@ -16,7 +16,7 @@ use Random\Randomizer;
  *
  * @internal This class should only be used by the APC Storage module.
  */
-class ApcLockBackend {
+class ApcStorageLock {
 
   /**
    * The locks acquired in the current request.
@@ -140,7 +140,7 @@ class ApcLockBackend {
           // In this case, the insert must have failed meaning some other
           // request acquired the lock but did not release it.
           // We decide whether to retry by checking
-          // ApcLockBackend::maybeAvailable(), since this will break the lock in
+          // ApcStorageLock::maybeAvailable(), since this will break the lock in
           // case it is expired.
           $retry = !$retry && $this->maybeAvailable();
         }
@@ -200,7 +200,7 @@ class ApcLockBackend {
   }
 
   /**
-   * Releases a lock previously acquired by ApcLockBackend::acquire().
+   * Releases a lock previously acquired by ApcStorageLock::acquire().
    *
    * This will release the named lock if it is still held by the current
    * request.

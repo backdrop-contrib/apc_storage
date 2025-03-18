@@ -64,7 +64,7 @@ function apc_storage_admin_preprocess_page(&$variables): void {
   }
 
   try {
-    $operations = ApcDataLogger::getOperations();
+    $operations = ApcStorageLogger::getOperations();
     $variables['page_bottom'] .= theme(
       'apc_storage_admin_reports',
       array('operations' => $operations)

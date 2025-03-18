@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcQueueBackend.
+ * Contains ApcStorageQueue.
  */
 
 declare(strict_types=1);
@@ -14,7 +14,7 @@ use Random\Randomizer;
 /**
  * An APCu-based queue implementation.
  */
-class ApcQueueBackend implements BackdropQueueInterface {
+class ApcStorageQueue implements BackdropQueueInterface {
 
   /**
    * The randomizer instance used for generating random IDs.

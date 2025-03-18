@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcCacheBackend.
+ * Contains ApcStorageCache.
  */
 
 declare(strict_types=1);
@@ -10,7 +10,7 @@ declare(strict_types=1);
 /**
  * APCu cache implementation.
  */
-class ApcCacheBackend implements BackdropCacheInterface {
+class ApcStorageCache implements BackdropCacheInterface {
 
   /**
    * The identifier used to generate unique APCu keys.

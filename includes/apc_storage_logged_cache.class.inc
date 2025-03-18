@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcCacheLoggedBackend.
+ * Contains ApcStorageLoggedCache.
  */
 
 declare(strict_types=1);
@@ -10,7 +10,7 @@ declare(strict_types=1);
 /**
  * APCu cache implementation which logs the operations.
  */
-class ApcCacheLoggedBackend implements BackdropCacheInterface {
+class ApcStorageLoggedCache implements BackdropCacheInterface {
 
   /**
    * The class for the cache backend used to store data.
@@ -36,11 +36,11 @@ class ApcCacheLoggedBackend implements BackdropCacheInterface {
   public function __construct(string $bin) {
     // The allowed cache backends this class can use are the ones implemented by
     // this module.
-    $allowed_backends = array('ApcCacheBackend', 'ApcCacheChainedBackend');
-    $logged_backend = settings_get('apc_storage_logged_backend', 'ApcCacheBackend');
+    $allowed_backends = array('ApcStorageCache', 'ApcStorageChainedCache');
+    $logged_backend = settings_get('apc_storage_logged_backend', 'ApcStorageCache');
 
     if (!in_array($logged_backend, $allowed_backends)) {
-      $logged_backend = 'ApcCacheBackend';
+      $logged_backend = 'ApcStorageCache';
     }
 
     $this->bin = $bin;
@@ -48,11 +48,11 @@ class ApcCacheLoggedBackend implements BackdropCacheInterface {
   }
 
   protected function logCacheOperation(float $start, float $stop, string $operation, array $cids = array()): void {
-    if (!class_exists('ApcDataLogger')) {
-      require_once __DIR__ . '/apc_data_logger.class.inc';
+    if (!class_exists('ApcStorageLogger')) {
+      require_once __DIR__ . '/apc_storage_logger.class.inc';
     }
 
-    ApcDataLogger::addOperation(array(
+    ApcStorageLogger::addOperation(array(
       'backend' => $this->backendClass,
       'method' => $operation,
       'bin' => $this->bin,

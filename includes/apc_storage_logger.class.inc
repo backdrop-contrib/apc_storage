@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcDataLogger.
+ * Contains ApcStorageLogger.
  */
 
 declare(strict_types=1);
@@ -10,10 +10,10 @@ declare(strict_types=1);
 /**
  * Class for data collection.
  */
-class ApcDataLogger {
+class ApcStorageLogger {
 
   /**
-   * The list of operations recorded by the collector.
+   * The list of operations recorded by the data logger.
    *
    * @var array
    */
@@ -30,7 +30,7 @@ class ApcDataLogger {
   }
 
   /**
-   * Gets the list of operations recorded by the collector.
+   * Gets the list of the logged operations.
    *
    * @return array
    *   An array of associative arrays containing details of the operations

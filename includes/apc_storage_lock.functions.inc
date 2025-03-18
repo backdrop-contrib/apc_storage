@@ -11,12 +11,12 @@ declare(strict_types=1);
  * Initializes the locking system.
  */
 function lock_initialize(): void {
-  if (!class_exists(ApcLockBackend::class)) {
-    require_once __DIR__ . '/apc_lock_backend.class.inc';
+  if (!class_exists(ApcStorageLock::class)) {
+    require_once __DIR__ . '/apc_storage_lock.class.inc';
   }
 
   // Register a shutdown function to release all locks.
-  backdrop_register_shutdown_function('ApcLockBackend::releaseAll');
+  backdrop_register_shutdown_function('ApcStorageLock::releaseAll');
 }
 
 /**
@@ -30,10 +30,10 @@ function lock_initialize(): void {
  * @return bool
  *   TRUE if the lock was acquired, FALSE otherwise.
  *
- * @see ApcLockBackend::acquire()
+ * @see ApcStorageLock::acquire()
  */
 function lock_acquire(string $name, float $timeout = 30.0): bool {
-  return ApcLockBackend::get($name)->acquire($timeout);
+  return ApcStorageLock::get($name)->acquire($timeout);
 }
 
 /**
@@ -47,10 +47,10 @@ function lock_acquire(string $name, float $timeout = 30.0): bool {
  * @return bool
  *   TRUE if there is no lock, or it was removed, FALSE otherwise.
  *
- * @see ApcLockBackend::maybeAvailable()
+ * @see ApcStorageLock::maybeAvailable()
  */
 function lock_may_be_available(string $name): bool {
-  return ApcLockBackend::get($name)->maybeAvailable();
+  return ApcStorageLock::get($name)->maybeAvailable();
 }
 
 /**
@@ -70,10 +70,10 @@ function lock_may_be_available(string $name): bool {
  * @return bool
  *   FALSE if the lock is available, TRUE otherwise.
  *
- * @see ApcLockBackend::wait()
+ * @see ApcStorageLock::wait()
  */
 function lock_wait(string $name, float $delay = 30.0): bool {
-  return ApcLockBackend::get($name)->wait($delay);
+  return ApcStorageLock::get($name)->wait($delay);
 }
 
 /**
@@ -84,8 +84,8 @@ function lock_wait(string $name, float $delay = 30.0): bool {
  * @param string $name
  *   The name of the lock.
  *
- * @see ApcLockBackend::release()
+ * @see ApcStorageLock::release()
  */
 function lock_release(string $name): void {
-  ApcLockBackend::get($name)->release();
+  ApcStorageLock::get($name)->release();
 }

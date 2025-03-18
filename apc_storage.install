@@ -27,19 +27,15 @@ function apc_storage_requirements($phase): array {
         'The APC Storage module requires the APCu extension.'
       );
       $requirements['apc_storage']['severity'] = $severity;
-
       return $requirements;
     }
 
-    $required_version_installed = version_compare($apcu_version, '5.1.17', '>=');
-
-    if (!$required_version_installed) {
+    if (version_compare($apcu_version, '5.1.17', '<')) {
       $requirements['apc_storage']['description'] = $t(
         'The APC Storage module requires the APCu extension version 5.1.17 or higher; version %apcu_version is currently installed.',
         array('%apcu_version' => $apcu_version)
       );
       $requirements['apc_storage']['severity'] = REQUIREMENT_ERROR;
-
       return $requirements;
     }
 
@@ -60,11 +56,10 @@ function apc_storage_requirements($phase): array {
       $requirements['apc_storage']['severity'] = REQUIREMENT_INFO;
     }
     elseif (!apcu_enabled()) {
-      $severity = backdrop_is_cli() ? REQUIREMENT_INFO : REQUIREMENT_ERROR;
       $requirements['apc_storage']['description'] = $t(
         'The APC Storage module requires the APCu extension.'
       );
-      $requirements['apc']['severity'] = $severity;
+      $requirements['apc_storage']['severity'] = backdrop_is_cli() ? REQUIREMENT_INFO : REQUIREMENT_ERROR;
     }
   }
   else {

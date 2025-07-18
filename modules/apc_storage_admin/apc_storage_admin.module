@@ -9,18 +9,22 @@ declare(strict_types=1);
 
 /**
  * Implements hook_permission().
+ *
+ * @hook
  */
 function apc_storage_admin_permission(): array {
-  $permissions = array();
   $permissions['access APC Storage reports'] = array(
     'title' => t('Access APC Storage reports'),
     'description' => t('Allows the access to APC Storage reports.')
   );
+
   return $permissions;
 }
 
 /**
  * Implements hook_form_FORM_ID_alter() for system_performance_settings().
+ *
+ * @hook
  */
 function apc_storage_admin_form_system_performance_settings_alter(&$form, &$form_state): void {
   if (extension_loaded('apcu') && apcu_enabled()) {
@@ -34,6 +38,8 @@ function apc_storage_admin_form_system_performance_settings_alter(&$form, &$form
 
 /**
  * Submission form handler for system_performance_settings().
+ *
+ * @form
  */
 function apc_storage_admin_clear_apcu_cache(): void {
   if (extension_loaded('apcu') && apcu_enabled()) {
@@ -52,9 +58,12 @@ function apc_storage_admin_clear_apcu_cache(): void {
 
 /**
  * Implements hook_preprocess_page().
+ *
+ * @hook
  */
 function apc_storage_admin_preprocess_page(&$variables): void {
   if (!user_access('access APC Storage reports')) {
+    // Do nothing for accounts without access to the reports.
     return;
   }
 
@@ -64,65 +73,65 @@ function apc_storage_admin_preprocess_page(&$variables): void {
   }
 
   try {
-    $operations = ApcStorageLogger::getOperations();
-    $variables['page_bottom'] .= theme(
-      'apc_storage_admin_reports',
-      array('operations' => $operations)
-    );
+    $variables['page_bottom'] .= apc_storage_admin_reports();
   }
   catch (Exception) {
-    // Do nothing.
+    // Ignore the thrown exception.
   }
 }
 
 /**
- * Returns HTML for the APC Storage operations report.
- *
- * @param array $variables
- *   An associative array containing:
- *     - operations: An array of operations performed by the APC Storage module.
+ * Renders the APC Storage reports.
  *
  * @return string
- *   The generated HTML.
+ *   The APC Storage reports.
+ *
+ * @throws \Exception The theme hooks are not available.
  */
-function theme_apc_storage_admin_reports(array $variables): string {
-  $rows = array();
-  $header = array(
-    t('Operation'),
-    t('Bin'),
-    t('CIDs'),
-    t('Start'),
-    t('End'),
-    t('Is the APCu extension enabled?')
-  );
-  $operations = $variables['operations'];
+function apc_storage_admin_reports(): string {
+  $item_list = '';
 
-  foreach ($operations as $operation) {
-    $row = array();
-    $row[] = '<code>' . $operation['backend'] . '::' . $operation['method'] . '()</code>';
-    $row[] = $operation['bin'];
-    $row[] = implode('<br> ', $operation['cids']);
-    $row[] = $operation['start'];
-    $row[] = $operation['stop'];
-    $row[] = $operation['apcu_enabled'] ? t('Yes') : t('No');
+  if (extension_loaded('apcu') && apcu_enabled()) {
+    if (!($info = apcu_cache_info())) {
+      return '';
+    }
 
-    $rows[] = $row;
+    if (!empty($info['num_entries'])) {
+      $list = [];
+      $list[] = t('Number of entries: @count', array('@count' => $info['num_entries']));
+      $list[] = t('Number of hits: @count', array('@count' => $info['num_hits']));
+      $list[] = t('Number of misses: @count', array('@count' => $info['num_misses']));
+      $list[] = t('Cache items: @count',
+        array('@count' => (new APCUIterator('/^apc_storage_cache::/'))->getTotalCount())
+      );
+      $list[] = t('Chained cache items: @count',
+        array('@count' => (new APCUIterator('/^apc_storage_chained_cache::/'))->getTotalCount())
+      );
+      $list[] = t('Lock items: @count',
+        array('@count' => (new APCUIterator('/^apc_storage_lock::/'))->getTotalCount())
+      );
+      $list[] = t('Queue items: @count',
+        array('@count' => (new APCUIterator('/^apc_storage_queue::/'))->getTotalCount())
+      );
+      $list[] = t('Used memory: @memory', array('@memory' => format_size($info['mem_size'])));
+
+      $item_list = theme('item_list', array('items' => $list));
+    }
   }
 
-  $render_array = array();
-  $render_array['apc_storage_admin_reports']['details'] = array(
-    '#type' => 'details',
-    '#title' => t('APC Storage operations'),
-    '#open' => FALSE,
-    '#attributes' => array('class' => array('apc-storage-operations'))
-  );
-  $render_array['apc_storage_admin_reports']['details']['table'] = array(
-    '#theme' => 'table',
-    '#header' => $header,
-    '#rows' => $rows,
-    '#empty' => t('No operations available.'),
-    '#attributes' => array('id' => 'apc-storage-operations-table')
-  );
+  if (!$item_list) {
+    return '';
+  }
 
-  return render($render_array);
+  return theme(
+    'details',
+    array(
+      '#open' => TRUE,
+      '#summary' => t('APC Storage'),
+      '#attributes' => array(
+        'class' => array('apc-storage-admin-reports'),
+      ),
+      '#details' => $item_list
+    )
+  );
 }

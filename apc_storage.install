@@ -9,9 +9,14 @@ declare(strict_types=1);
 
 /**
  * Implements hook_requirements().
+ *
+ * @throws \Exception
+ *   The theme hooks are not available.
+ *
+ * @hook
  */
 function apc_storage_requirements($phase): array {
-  // Ensure translations don't break at install time.
+  // Ensure translations don't break at installation time.
   $t = get_t();
 
   $requirements['apc_storage'] = array(
@@ -21,38 +26,38 @@ function apc_storage_requirements($phase): array {
   if (extension_loaded('apcu')) {
     $apcu_version = phpversion('apcu');
 
-    if ($apcu_version === FALSE) {
-      $severity = backdrop_is_cli() ? REQUIREMENT_INFO : REQUIREMENT_ERROR;
-      $requirements['apc_storage']['description'] = $t(
-        'The APC Storage module requires the APCu extension.'
-      );
-      $requirements['apc_storage']['severity'] = $severity;
-      return $requirements;
-    }
-
-    if (version_compare($apcu_version, '5.1.17', '<')) {
+    if ($apcu_version && version_compare($apcu_version, '5.1.17', '<')) {
+      $requirements['apc_storage']['value'] = $t('Wrong version');
       $requirements['apc_storage']['description'] = $t(
         'The APC Storage module requires the APCu extension version 5.1.17 or higher; version %apcu_version is currently installed.',
         array('%apcu_version' => $apcu_version)
       );
       $requirements['apc_storage']['severity'] = REQUIREMENT_ERROR;
+
       return $requirements;
     }
 
     if (apcu_enabled() && $phase == 'runtime') {
       $cache = apcu_cache_info(TRUE);
+      $list = array();
       $num_entries = $cache['num_entries'] ?? 0;
       $start_time = $cache['start_time'] ?? REQUEST_TIME;
       $mem_size = $cache['mem_size'] ?? 0;
 
-      $requirements['apc_storage']['description'] = $t(
-        'The APCu extension has been running for !duration. It contains !num_entries entries and uses !memory_size of memory.',
-        array(
-          '!duration' => format_interval(time() - $start_time),
-          '!num_entries' => $num_entries,
-          '!memory_size' => format_size($mem_size),
-        )
-      );
+      if (time() - $start_time > 1) {
+        $list[] = format_plural(time() - $start_time,'Up-time: @count second', 'Up-time: @count seconds', array('@count' => time() - $start_time));
+      }
+
+      if ($num_entries > 0) {
+        $list[] = $t('Number of entries: @count', array('@count' => $num_entries));
+      }
+
+      if ($mem_size > 0) {
+        $list[] = $t('Used memory: @usage', array('@usage' => format_size($mem_size)));
+      }
+
+      $requirements['apc_storage']['value'] = $t('Installed');
+      $requirements['apc_storage']['description'] = theme('item_list', array('items' => $list));
       $requirements['apc_storage']['severity'] = REQUIREMENT_INFO;
     }
     elseif (!apcu_enabled()) {
@@ -63,6 +68,7 @@ function apc_storage_requirements($phase): array {
     }
   }
   else {
+    $requirements['apc_storage']['value'] = $t('Not installed');
     $requirements['apc_storage']['description'] = $t(
       'The APC Storage module requires the <a href="!apcu_link">APCu</a> extension.',
       array('!apcu_link' => 'https://www.php.net/apcu')
@@ -75,6 +81,8 @@ function apc_storage_requirements($phase): array {
 
 /**
  * Implements hook_uninstall().
+ *
+ * @hook
  */
 function apc_storage_uninstall(): void {
   if (extension_loaded('apcu') && apcu_enabled()) {

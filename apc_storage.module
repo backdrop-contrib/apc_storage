@@ -7,13 +7,14 @@
 
 /**
  * Implements hook_autoload_info().
+ *
+ * @hook
  */
 function apc_storage_autoload_info(): array {
   return array(
     'ApcStorageCache' => 'includes/apc_storage_cache.class.inc',
     'ApcStorageChainedCache' => 'includes/apc_chained_cache.class.inc',
     'ApcStorageLock' => 'includes/apc_storage_lock.class.inc',
-    'ApcStorageLoggedCache' => 'includes/apc_logged_cache.class.inc',
     'ApcStorageLogger' => 'includes/apc_storage_logger.class.inc',
     'ApcStorageQueue' => 'includes/apc_storage_queue.class.inc',
   );

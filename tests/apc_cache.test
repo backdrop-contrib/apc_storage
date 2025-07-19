@@ -12,7 +12,9 @@ use apc_storage\cache\Cache;
 require_once __DIR__ . '/apc_cache_test_base.class.inc';
 
 /**
- * Tests for the APCu cache implementation.
+ * Tests for the cache implementation.
+ *
+ * @testClass
  */
 class ApcCacheTestCase extends ApcCacheTestBase {
 

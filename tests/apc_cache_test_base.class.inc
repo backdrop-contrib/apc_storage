@@ -9,6 +9,11 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/apc_test_base.class.inc';
 
+/**
+ * Base class for cache tests.
+ *
+ * @testClass
+ */
 abstract class ApcCacheTestBase extends ApcTestBase {
 
   /**

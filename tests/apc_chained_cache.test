@@ -12,7 +12,9 @@ use apc_storage\cache\ChainedCache;
 require_once __DIR__ . '/apc_cache_test_base.class.inc';
 
 /**
- * Tests for the APCu cache implementation.
+ * Tests for the chained cache implementation.
+ *
+ * @testClass
  */
 class ApcChainedCacheTestCase extends ApcCacheTestBase {
 

@@ -7,10 +7,14 @@
 
 declare(strict_types=1);
 
+use apc_storage\lock\Lock;
+
 require_once __DIR__ . '/apc_test_base.class.inc';
 
 /**
  * Tests for the lock implementation.
+ *
+ * @testClass
  */
 class ApcLockTestCase extends ApcTestBase {
 
@@ -26,7 +30,7 @@ class ApcLockTestCase extends ApcTestBase {
    */
   protected function tearDown(): void {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      ApcStorageLock::releaseAll();
+      Lock::releaseAll();
     }
 
     parent::tearDown();
@@ -48,7 +52,7 @@ class ApcLockTestCase extends ApcTestBase {
     $count = 0;
 
     foreach ($this->lockNames as $name) {
-      ApcStorageLock::get($name);
+      Lock::get($name);
       $count++;
     }
 
@@ -64,7 +68,7 @@ class ApcLockTestCase extends ApcTestBase {
    */
   protected function acquireLocks(float $timeout): void {
     foreach ($this->lockNames as $name) {
-      $lock = ApcStorageLock::get($name);
+      $lock = Lock::get($name);
       $message = format_string(
         'The @name lock has been acquired for @timeout seconds.',
         array('@name' => $name, '@timeout' => (int) round($timeout))
@@ -84,7 +88,7 @@ class ApcLockTestCase extends ApcTestBase {
       sleep($delay);
 
       foreach ($this->lockNames as $name) {
-        $lock = ApcStorageLock::get($name);
+        $lock = Lock::get($name);
         $message = format_string(
           'The @name lock is not available after @delay seconds.',
           array('@name' => $name, '@delay' => $delay)
@@ -98,7 +102,7 @@ class ApcLockTestCase extends ApcTestBase {
 
       $available_count = 0;
       foreach ($this->lockNames as $name) {
-        $lock = ApcStorageLock::get($name);
+        $lock = Lock::get($name);
         $message = format_string(
           'The @name lock is available after further @delay seconds.',
           array('@name' => $name, '@delay' => $delay)
@@ -119,7 +123,7 @@ class ApcLockTestCase extends ApcTestBase {
   public function testWait(): void {
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
       $this->acquireLocks(2.0);
-      $lock = ApcStorageLock::get($this->lockNames[0]);
+      $lock = Lock::get($this->lockNames[0]);
       $message = format_string(
         'The @name lock is available after waiting for @timeout seconds.',
         array('@name' => $this->lockNames[0], '@timeout' => 2)
@@ -138,12 +142,12 @@ class ApcLockTestCase extends ApcTestBase {
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
       $this->acquireLocks(4.0);
       foreach ($this->lockNames as $name) {
-        $lock = ApcStorageLock::get($name);
+        $lock = Lock::get($name);
         $lock->release();
       }
       $count = 0;
       foreach ($this->lockNames as $name) {
-        $lock = ApcStorageLock::get($name);
+        $lock = Lock::get($name);
         $message = format_string(
           'The @name lock is available after it has been released.',
           array('@name' => $name)
@@ -166,11 +170,11 @@ class ApcLockTestCase extends ApcTestBase {
   public function testReleaseAll(): void {
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
       $this->acquireLocks(4.0);
-      ApcStorageLock::releaseAll();
+      Lock::releaseAll();
       $count = 0;
 
       foreach ($this->lockNames as $name) {
-        $lock = ApcStorageLock::get($name);
+        $lock = Lock::get($name);
         $message = format_string("The @name lock is available.", array('@name' => $name));
         if ($this->assertTrue($lock->maybeAvailable(), $message)) {
           $count++;

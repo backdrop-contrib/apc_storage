@@ -7,12 +7,10 @@
 
 declare(strict_types=1);
 
-use Random\Engine\Xoshiro256StarStar;
-use Random\IntervalBoundary;
-use Random\Randomizer;
-
 /**
  * Base class for the APC Storage tests.
+ *
+ * @testClass
  */
 class ApcTestBase extends BackdropWebTestCase {
 

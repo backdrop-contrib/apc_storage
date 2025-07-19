@@ -7,6 +7,8 @@
 
 declare(strict_types=1);
 
+use apc_storage\cache\ChainedCache;
+
 require_once __DIR__ . '/apc_cache_test_base.class.inc';
 
 /**
@@ -18,7 +20,7 @@ class ApcChainedCacheTestCase extends ApcCacheTestBase {
    * {@inheritdoc}
    */
   protected function createCacheBackend(string $bin): BackdropCacheInterface {
-    return new ApcStorageChainedCache($bin);
+    return new ChainedCache($bin);
   }
 
 }

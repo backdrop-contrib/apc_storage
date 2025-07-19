@@ -12,10 +12,10 @@
  */
 function apc_storage_autoload_info(): array {
   return [
-    'ApcStorageCache' => 'includes/apc_storage_cache.class.inc',
-    'ApcStorageChainedCache' => 'includes/apc_chained_cache.class.inc',
-    'ApcStorageLock' => 'includes/apc_storage_lock.class.inc',
+    'Cache' => 'includes/apc_storage_cache.class.inc',
+    'ChainedCache' => 'includes/apc_chained_cache.class.inc',
+    'Lock' => 'includes/apc_storage_lock.class.inc',
     'ApcStorageLogger' => 'includes/apc_storage_logger.class.inc',
-    'ApcStorageQueue' => 'includes/apc_storage_queue.class.inc',
+    'Queue' => 'includes/apc_storage_queue.class.inc',
   ];
 }

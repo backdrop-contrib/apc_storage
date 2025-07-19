@@ -7,16 +7,18 @@
 
 declare(strict_types=1);
 
+use apc_storage\lock\Lock;
+
 /**
  * Initializes the locking system.
  */
 function lock_initialize(): void {
-  if (!class_exists(ApcStorageLock::class)) {
-    require_once __DIR__ . '/apc_storage_lock.class.inc';
+  if (!class_exists(Lock::class)) {
+    require_once __DIR__ . '/lock.class.inc';
   }
 
   // Register a shutdown function to release all locks.
-  backdrop_register_shutdown_function('ApcStorageLock::releaseAll');
+  backdrop_register_shutdown_function('lock_release_all');
 }
 
 /**
@@ -30,10 +32,10 @@ function lock_initialize(): void {
  * @return bool
  *   TRUE if the lock was acquired, FALSE otherwise.
  *
- * @see ApcStorageLock::acquire()
+ * @see Lock::acquire()
  */
 function lock_acquire(string $name, float $timeout = 30.0): bool {
-  return ApcStorageLock::get($name)->acquire($timeout);
+  return Lock::get($name)->acquire($timeout);
 }
 
 /**
@@ -47,10 +49,10 @@ function lock_acquire(string $name, float $timeout = 30.0): bool {
  * @return bool
  *   TRUE if there is no lock, or it was removed, FALSE otherwise.
  *
- * @see ApcStorageLock::maybeAvailable()
+ * @see Lock::maybeAvailable()
  */
 function lock_may_be_available(string $name): bool {
-  return ApcStorageLock::get($name)->maybeAvailable();
+  return Lock::get($name)->maybeAvailable();
 }
 
 /**
@@ -70,10 +72,10 @@ function lock_may_be_available(string $name): bool {
  * @return bool
  *   FALSE if the lock is available, TRUE otherwise.
  *
- * @see ApcStorageLock::wait()
+ * @see Lock::wait()
  */
 function lock_wait(string $name, float $delay = 30.0): bool {
-  return ApcStorageLock::get($name)->wait($delay);
+  return Lock::get($name)->wait($delay);
 }
 
 /**
@@ -84,8 +86,8 @@ function lock_wait(string $name, float $delay = 30.0): bool {
  * @param string $name
  *   The name of the lock.
  *
- * @see ApcStorageLock::release()
+ * @see Lock::release()
  */
 function lock_release(string $name): void {
-  ApcStorageLock::get($name)->release();
+  Lock::get($name)->release();
 }

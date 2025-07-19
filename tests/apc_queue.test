@@ -7,6 +7,8 @@
 
 declare(strict_types=1);
 
+use apc_storage\queue\Queue;
+
 require_once __DIR__ . '/apc_test_base.class.inc';
 
 /**
@@ -41,7 +43,7 @@ class ApcQueueTestCase extends ApcTestBase {
    */
   protected function initQueues(): bool {
     foreach ($this->queues as $name => $data) {
-      $data->instance = new ApcStorageQueue($name);
+      $data->instance = new Queue($name);
       $data->items = array();
 
       for ($i = 0; $i < 4; $i++) {

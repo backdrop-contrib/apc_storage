@@ -114,7 +114,7 @@ class ApcLockTestCase extends ApcTestBase {
   }
 
   /**
-   * Tests that ApcStorageLock::wait() works correctly.
+   * Tests that Lock::wait() works correctly.
    */
   public function testWait(): void {
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
@@ -129,10 +129,10 @@ class ApcLockTestCase extends ApcTestBase {
   }
 
   /**
-   * Tests that ApcStorageLock::release() works correctly.
+   * Tests that Lock::release() works correctly.
    *
-   * After ApcStorageLock::release() has been called,
-   * ApcStorageLock::maybeAvailable() will return TRUE.
+   * After Lock::release() has been called,
+   * Lock::maybeAvailable() will return TRUE.
    */
   public function testRelease(): void {
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
@@ -158,10 +158,10 @@ class ApcLockTestCase extends ApcTestBase {
   }
 
   /**
-   * Tests that ApcStorageLock::releaseAll() works correctly.
+   * Tests that Lock::releaseAll() works correctly.
    *
-   * After ApcStorageLock::releaseAll() has been called,
-   * ApcStorageLock::maybeAvailable() will return FALSE.
+   * After Lock::releaseAll() has been called,
+   * Lock::maybeAvailable() will return FALSE.
    */
   public function testReleaseAll(): void {
     if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {

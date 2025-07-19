@@ -2,15 +2,17 @@
 
 /**
  * @file
- * Contains ApcStorageCache.
+ * Contains \apc_storage\cache\Cache.
  */
 
 declare(strict_types=1);
 
+namespace apc_storage\cache;
+
 /**
  * APCu cache implementation.
  */
-class ApcStorageCache implements BackdropCacheInterface {
+class Cache implements \BackdropCacheInterface {
 
   /**
    * The identifier used to generate unique APCu keys.

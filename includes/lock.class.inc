@@ -2,10 +2,12 @@
 
 /**
  * @file
- * Contains ApcStorageLock.
+ * Contains apc_storage\lock\Lock.
  */
 
 declare(strict_types=1);
+
+namespace apc_storage\lock;
 
 use Random\Engine\Xoshiro256StarStar;
 use Random\RandomException;
@@ -16,7 +18,7 @@ use Random\Randomizer;
  *
  * @internal This class should only be used by the APC Storage module.
  */
-class ApcStorageLock {
+class Lock {
 
   /**
    * The locks acquired in the current request.
@@ -66,7 +68,7 @@ class ApcStorageLock {
           $randomizer = new Randomizer($engine);
           self::$uniqueId = $randomizer->getBytes(32);
         }
-        catch (ValueError) {
+        catch (\ValueError) {
           // This exception should never be thrown because the seed passed to
           // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
           // and those are not all zeros.
@@ -140,7 +142,7 @@ class ApcStorageLock {
           // In this case, the insert must have failed meaning some other
           // request acquired the lock but did not release it.
           // We decide whether to retry by checking
-          // ApcStorageLock::maybeAvailable(), since this will break the lock in
+          // Lock::maybeAvailable(), since this will break the lock in
           // case it is expired.
           $retry = !$retry && $this->maybeAvailable();
         }
@@ -200,7 +202,7 @@ class ApcStorageLock {
   }
 
   /**
-   * Releases a lock previously acquired by ApcStorageLock::acquire().
+   * Releases a lock previously acquired by Lock::acquire().
    *
    * This will release the named lock if it is still held by the current
    * request.
@@ -218,7 +220,7 @@ class ApcStorageLock {
     if (self::$uniqueId && extension_loaded('apcu') && apcu_enabled()) {
       $key = preg_quote('apc_storage_lock::' . backdrop_base64_encode(self::$uniqueId) . '::', '/');
 
-      apcu_delete(new APCUIterator("/^" . $key . '[a-zA-Z0-9-_]+$/'));
+      apcu_delete(new \APCUIterator("/^" . $key . '[a-zA-Z0-9-_]+$/'));
     }
   }
 

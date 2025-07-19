@@ -2,15 +2,17 @@
 
 /**
  * @file
- * Contains ApcStorageChainedCache.
+ * Contains \apc_storage\cache\ChainedCache.
  */
 
 declare(strict_types=1);
 
+namespace apc_storage\cache;
+
 /**
  * APCu chained cache implementation.
  */
-class ApcStorageChainedCache extends ApcStorageCache {
+class ChainedCache extends Cache {
 
   /**
    * Cache key used to track the last writing.

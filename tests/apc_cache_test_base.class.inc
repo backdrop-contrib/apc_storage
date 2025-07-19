@@ -23,7 +23,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    *
    * @var BackdropCacheInterface[]
    */
-  protected array $cacheBackends = array();
+  protected array $cacheBackends = [];
 
   /**
    * Gets a cache backend instance.
@@ -112,11 +112,11 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    */
   public function testSetGet() : void {
     $backend = $this->getCacheBackend();
-    $data = array(
-      'test1' => array('bar' => '\\Backdrop\\foo\\Bar'),
-      'test2' => array('value' => 3),
-      'test_' . $this->randomName() => array($this->randomName() => $this->randomString())
-    );
+    $data = [
+      'test1' => ['bar' => '\\Backdrop\\foo\\Bar'],
+      'test2' => ['value' => 3],
+      'test_' . $this->randomName() => [$this->randomName() => $this->randomString()]
+    ];
 
     foreach ($data as $cid => $item) {
       $message_args = array('@cid' => $cid);
@@ -201,14 +201,14 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    */
   public function testValueTypeIsKept() : void {
     $backend = $this->getCacheBackend();
-    $data = array(
+    $data = [
       'test1' => 1,
       'test2' => '0',
       'test3' => '',
       'test4' => 12.64,
       'test5' => FALSE,
-      'test6' => array(1, 3, 5),
-    );
+      'test6' => [1, 3, 5],
+    ];
 
     foreach ($data as $cid => $item) {
       $backend->set($cid, $item);
@@ -223,12 +223,12 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    */
   public function testDelete() : void {
     $backend = $this->getCacheBackend();
-    $data = array(
+    $data = [
       'test1' => 1,
       'test2' => 3,
       'test3' => 5,
       'test4' => 'test',
-    );
+    ];
 
     foreach ($data as $cid => $item) {
       $backend->set($cid, $item);

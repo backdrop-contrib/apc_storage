@@ -19,9 +19,9 @@ function apc_storage_requirements($phase): array {
   // Ensure translations don't break at installation time.
   $t = get_t();
 
-  $requirements['apc_storage'] = array(
+  $requirements['apc_storage'] = [
     'title' => $t('APC Storage'),
-  );
+  ];
 
   if (extension_loaded('apcu')) {
     $apcu_version = phpversion('apcu');
@@ -39,7 +39,7 @@ function apc_storage_requirements($phase): array {
 
     if (apcu_enabled() && $phase == 'runtime') {
       $cache = apcu_cache_info(TRUE);
-      $list = array();
+      $list = [];
       $num_entries = $cache['num_entries'] ?? 0;
       $start_time = $cache['start_time'] ?? REQUEST_TIME;
       $mem_size = $cache['mem_size'] ?? 0;
@@ -57,7 +57,7 @@ function apc_storage_requirements($phase): array {
       }
 
       $requirements['apc_storage']['value'] = $t('Installed');
-      $requirements['apc_storage']['description'] = theme('item_list', array('items' => $list));
+      $requirements['apc_storage']['description'] = theme('item_list', ['items' => $list]);
       $requirements['apc_storage']['severity'] = REQUIREMENT_INFO;
     }
     elseif (!apcu_enabled()) {

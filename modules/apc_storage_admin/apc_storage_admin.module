@@ -13,10 +13,10 @@ declare(strict_types=1);
  * @hook
  */
 function apc_storage_admin_permission(): array {
-  $permissions['access APC Storage reports'] = array(
+  $permissions['access APC Storage reports'] = [
     'title' => t('Access APC Storage reports'),
     'description' => t('Allows the access to APC Storage reports.')
-  );
+  ];
 
   return $permissions;
 }
@@ -28,11 +28,11 @@ function apc_storage_admin_permission(): array {
  */
 function apc_storage_admin_form_system_performance_settings_alter(&$form, &$form_state): void {
   if (extension_loaded('apcu') && apcu_enabled()) {
-    $form['clear_cache']['apc_storage_admin_apcu_cache'] = array(
+    $form['clear_cache']['apc_storage_admin_apcu_cache'] = [
       '#type' => 'submit',
       '#value' => t('Clear APCu cache'),
-      '#submit' => array('apc_storage_admin_clear_apcu_cache')
-    );
+      '#submit' => ['apc_storage_admin_clear_apcu_cache']
+    ];
   }
 }
 
@@ -125,13 +125,13 @@ function apc_storage_admin_reports(): string {
 
   return theme(
     'details',
-    array(
+    [
       '#open' => TRUE,
       '#summary' => t('APC Storage'),
-      '#attributes' => array(
-        'class' => array('apc-storage-admin-reports'),
-      ),
+      '#attributes' => [
+        'class' => ['apc-storage-admin-reports'],
+      ],
       '#details' => $item_list
-    )
+    ]
   );
 }

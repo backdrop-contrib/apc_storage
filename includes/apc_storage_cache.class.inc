@@ -66,7 +66,7 @@ class ApcStorageCache implements BackdropCacheInterface {
    *   The cache ID.
    *
    * @return string
-   *   The key to use with APCu functions to get, set, or delete a cache item.
+   *   The key to use with APCu to get, set, or delete a cache item.
    */
   protected function getApcuKey(string $cid = ''): string {
     return $this->binPrefix . $cid;
@@ -103,11 +103,11 @@ class ApcStorageCache implements BackdropCacheInterface {
    */
   public function getMultiple(&$cids): array {
     if (!$cids || !extension_loaded('apcu') || !apcu_enabled()) {
-      return array();
+      return [];
     }
 
-    $cache = array();
-    $keys = array_map(array($this, 'getApcuKey'), $cids);
+    $cache = [];
+    $keys = array_map([$this, 'getApcuKey'], $cids);
 
     if ($result = apcu_fetch($keys, $success)) {
       foreach ($result as $key => $item) {

@@ -13,7 +13,7 @@ declare(strict_types=1);
 class ApcStorageChainedCache extends ApcStorageCache {
 
   /**
-   * Cache key used to track the last write.
+   * Cache key used to track the last writing.
    */
   const string LAST_WRITE_TIMESTAMP_KEY = 'apc_storage_chained_cache::last_write_timestamp';
 
@@ -28,7 +28,7 @@ class ApcStorageChainedCache extends ApcStorageCache {
   protected string $sitePrefix = 'apc_storage_chained_cache::';
 
   /**
-   * The time at which the last write to this cache bin happened.
+   * The time at which the last writing to this cache bin happened.
    *
    * @var ?int
    */
@@ -48,7 +48,7 @@ class ApcStorageChainedCache extends ApcStorageCache {
   }
 
   /**
-   * Gets the last write timestamp.
+   * Gets the last writing timestamp.
    */
   protected function getLastWriteTimestamp(): float {
     if (is_null($this->lastWriteTimestamp)) {
@@ -72,7 +72,7 @@ class ApcStorageChainedCache extends ApcStorageCache {
   }
 
   /**
-   * Normalizes a cache ID in order to comply with database limitations.
+   * Normalizes a cache ID to avoid database limitations.
    *
    * @param string $cid
    *   The cache ID.
@@ -93,7 +93,7 @@ class ApcStorageChainedCache extends ApcStorageCache {
   }
 
   /**
-   * Sets the last write timestamp.
+   * Sets the last writing timestamp.
    *
    * @param int $timestamp
    *   The new timestamp.
@@ -130,9 +130,24 @@ class ApcStorageChainedCache extends ApcStorageCache {
    * {@inheritdoc}
    */
   public function getMultiple(&$cids): array {
-    $cid_mapping = array();
-    $cache = array();
-    $normalized_cids = array();
+    $cid_mapping = [];
+    $cache = [];
+    $normalized_cids = [];
+
+    if (!$cids || !extension_loaded('apcu') || !apcu_enabled()) {
+      return [];
+    }
+
+    $keys = array_map([$this, 'getApcuKey'], $cids);
+
+    if ($result = apcu_fetch($keys, $success)) {
+      foreach ($result as $key => $item) {
+        $item = $this->prepareItem($item);
+        if ($item) {
+          $cache[$this->getCidFromKey($key)] = $item;
+        }
+      }
+    }
 
     foreach ($cids as $cid) {
       $normalized_cid = $this->normalizeCid($cid);
@@ -183,6 +198,18 @@ class ApcStorageChainedCache extends ApcStorageCache {
     $this->databaseBackend->set($normalized_cid, $data, $expire);
     $this->markAsOutdated();
     parent::set($normalized_cid, $data, $expire);
+
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      $cache = (object) [
+        'cid' => $cid,
+        'created' => REQUEST_TIME,
+        'expire' => $expire,
+        'data' => $data,
+        'serialized' => 0,
+      ];
+
+      apcu_store($this->getApcuKey($cid), $cache, $expire - REQUEST_TIME);
+    }
   }
 
   /**
@@ -197,7 +224,7 @@ class ApcStorageChainedCache extends ApcStorageCache {
    * {@inheritdoc}
    */
   public function deleteMultiple(array $cids): void {
-    $normalized_cids = array_map(array($this, 'normalizeCid'), $cids);
+    $normalized_cids = array_map([$this, 'normalizeCid'], $cids);
     $this->databaseBackend->deleteMultiple($normalized_cids);
     $this->markAsOutdated();
   }

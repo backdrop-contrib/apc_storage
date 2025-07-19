@@ -115,11 +115,11 @@ class Lock {
   public function acquire(float $timeout = 30.0): bool {
     $expire = microtime(TRUE) + $timeout;
 
-    if (apcu_exists($this->key)) {
+    if (apcu_exists($this->keyName())) {
       // Try to extend the expiration of an already acquired lock.
-      if (!apcu_store($this->key, array('expire' => $expire))) {
+      if (!apcu_store($this->keyName(), array('expire' => $expire))) {
         // The lock was broken.
-        apcu_delete($this->key);
+        apcu_delete($this->keyName());
 
         // Return failure to acquire the lock, since we do not know what its
         // state is.
@@ -135,11 +135,11 @@ class Lock {
 
       // We always want to do this code at least once.
       do {
-        $success = apcu_store($this->key, array('expire' => $expire));
+        $success = apcu_store($this->keyName(), array('expire' => $expire));
 
         if (!$success) {
           // If this is our first pass through the loop, then $retry is FALSE.
-          // In this case, the insert must have failed meaning some other
+          // In this case, the insert must have failed, meaning some other
           // request acquired the lock but did not release it.
           // We decide whether to retry by checking
           // Lock::maybeAvailable(), since this will break the lock in
@@ -148,7 +148,7 @@ class Lock {
         }
       } while ($retry);
 
-      return apcu_exists($this->key);
+      return apcu_exists($this->keyName());
     }
   }
 
@@ -161,14 +161,14 @@ class Lock {
    *   TRUE if the lock can be acquired, FALSE otherwise.
    */
   public function maybeAvailable(): bool {
-    if (!apcu_exists($this->key)) {
+    if (!apcu_exists($this->keyName())) {
       return TRUE;
     }
 
-    $data = apcu_fetch($this->key, $success);
+    $data = apcu_fetch($this->keyName(), $success);
 
     if (!$success || empty($data['expire']) || microtime(TRUE) > (float) $data['expire']) {
-      return apcu_delete($this->key);
+      return apcu_delete($this->keyName());
     }
 
     return FALSE;
@@ -210,7 +210,7 @@ class Lock {
   public function release(): void {
     // The lock is unconditionally removed, since the caller assumes the lock is
     // released.
-    apcu_delete($this->key);
+    apcu_delete($this->keyName());
   }
 
   /**

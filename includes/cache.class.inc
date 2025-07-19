@@ -189,7 +189,7 @@ class Cache implements \BackdropCacheInterface {
     if (is_string($prefix) && extension_loaded('apcu') && apcu_enabled()) {
       $key = $this->getApcuKey() . $prefix;
 
-      apcu_delete(new APCUIterator("/^" . preg_quote($key, '/') . "/"));
+      apcu_delete(new \APCUIterator("/^" . preg_quote($key, '/') . "/"));
     }
   }
 
@@ -200,7 +200,7 @@ class Cache implements \BackdropCacheInterface {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $key = preg_quote($this->getApcuKey(), '/');
 
-      apcu_delete(new APCUIterator("/^$key/"));
+      apcu_delete(new \APCUIterator("/^$key/"));
     }
   }
 
@@ -216,7 +216,7 @@ class Cache implements \BackdropCacheInterface {
    */
   public function isEmpty(): bool {
     if (extension_loaded('apcu') && apcu_enabled()) {
-      $iterator = new APCUIterator('/^' . preg_quote($this->getApcuKey(), '/') . '/');
+      $iterator = new \APCUIterator('/^' . preg_quote($this->getApcuKey(), '/') . '/');
 
       return $iterator->getTotalCount() === 0;
     }

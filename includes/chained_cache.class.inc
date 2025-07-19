@@ -39,14 +39,14 @@ class ChainedCache extends Cache {
   /**
    * The database cache backend.
    *
-   * @var BackdropCacheInterface
+   * @var \BackdropCacheInterface
    */
-  protected BackdropCacheInterface $databaseBackend;
+  protected \BackdropCacheInterface $databaseBackend;
 
   public function __construct($bin) {
     parent::__construct($bin);
 
-    $this->databaseBackend = new BackdropDatabaseCache($bin);
+    $this->databaseBackend = new \BackdropDatabaseCache($bin);
   }
 
   /**

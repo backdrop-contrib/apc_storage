@@ -10,7 +10,7 @@ declare(strict_types=1);
 namespace apc_storage\cache;
 
 /**
- * APCu cache implementation.
+ * The APCu cache implementation.
  */
 class Cache implements \BackdropCacheInterface {
 
@@ -88,44 +88,6 @@ class Cache implements \BackdropCacheInterface {
   }
 
   /**
-   * {@inheritdoc}
-   */
-  public function get($cid): object|false {
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      $item = apcu_fetch($this->getApcuKey($cid), $success);
-
-      return $success ? $this->prepareItem($item) : FALSE;
-    }
-
-    return FALSE;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getMultiple(&$cids): array {
-    if (!$cids || !extension_loaded('apcu') || !apcu_enabled()) {
-      return [];
-    }
-
-    $cache = [];
-    $keys = array_map([$this, 'getApcuKey'], $cids);
-
-    if ($result = apcu_fetch($keys, $success)) {
-      foreach ($result as $key => $item) {
-        $item = $this->prepareItem($item);
-        if ($item) {
-          $cache[$this->getCidFromKey($key)] = $item;
-        }
-      }
-    }
-
-    $cids = array_diff($cids, array_keys($cache));
-
-    return $cache;
-  }
-
-  /**
    * Prepares a cached item.
    *
    * Checks that items are either permanent or did not expire.
@@ -139,29 +101,6 @@ class Cache implements \BackdropCacheInterface {
    */
   protected function prepareItem(object $cache): object|false {
     return isset($cache->data) ? $cache : FALSE;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function set($cid, $data, $expire = CACHE_PERMANENT): void {
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      $cache = (object) array(
-        'cid' => $cid,
-        'created' => REQUEST_TIME,
-        'expire' => $expire,
-        'data' => $data,
-        'serialized' => 0,
-      );
-
-      $ttl = match ($expire) {
-        CACHE_PERMANENT => 0,
-        CACHE_TEMPORARY => max(1, settings_get('apc_storage_cache_lifetime', 0)),
-        default => $expire - time(),
-      };
-
-      apcu_store($this->getApcuKey($cid), $cache, $ttl);
-    }
   }
 
   /**
@@ -214,6 +153,44 @@ class Cache implements \BackdropCacheInterface {
   /**
    * {@inheritdoc}
    */
+  public function get($cid): mixed {
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      $item = apcu_fetch($this->getApcuKey($cid), $success);
+
+      return $success ? $this->prepareItem($item) : FALSE;
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getMultiple(array &$cids): array {
+    if (!$cids || !extension_loaded('apcu') || !apcu_enabled()) {
+      return [];
+    }
+
+    $cache = [];
+    $keys = array_map([$this, 'getApcuKey'], $cids);
+
+    if ($result = apcu_fetch($keys, $success)) {
+      foreach ($result as $key => $item) {
+        $item = $this->prepareItem($item);
+        if ($item) {
+          $cache[$this->getCidFromKey($key)] = $item;
+        }
+      }
+    }
+
+    $cids = array_diff($cids, array_keys($cache));
+
+    return $cache;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function isEmpty(): bool {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $iterator = new \APCUIterator('/^' . preg_quote($this->getApcuKey(), '/') . '/');
@@ -222,6 +199,29 @@ class Cache implements \BackdropCacheInterface {
     }
 
     return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function set($cid, $data, $expire = CACHE_PERMANENT): void {
+    if (extension_loaded('apcu') && apcu_enabled()) {
+      $cache = (object) array(
+        'cid' => $cid,
+        'created' => REQUEST_TIME,
+        'expire' => $expire,
+        'data' => $data,
+        'serialized' => 0,
+      );
+
+      $ttl = match ($expire) {
+        CACHE_PERMANENT => 0,
+        CACHE_TEMPORARY => max(1, settings_get('apc_storage_cache_lifetime', 0)),
+        default => $expire - time(),
+      };
+
+      apcu_store($this->getApcuKey($cid), $cache, $ttl);
+    }
   }
 
 }

@@ -186,7 +186,7 @@ class ChainedCache extends Cache {
       // potentially invalid if older than the last time the bin was written to
       // the database backend.
       foreach ($items as $item) {
-        if ($item->created < $last_write_timestamp) {
+        if ($item->created <= $last_write_timestamp) {
           $cids[array_search($item->cid, $cids_copy)] = $item->cid;
         }
         else {

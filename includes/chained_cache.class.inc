@@ -68,10 +68,14 @@ class ChainedCache extends Cache {
    *   Writing the database failed.
    */
   protected function markAsOutdated(): void {
+    // Do not assume 'now' on this server is always later than the stored
+    // timestamp. Add one second to the current time each time we write it to
+    // the database backend and make sure it is always at least one millisecond
+    // ahead of the current time.
     $compare = round(microtime(TRUE) + .001, 3);
 
     if ($compare > $this->getLastWriteTimestamp()) {
-      $now = round(microtime(TRUE) + .050, 3);
+      $now = round(microtime(TRUE) + 1, 3);
       $this->setLastWriteTimestamp($now);
     }
   }
@@ -160,8 +164,12 @@ class ChainedCache extends Cache {
   public function getMultiple(array &$cids): array {
     $cids_copy = $cids;
     $cache = [];
+    $compare = round(microtime(TRUE), 3);
+    $last_write_timestamp = $this->getLastWriteTimestamp();
 
-    if ($last_write_timestamp = $this->getLastWriteTimestamp()) {
+    // Don't bother to either look up from or write to the APCu backend when the
+    // $last_write_timestamp is in the future.
+    if ($last_write_timestamp && $compare > $last_write_timestamp) {
       try {
         $items = parent::getMultiple($cids);
       }
@@ -170,9 +178,9 @@ class ChainedCache extends Cache {
         $items = [];
       }
 
-      // Even if items were successfully fetched from the APCu backend, they
-      // are potentially invalid if older than the last time the bin was
-      // written to the database backend.
+      // Even if items were successfully fetched from the APCu backend, they are
+      // potentially invalid if older than the last time the bin was written to
+      // the database backend.
       foreach ($items as $item) {
         if ($item->created < $last_write_timestamp) {
           $cids[array_search($item->cid, $cids_copy)] = $item->cid;
@@ -183,14 +191,17 @@ class ChainedCache extends Cache {
       }
     }
 
-    // If there were any cache entries that were not available in the APCu
-    // backend, retrieve them from the database backend and store them in the
-    // APCu one.
+    // If there were cache entries not available in the APCu backend, retrieve
+    // them from the database backend and store them in the APCu backend.
     if ($cids) {
-      foreach (parent::getMultiple($cids) as $item) {
+      foreach ($this->databaseBackend->getMultiple($cids) as $item) {
         $cache[$item->cid] = $item;
 
-        parent::set($item->cid, $item->data, $item->expire);
+        // Only write back to the fast backend if the created time will be later
+        // than $last_write_timestamp to avoid wasted writes.
+        if ($compare > $last_write_timestamp) {
+          parent::set($item->cid, $item->data, $item->expire);
+        }
       }
     }
 
@@ -211,9 +222,12 @@ class ChainedCache extends Cache {
    *   Writing the database failed.
    */
   public function set($cid, $data, $expire = CACHE_PERMANENT): void {
+    // Do not write to the APCu backend. This avoids lock/write contention on
+    // the APCu backend for cache items which may not be requested immediately.
+    // The APCu backend will be populated via the logic in ::get() instead, when
+    // the cache items are actually requested.
     $this->databaseBackend->set($cid, $data, $expire);
     $this->markAsOutdated();
-    parent::set($cid, $data, $expire);
   }
 
 }

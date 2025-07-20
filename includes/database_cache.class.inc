@@ -326,7 +326,7 @@ class DatabaseCache implements \BackdropCacheInterface {
   public function set($cid, $data, $expire = CACHE_PERMANENT): void {
     $fields = [
       'serialized' => 0,
-      'created' => REQUEST_TIME,
+      'created' => round(microtime(TRUE)),
       'expire' => $expire,
     ];
     $try_again = FALSE;

@@ -208,7 +208,7 @@ class Cache implements \BackdropCacheInterface {
     if (extension_loaded('apcu') && apcu_enabled()) {
       $cache = (object) array(
         'cid' => $cid,
-        'created' => REQUEST_TIME,
+        'created' => round(microtime(TRUE)),
         'expire' => $expire,
         'data' => $data,
         'serialized' => 0,

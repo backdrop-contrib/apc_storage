@@ -10,7 +10,11 @@ declare(strict_types=1);
 namespace apc_storage\cache;
 
 /**
- * APCu chained cache implementation.
+ * Cache implementation with an APCu and a database backend chain.
+ *
+ * In addition to being useful for sites running on multiple web nodes, this
+ * implementation can also be useful for sites running on a single web node
+ * where the APCu backend isn't shareable between the web and CLI processes.
  */
 class ChainedCache extends Cache {
 

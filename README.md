@@ -10,7 +10,7 @@ This module requires that the following PHP extensions are installed on your
 server:
 
 - [APCu](https://www.php.net/manual/en/book.apcu.php) extension
-  (5.0.0 or higher)
+  (5.1.17 or higher)
 
 This module requires Backdrop 1.30.0, or higher versions, and PHP 8.3.
 

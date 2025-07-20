@@ -168,12 +168,12 @@ class ChainedCache extends Cache {
   public function getMultiple(array &$cids): array {
     $cids_copy = $cids;
     $cache = [];
-    $compare = round(microtime(TRUE), 3);
+    $now = round(microtime(TRUE), 3);
     $last_write_timestamp = $this->getLastWriteTimestamp();
 
     // Don't bother to either look up from or write to the APCu backend when the
     // $last_write_timestamp is in the future.
-    if ($last_write_timestamp && $compare > $last_write_timestamp) {
+    if ($last_write_timestamp && $now > $last_write_timestamp) {
       try {
         $items = parent::getMultiple($cids);
       }
@@ -203,7 +203,7 @@ class ChainedCache extends Cache {
 
         // Only write back to the fast backend if the created time will be later
         // than $last_write_timestamp to avoid wasted writes.
-        if ($compare > $last_write_timestamp) {
+        if ($now > $last_write_timestamp) {
           parent::set($item->cid, $item->data, $item->expire);
         }
       }

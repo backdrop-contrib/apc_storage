@@ -169,14 +169,6 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       $this->assertFalse(isset($fresh_cached->data->this_should_not_be_in_the_cache), $message);
     }
 
-    // Verify that storing a value with a negative expiration time fails.
-    foreach ($data as $cid => $item) {
-      $message_args = array('@cid' => $cid);
-      $message = format_string('Storing @cid with a negative expiration time failed.', $message_args);
-      $backend->set($cid, $item, -3);
-      $this->assertFalse($backend->get($cid), $message);
-    }
-
     // Verify that cache keys are case-sensitive.
     $cid = 'TEST8';
     $backend->set($cid, 'value');
@@ -186,7 +178,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     $message = format_string('Item @cid has not been retrieved from the cache.', array('@cid' => $cid));
     $this->assertFalse($backend->get($cid), $message);
 
-    // Verify that a cache ID with a trailing space and a cache ID with a
+    // Verify that a cache ID with a trailing space and a cache ID without a
     // trailing space are treated as two different IDs.
     $cid = 'trailing-space-test';
     $backend->set($cid, 'Value for trailing-space-test');

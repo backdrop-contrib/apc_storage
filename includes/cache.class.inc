@@ -15,6 +15,21 @@ namespace apc_storage\cache;
 class Cache implements \BackdropCacheInterface {
 
   /**
+   * The setting name for cache lifetime configuration.
+   */
+  protected const string DEFAULT_CACHE_LIFETIME = 'apc_storage_cache_lifetime';
+
+  /**
+   * The setting name for deployment identifier configuration.
+   */
+  protected const string DEPLOYMENT_IDENTIFIER = 'apc_storage_deployment_identifier';
+
+  /**
+   * The setting name for unique prefix configuration.
+   */
+  protected const string ENSURE_UNIQUE_PREFIX = 'apc_storage_ensure_unique_prefix';
+
+  /**
    * The identifier used to generate unique APCu keys.
    *
    * @var string
@@ -42,23 +57,50 @@ class Cache implements \BackdropCacheInterface {
    */
   protected string $sitePrefix = 'apc_storage_cache::';
 
+  /**
+   * {@inheritdoc}
+   */
   public function __construct($bin) {
+    $this->bin = $bin;
+    $this->binPrefix = $this->generatePrefix();
+  }
+
+  /**
+   * Generates a unique prefix for cache keys.
+   *
+   * Combines various elements including the identifier, Backdrop version,
+   * deployment identifier, and site-specific information to create a unique
+   * prefix for cache keys.
+   *
+   * @return string
+   *   The generated unique prefix.
+   */
+  protected function generatePrefix(): string {
     $prefix = $this->identifier . '.backdrop.' . BACKDROP_VERSION . '.';
-    $prefix .= settings_get('apc_storage_deployment_identifier', '') . '.';
+    $prefix .= settings_get(self::DEPLOYMENT_IDENTIFIER, '') . '.';
 
     $site_path = conf_path();
     $hash_salt = backdrop_get_hash_salt() . '.' . BACKDROP_ROOT . '/' . $site_path;
 
-    if (settings_get('apc_storage_ensure_unique_prefix', TRUE)) {
+    if (settings_get(self::ENSURE_UNIQUE_PREFIX, TRUE)) {
       $prefix .= hash_hmac('sha256', $this->identifier, $hash_salt, TRUE);
     }
     else {
       $prefix .= hash('sha256', BACKDROP_ROOT . '/' . $site_path, TRUE);
     }
 
-    $this->bin = $bin;
-    $this->sitePrefix .= backdrop_base64_encode($prefix);
-    $this->binPrefix = $this->sitePrefix . '::' . backdrop_base64_encode($bin) . '::';
+    return $this->sitePrefix . backdrop_base64_encode($prefix) . '::' .
+      backdrop_base64_encode($this->bin) . '::';
+  }
+
+  /**
+   * Checks if the APCu extension is loaded and enabled.
+   *
+   * @return bool
+   *   TRUE if APCu is available and enabled, FALSE otherwise.
+   */
+  protected function isApcuAvailable(): bool {
+    return extension_loaded('apcu') && apcu_enabled();
   }
 
   /**
@@ -107,7 +149,7 @@ class Cache implements \BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function delete($cid): void {
-    if (extension_loaded('apcu') && apcu_enabled()) {
+    if ($this->isApcuAvailable()) {
       apcu_delete($this->getApcuKey($cid));
     }
   }
@@ -116,8 +158,8 @@ class Cache implements \BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function deleteMultiple(array $cids): void {
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      apcu_delete(array_map(array($this, 'getApcuKey'), $cids));
+    if ($this->isApcuAvailable()) {
+      apcu_delete(array_map([$this, 'getApcuKey'], $cids));
     }
   }
 
@@ -125,9 +167,8 @@ class Cache implements \BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function deletePrefix($prefix): void {
-    if (is_string($prefix) && extension_loaded('apcu') && apcu_enabled()) {
+    if (is_string($prefix) && $this->isApcuAvailable()) {
       $key = $this->getApcuKey() . $prefix;
-
       apcu_delete(new \APCUIterator("/^" . preg_quote($key, '/') . "/"));
     }
   }
@@ -136,9 +177,8 @@ class Cache implements \BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function flush(): void {
-    if (extension_loaded('apcu') && apcu_enabled()) {
+    if ($this->isApcuAvailable()) {
       $key = preg_quote($this->getApcuKey(), '/');
-
       apcu_delete(new \APCUIterator("/^$key/"));
     }
   }
@@ -154,12 +194,10 @@ class Cache implements \BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function get($cid): mixed {
-    if (extension_loaded('apcu') && apcu_enabled()) {
+    if ($this->isApcuAvailable()) {
       $item = apcu_fetch($this->getApcuKey($cid), $success);
-
       return $success ? $this->prepareItem($item) : FALSE;
     }
-
     return FALSE;
   }
 
@@ -167,7 +205,7 @@ class Cache implements \BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function getMultiple(array &$cids): array {
-    if (!$cids || !extension_loaded('apcu') || !apcu_enabled()) {
+    if (!$cids || !$this->isApcuAvailable()) {
       return [];
     }
 
@@ -184,7 +222,6 @@ class Cache implements \BackdropCacheInterface {
     }
 
     $cids = array_diff($cids, array_keys($cache));
-
     return $cache;
   }
 
@@ -192,12 +229,10 @@ class Cache implements \BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function isEmpty(): bool {
-    if (extension_loaded('apcu') && apcu_enabled()) {
+    if ($this->isApcuAvailable()) {
       $iterator = new \APCUIterator('/^' . preg_quote($this->getApcuKey(), '/') . '/');
-
       return $iterator->getTotalCount() === 0;
     }
-
     return TRUE;
   }
 
@@ -205,18 +240,18 @@ class Cache implements \BackdropCacheInterface {
    * {@inheritdoc}
    */
   public function set($cid, $data, $expire = CACHE_PERMANENT): void {
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      $cache = (object) array(
+    if ($this->isApcuAvailable()) {
+      $cache = (object) [
         'cid' => $cid,
         'created' => round(microtime(TRUE)),
         'expire' => $expire,
         'data' => $data,
         'serialized' => 0,
-      );
+      ];
 
       $ttl = match ($expire) {
         CACHE_PERMANENT => 0,
-        CACHE_TEMPORARY => max(1, settings_get('apc_storage_cache_lifetime', 0)),
+        CACHE_TEMPORARY => max(1, settings_get(self::DEFAULT_CACHE_LIFETIME, 0)),
         default => $expire - time(),
       };
 

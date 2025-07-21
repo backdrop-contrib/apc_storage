@@ -19,6 +19,11 @@ use Random\Randomizer;
 class Queue implements \BackdropQueueInterface {
 
   /**
+   * The queue key prefix used in APCu storage.
+   */
+  protected const string QUEUE_PREFIX = 'apc_storage_queue::';
+
+  /**
    * The randomizer instance used for generating random IDs.
    *
    * @var \Random\Randomizer
@@ -31,6 +36,27 @@ class Queue implements \BackdropQueueInterface {
    * @var string
    */
   protected string $name;
+
+  /**
+   * Checks if APCu extension is loaded and enabled.
+   *
+   * @return bool
+   *   TRUE if APCu is available and enabled, FALSE otherwise.
+   */
+  protected function isApcuAvailable(): bool {
+    return extension_loaded('apcu') && apcu_enabled();
+  }
+
+  /**
+   * Creates an APCu iterator for the current queue.
+   *
+   * @return \APCUIterator
+   *   An APCu iterator to iterate over items in the current queue.
+   */
+  protected function createQueueIterator(): \APCUIterator {
+    $pattern = '/^' . preg_quote(self::QUEUE_PREFIX . backdrop_base64_encode($this->name) . '::', '/') . '[a-zA-Z0-9-_]+$/';
+    return new \APCUIterator($pattern);
+  }
 
   /**
    * Generates a unique identifier.
@@ -83,7 +109,7 @@ class Queue implements \BackdropQueueInterface {
     }
   }
 
-  public function __construct($name) {
+  public function __construct(string $name) {
     $this->name = $name;
   }
 
@@ -99,7 +125,7 @@ class Queue implements \BackdropQueueInterface {
    *   APCu queue.
    */
   protected function keyName(object $item): string {
-    return 'apc_storage_queue::' .
+    return self::QUEUE_PREFIX .
       backdrop_base64_encode($this->name) . '::' .
       backdrop_base64_encode($item->item_id);
   }
@@ -108,58 +134,51 @@ class Queue implements \BackdropQueueInterface {
    * {@inheritdoc}
    */
   public function createItem(mixed $data): bool {
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      $item = new \stdClass();
-      $item->data = $data;
-      $item->item_id = $this->uniqueId();
-      $item->expire = 0;
-
-      return apcu_store($this->keyName($item), $item);
+    if (!$this->isApcuAvailable()) {
+      return FALSE;
     }
 
-    return FALSE;
+    $item = new \stdClass();
+    $item->data = $data;
+    $item->item_id = $this->uniqueId();
+    $item->expire = 0;
+
+    return apcu_store($this->keyName($item), $item);
   }
 
   /**
    * {@inheritdoc}
    */
   public function numberOfItems(): int {
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      $name = preg_quote('::' . backdrop_base64_encode($this->name) . '::', '/');
-      $iterator = new \APCUIterator('/^apc_storage_queue' . $name . '[a-zA-Z0-9-_]+$/');
-
-      return $iterator->getTotalCount();
+    if (!$this->isApcuAvailable()) {
+      return 0;
     }
 
-    return 0;
+    return $this->createQueueIterator()->getTotalCount();
   }
 
   /**
    * {@inheritdoc}
    */
   public function claimItem($lease_time = 30): ?object {
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      $name = preg_quote('::'. backdrop_base64_encode($this->name) . '::', '/');
-      $iterator = new \APCUIterator('/^apc_storage_queue' . $name . '[a-zA-Z0-9-_]+$/');
+    if (!$this->isApcuAvailable()) {
+      return NULL;
+    }
 
-      foreach ($iterator as $item) {
-        if (!isset($item['value']->expire)) {
-          $item['value']->expire = 0;
-        }
+    foreach ($this->createQueueIterator() as $item) {
+      $item['value']->expire ??= 0;
 
-        // If the previously set lease time has expired, reset the expiration
-        // time.
-        if (!empty($item['value']->expire) && $item['value']->expire < time()) {
-          $item['value']->expire = 0;
-        }
+      // If the previously set lease time has expired, reset the expiration time.
+      if (!empty($item['value']->expire) && $item['value']->expire < time()) {
+        $item['value']->expire = 0;
+      }
 
-        // Find the first item without an expiration time.
-        if ($item['value']->expire == 0) {
-          $item['value']->expire = time() + $lease_time;
+      // Find the first item without an expiration time.
+      if ($item['value']->expire == 0) {
+        $item['value']->expire = time() + $lease_time;
 
-          if (apcu_store($item['key'], $item['value'])) {
-            return $item['value'];
-          }
+        if (apcu_store($item['key'], $item['value'])) {
+          return $item['value'];
         }
       }
     }
@@ -171,7 +190,7 @@ class Queue implements \BackdropQueueInterface {
    * {@inheritdoc}
    */
   public function deleteItem($item): void {
-    if (extension_loaded('apcu') && apcu_enabled()) {
+    if ($this->isApcuAvailable()) {
       apcu_delete($this->keyName($item));
     }
   }
@@ -182,7 +201,7 @@ class Queue implements \BackdropQueueInterface {
   public function releaseItem($item): bool {
     $item->expire = 0;
 
-    if (extension_loaded('apcu') && apcu_enabled()) {
+    if ($this->isApcuAvailable()) {
       return apcu_store($this->keyName($item), $item);
     }
 
@@ -200,11 +219,8 @@ class Queue implements \BackdropQueueInterface {
    * {@inheritdoc}
    */
   public function deleteQueue(): void {
-    if (extension_loaded('apcu') && apcu_enabled()) {
-      $name = preg_quote('::' . backdrop_base64_encode($this->name) . '::', '/');
-      $iterator = new \APCUIterator('/^apc_storage_queue' . $name . '[a-zA-Z0-9-_]+$/');
-
-      apcu_delete($iterator);
+    if ($this->isApcuAvailable()) {
+      apcu_delete($this->createQueueIterator());
     }
   }
 

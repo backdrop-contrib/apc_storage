@@ -49,7 +49,7 @@ class DatabaseCache implements \BackdropCacheInterface {
       if (!empty($connection_info) && is_array($connection_info) && count($connection_info) == 2) {
         $connection = \Database::getConnection($connection_info[1], $connection_info[0]);
 
-        // Verify the connection exists.
+        // Verify the connection exists and it works.
         $connection->query("SELECT 1");
       }
       else {
@@ -57,7 +57,7 @@ class DatabaseCache implements \BackdropCacheInterface {
       }
     }
     catch (\Exception) {
-      // The connection does not exist. Use the default one.
+      // The connection does not exist or it does not work. Use the default one.
       $connection = \Database::getConnection();
     }
     finally {
@@ -100,6 +100,8 @@ class DatabaseCache implements \BackdropCacheInterface {
     try {
       $database_schema = $this->connection->schema();
       if ($database_schema->tableExists($table_name ?: $this->bin)) {
+        // The exception was not caused by the table that did not exist; rethrow
+        // the exception.
         throw $e;
       }
     }

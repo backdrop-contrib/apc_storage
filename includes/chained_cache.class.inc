@@ -21,7 +21,22 @@ class ChainedCache extends Cache {
   /**
    * Cache key used to track the last writing.
    */
-  const string LAST_WRITE_TIMESTAMP_KEY = 'apc_storage_chained_cache::last_write_timestamp';
+  protected const string LAST_WRITE_TIMESTAMP_KEY = 'apc_storage_chained_cache::last_write_timestamp';
+
+  /**
+   * Microseconds to add to the current time for comparing timestamps.
+   */
+  protected const float TIMESTAMP_COMPARE_OFFSET = 0.001;
+
+  /**
+   * Seconds to add to current time when setting new timestamp.
+   */
+  protected const int TIMESTAMP_SET_OFFSET = 1;
+
+  /**
+   * Decimal places to round timestamps.
+   */
+  protected const int TIMESTAMP_PRECISION = 3;
 
   /**
    * {@inheritdoc}
@@ -76,10 +91,10 @@ class ChainedCache extends Cache {
     // timestamp. Add one second to the current time each time we write it to
     // the database backend and make sure it is always at least one millisecond
     // ahead of the current time.
-    $compare = round(microtime(TRUE) + .001, 3);
+    $compare = round(microtime(TRUE) + self::TIMESTAMP_COMPARE_OFFSET, self::TIMESTAMP_PRECISION);
 
     if ($compare > $this->getLastWriteTimestamp()) {
-      $now = round(microtime(TRUE) + 1, 3);
+      $now = round(microtime(TRUE) + self::TIMESTAMP_SET_OFFSET, self::TIMESTAMP_PRECISION);
       $this->setLastWriteTimestamp($now);
     }
   }
@@ -146,10 +161,13 @@ class ChainedCache extends Cache {
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Exception
+   *   Writing the database failed.
    */
   public function garbageCollection(): void {
     $this->databaseBackend->garbageCollection();
-    parent::garbageCollection();
+    $this->markAsOutdated();
   }
 
   /**
@@ -168,7 +186,7 @@ class ChainedCache extends Cache {
   public function getMultiple(array &$cids): array {
     $cids_copy = $cids;
     $cache = [];
-    $now = round(microtime(TRUE), 3);
+    $now = round(microtime(TRUE), self::TIMESTAMP_PRECISION);
     $last_write_timestamp = $this->getLastWriteTimestamp();
 
     // Don't bother to either look up from or write to the APCu backend when the

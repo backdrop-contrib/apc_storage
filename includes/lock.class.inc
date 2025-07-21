@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Contains apc_storage\lock\Lock.
@@ -21,11 +20,21 @@ use Random\Randomizer;
 class Lock {
 
   /**
+   * The prefix used for all APCu lock keys.
+   */
+  protected const string LOCK_KEY_PREFIX = 'apc_storage_lock::';
+
+  /**
+   * Default timeout value in seconds for lock operations.
+   */
+  protected const float DEFAULT_TIMEOUT = 30.0;
+
+  /**
    * The locks acquired in the current request.
    *
    * @var self[]
    */
-  protected static array $locks = array();
+  protected static array $locks = [];
 
   /**
    * The unique ID used to generate the APCu keys for locks.
@@ -58,22 +67,7 @@ class Lock {
    */
   public static function get(string $name): self {
     if (empty(self::$uniqueId)) {
-      try {
-        self::$uniqueId = random_bytes(32);
-      }
-      catch (RandomException) {
-        // Use a fallback in case random_bytes() fails.
-        try {
-          $engine = new Xoshiro256StarStar(hash('sha256', hrtime(TRUE) . 'apc_storage_lock_', TRUE));
-          $randomizer = new Randomizer($engine);
-          self::$uniqueId = $randomizer->getBytes(32);
-        }
-        catch (\ValueError) {
-          // This exception should never be thrown because the seed passed to
-          // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
-          // and those are not all zeros.
-        }
-      }
+      self::$uniqueId = self::generateUniqueId();
     }
 
     if (isset(self::$locks[$name])) {
@@ -86,9 +80,45 @@ class Lock {
     return $lock;
   }
 
-  private function __construct(string $name) {
+   protected function __construct(string $name) {
     $this->name = $name;
-    $this->key = 'apc_storage_lock::' .
+    $this->key = $this->generateLockKey();
+  }
+
+  /**
+   * Generates a unique identifier for the lock system.
+   *
+   * @return string
+   *   A 32-byte unique identifier.
+   */
+  protected static function generateUniqueId(): string {
+    try {
+      return random_bytes(32);
+    }
+    catch (RandomException) {
+      // Use a fallback in case random_bytes() fails.
+      try {
+        $engine = new Xoshiro256StarStar(hash('sha256', hrtime(TRUE) . 'apc_storage_lock_', TRUE));
+        $randomizer = new Randomizer($engine);
+        return $randomizer->getBytes(32);
+      }
+      catch (\ValueError) {
+        // This exception should never be thrown because the seed passed to
+        // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
+        // and those are not all zeros.
+        return '';
+      }
+    }
+  }
+
+  /**
+   * Generates the APCu key for the current lock.
+   *
+   * @return string
+   *   The generated APCu key for the lock.
+   */
+  protected function generateLockKey(): string {
+    return self::LOCK_KEY_PREFIX .
       backdrop_base64_encode(self::$uniqueId) . '::' .
       backdrop_base64_encode($this->name);
   }
@@ -112,15 +142,14 @@ class Lock {
    * @return bool
    *   TRUE if the lock was acquired, FALSE otherwise.
    */
-  public function acquire(float $timeout = 30.0): bool {
+  public function acquire(float $timeout = self::DEFAULT_TIMEOUT): bool {
     $expire = microtime(TRUE) + $timeout;
 
     if (apcu_exists($this->keyName())) {
       // Try to extend the expiration of an already acquired lock.
-      if (!apcu_store($this->keyName(), array('expire' => $expire))) {
+      if (!apcu_store($this->keyName(), ['expire' => $expire])) {
         // The lock was broken.
         apcu_delete($this->keyName());
-
         // Return failure to acquire the lock, since we do not know what its
         // state is.
         return FALSE;
@@ -128,28 +157,27 @@ class Lock {
 
       return TRUE;
     }
-    else {
-      // Optimistically try to acquire the lock, then retry once if it fails.
-      // The first time through the loop cannot be a retry.
-      $retry = FALSE;
 
-      // We always want to do this code at least once.
-      do {
-        $success = apcu_store($this->keyName(), array('expire' => $expire));
+    // Optimistically try to acquire the lock, then retry once if it fails.
+    // The first time through the loop cannot be a retry.
+    $retry = FALSE;
 
-        if (!$success) {
-          // If this is our first pass through the loop, then $retry is FALSE.
-          // In this case, the insert must have failed, meaning some other
-          // request acquired the lock but did not release it.
-          // We decide whether to retry by checking
-          // Lock::maybeAvailable(), since this will break the lock in
-          // case it is expired.
-          $retry = !$retry && $this->maybeAvailable();
-        }
-      } while ($retry);
+    // We always want to do this code at least once.
+    do {
+      $success = apcu_store($this->keyName(), ['expire' => $expire]);
 
-      return apcu_exists($this->keyName());
+      if (!$success) {
+        // If this is our first pass through the loop, then $retry is FALSE.
+        // In this case, the insert must have failed, meaning some other request
+        // acquired the lock but did not release it.
+        // We decide whether to retry by checking Lock::maybeAvailable() since
+        // this will break the lock in case it is expired.
+        $retry = !$retry && $this->maybeAvailable();
+      }
     }
+    while ($retry);
+
+    return apcu_exists($this->keyName());
   }
 
   /**
@@ -183,7 +211,7 @@ class Lock {
    * @return bool
    *   FALSE if the lock is available, TRUE otherwise.
    */
-  public function wait(float $delay = 30.0): bool {
+  public function wait(float $delay = self::DEFAULT_TIMEOUT): bool {
     $delay = (int) round($delay * 1000000);
     $sleep = 25000;
 
@@ -197,7 +225,6 @@ class Lock {
         return FALSE;
       }
     }
-
     return TRUE;
   }
 
@@ -218,7 +245,7 @@ class Lock {
    */
   public static function releaseAll(): void {
     if (self::$uniqueId && extension_loaded('apcu') && apcu_enabled()) {
-      $key = preg_quote('apc_storage_lock::' . backdrop_base64_encode(self::$uniqueId) . '::', '/');
+      $key = preg_quote(self::LOCK_KEY_PREFIX . backdrop_base64_encode(self::$uniqueId) . '::', '/');
 
       apcu_delete(new \APCUIterator("/^" . $key . '[a-zA-Z0-9-_]+$/'));
     }

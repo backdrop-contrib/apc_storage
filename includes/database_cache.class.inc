@@ -108,7 +108,7 @@ class DatabaseCache implements \BackdropCacheInterface {
    */
   protected function ensureBinExists(): bool {
     try {
-      $database_schema = \Database::getConnection(key: 'default')->schema();
+      $database_schema = \Database::getConnection()->schema();
 
       if (!$database_schema->tableExists($this->bin)) {
         $schema_definition = $this->schemaDefinition();
@@ -203,7 +203,7 @@ class DatabaseCache implements \BackdropCacheInterface {
    */
   public function deleteMultiple(array $cids): void {
     $cids = array_values(array_map([$this, 'normalizeCid'], $cids));
-    $connection = \Database::getConnection(key: 'default');
+    $connection = \Database::getConnection();
 
     try {
       // Delete in chunks when a large array is passed.
@@ -230,7 +230,7 @@ class DatabaseCache implements \BackdropCacheInterface {
       $prefix = mb_substr($prefix, 0, 253);
     }
 
-    $connection = \Database::getConnection(key: 'default');
+    $connection = \Database::getConnection();
     $prefix = $connection->escapeLike($prefix) . '%';
 
     $connection->delete($this->bin)
@@ -251,7 +251,7 @@ class DatabaseCache implements \BackdropCacheInterface {
    */
   public function garbageCollection(): void {
     try {
-      $connection = \Database::getConnection(key: 'default');
+      $connection = \Database::getConnection();
 
       // Bounded size cache bin, using FIFO.
       if ($this->maxRows !== static::MAXIMUM_NONE) {
@@ -300,6 +300,7 @@ class DatabaseCache implements \BackdropCacheInterface {
     try {
       $cache = [];
       $cid_mapping = [];
+      $connection = \Database::getConnection();
 
       foreach ($cids as $cid) {
         $cid_mapping[$this->normalizeCid($cid)] = $cid;
@@ -311,8 +312,8 @@ class DatabaseCache implements \BackdropCacheInterface {
       // used here only due to the performance overhead it would otherwise
       // incur. It is necessary to pass the table name, one of the concatenated
       // string, to ::escapeTable() to sanitize it.
-      $table = db_escape_table($this->bin);
-      $result = db_query(
+      $table = $connection->escapeTable($this->bin);
+      $result = $connection->query(
         sprintf(
           "SELECT cid, data, created, expire, serialized FROM {%s} WHERE cid IN (:cids)",
           $table

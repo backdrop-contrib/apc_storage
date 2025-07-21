@@ -189,11 +189,11 @@ class DatabaseCache implements \BackdropCacheInterface {
       $connection = \Database::getConnection(key: 'default');
 
       // Delete in chunks when a large array is passed.
-      foreach (array_chunk($cids, 1000) as $cids_chunk) {
+      do {
         $connection->delete($this->bin)
-          ->condition('cid', $cids_chunk, 'IN')
+          ->condition('cid', array_splice($cids, 0, 1000), 'IN')
           ->execute();
-      }
+      } while (count($cids));
     }
     catch (\Exception $e) {
       // Create the cache table, which will be empty. This fixes cases where a

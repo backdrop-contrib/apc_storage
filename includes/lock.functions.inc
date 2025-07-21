@@ -18,7 +18,7 @@ function lock_initialize(): void {
   }
 
   // Register a shutdown function to release all locks.
-  backdrop_register_shutdown_function('lock_release_all');
+  backdrop_register_shutdown_function('Lock::releaseAll');
 }
 
 /**

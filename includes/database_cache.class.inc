@@ -96,18 +96,14 @@ class DatabaseCache implements \BackdropCacheInterface {
    *   The table name. It defaults to $this->bin.
    *
    * @throws \Exception
+   *   The cache bin table exists, but accessing the database failed.
    */
   protected function catchException(\Exception $e, ?string $table_name = NULL): void {
-    try {
-      $database_schema = $this->connection->schema();
-      if ($database_schema->tableExists($table_name ?: $this->bin)) {
-        // The exception was not caused by the table that did not exist; rethrow
-        // the exception.
-        throw $e;
-      }
-    }
-    catch (\Exception) {
-      // Ignore the exception.
+    $database_schema = $this->connection->schema();
+    if ($database_schema->tableExists($table_name ?: $this->bin)) {
+      // The exception was not caused by the table that did not exist; rethrow
+      // the exception.
+      throw $e;
     }
   }
 
@@ -140,11 +136,14 @@ class DatabaseCache implements \BackdropCacheInterface {
     try {
       $database_schema = \Database::getConnection()->schema();
 
-      if (!$database_schema->tableExists($this->bin)) {
-        $schema_definition = $this->schemaDefinition();
-        $database_schema->createTable($this->bin, $schema_definition);
+      if ($database_schema->tableExists($this->bin)) {
         return TRUE;
       }
+
+      $schema_definition = $this->schemaDefinition();
+      $database_schema->createTable($this->bin, $schema_definition);
+
+      return TRUE;
     }
     // If another process has already created the cache table, attempting to
     // recreate it will throw an exception. In this case just catch the
@@ -152,8 +151,9 @@ class DatabaseCache implements \BackdropCacheInterface {
     catch (\DatabaseSchemaObjectExistsException) {
       return TRUE;
     }
-
-    return FALSE;
+    catch (\Exception) {
+      return FALSE;
+    }
   }
 
   /**
@@ -218,18 +218,28 @@ class DatabaseCache implements \BackdropCacheInterface {
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Exception
+   *   The cache bin table exists, but writing the database failed.
    */
   public function delete($cid): void {
-    db_delete($this->bin)
-      ->condition('cid', $this->normalizeCid($cid))
-      ->execute();
+    try {
+      db_delete($this->bin)
+        ->condition('cid', $this->normalizeCid($cid))
+        ->execute();
+    }
+    catch (\Exception $e) {
+      if (!$this->ensureBinExists()) {
+        $this->catchException($e);
+      }
+    }
   }
 
   /**
    * {@inheritdoc}
    *
    * @throws \Exception
-   *   Writing the database failed.
+   *   The cache bin table exists, but writing the database failed.
    */
   public function deleteMultiple(array $cids): void {
     $cids = array_values(array_map([$this, 'normalizeCid'], $cids));
@@ -253,6 +263,8 @@ class DatabaseCache implements \BackdropCacheInterface {
 
   /**
    * {@inheritdoc}
+   * @throws \Exception
+   *   The cache bin table exists, but writing the database failed.
    */
   public function deletePrefix($prefix): void {
     if (mb_strlen($prefix, '8bit') > 255) {
@@ -261,17 +273,36 @@ class DatabaseCache implements \BackdropCacheInterface {
 
     $prefix = $this->connection->escapeLike($prefix) . '%';
 
-    $this->connection->delete($this->bin)
-      ->condition('cid', $prefix, 'LIKE')
-      ->execute();
+    try {
+      $this->connection->delete($this->bin)
+        ->condition('cid', $prefix, 'LIKE')
+        ->execute();
+    }
+    catch (\Exception $e) {
+      // Create the cache table, which will be empty. This fixes cases where a
+      // cache table is cleared before it is set.
+      if (!$this->ensureBinExists()) {
+        $this->catchException($e);
+      }
+    }
   }
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Exception
+   *   The cache bin table exists, but writing the database failed.
    */
   public function flush(): void {
-    db_truncate($this->bin)
-      ->execute();
+    try {
+      $this->connection->truncate($this->bin)
+        ->execute();
+    }
+    catch (\Exception $e) {
+      if (!$this->ensureBinExists()) {
+        $this->catchException($e);
+      }
+    }
   }
 
   /**
@@ -367,25 +398,32 @@ class DatabaseCache implements \BackdropCacheInterface {
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Exception
+   *   The cache bin table exists, but accessing the database failed.
    */
   public function isEmpty(): bool {
-    $this->garbageCollection();
+    try {
+      $this->garbageCollection();
+      $query = $this->connection->select($this->bin);
+      $query->addExpression('1');
+      $result = $query->range(0, 1)
+        ->execute()
+        ->fetchField();
 
-    $query = db_select($this->bin);
-    $query->addExpression('1');
+      return empty($result);
+    }
+    catch (\Exception $e) {
+      if (!$this->ensureBinExists()) {
+        $this->catchException($e);
+      }
 
-    $result = $query->range(0, 1)
-      ->execute()
-      ->fetchField();
-
-    return empty($result);
+      return FALSE;
+    }
   }
 
   /**
    * {@inheritdoc}
-   *
-   * @throws \Exception
-   *   Writing the database failed.
    */
   public function set($cid, $data, $expire = CACHE_PERMANENT): void {
     $fields = [
@@ -406,20 +444,19 @@ class DatabaseCache implements \BackdropCacheInterface {
     try {
       $this->doSet($cid, $fields);
     }
-    catch (\Exception $e) {
+    catch (\Exception) {
       // If there was an exception, try to create the bins.
       $try_again = $this->ensureBinExists();
-
-      if (!$try_again) {
-        // If the exception happened for another reason than the missing bin
-        // table, propagate the exception.
-        throw $e;
-      }
     }
 
     // Now that the bin has been created, try again if necessary.
-    if ($try_again) {
-      $this->doSet($cid, $fields);
+    try {
+      if ($try_again) {
+        $this->doSet($cid, $fields);
+      }
+    }
+    catch (\Exception) {
+      // The database may not be available; ignore these calls.
     }
   }
 

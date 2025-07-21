@@ -57,7 +57,8 @@ class DatabaseCache implements \BackdropCacheInterface {
       }
     }
     catch (\Exception) {
-      // The connection does not exist or it does not work. Use the default one.
+      // The connection does not exist, or it does not work.
+      // Use the default one.
       $connection = \Database::getConnection();
     }
     finally {

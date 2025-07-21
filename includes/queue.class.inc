@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains Queue.
+ * Contains \apc_storage\queue\Queue.
  */
 
 declare(strict_types=1);

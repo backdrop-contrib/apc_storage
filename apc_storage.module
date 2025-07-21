@@ -12,10 +12,10 @@
  */
 function apc_storage_autoload_info(): array {
   return [
-    'Cache' => 'includes/cache.class.inc',
-    'ChainedCache' => 'includes/chained_cache.class.inc',
-    'DatabaseCache' => 'includes/database_cache.class.inc',
-    'Lock' => 'includes/lock.class.inc',
-    'Queue' => 'includes/queue.class.inc',
+    'apc_storage\cache\Cache' => 'includes/cache.class.inc',
+    'apc_storage\cache\ChainedCache' => 'includes/chained_cache.class.inc',
+    'apc_storage\cache\DatabaseCache' => 'includes/database_cache.class.inc',
+    'apc_storage\lock\Lock' => 'includes/lock.class.inc',
+    'apc_storage\queue\Queue' => 'includes/queue.class.inc',
   ];
 }

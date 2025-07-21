@@ -23,6 +23,13 @@ class DatabaseCache implements \BackdropCacheInterface {
   const int MAXIMUM_NONE = -1;
 
   /**
+   * The connection to use for the cache.
+   *
+   * @var \DatabaseConnection
+   */
+  protected \DatabaseConnection $connection;
+
+  /**
    * The bin name.
    *
    * @var string
@@ -37,12 +44,32 @@ class DatabaseCache implements \BackdropCacheInterface {
   protected int $maxRows = self::MAXIMUM_NONE;
 
   public function __construct($bin) {
+    try {
+      $connection_info = settings_get('apc_storage.connection_info', []);
+      if (!empty($connection_info) && is_array($connection_info) && count($connection_info) == 2) {
+        $connection = \Database::getConnection($connection_info[1], $connection_info[0]);
+
+        // Verify the connection exists.
+        $connection->query("SELECT 1");
+      }
+      else {
+        $connection = \Database::getConnection();
+      }
+    }
+    catch (\Exception) {
+      // The connection does not exist. Use the default one.
+      $connection = \Database::getConnection();
+    }
+    finally {
+      $this->connection = $connection;
+    }
+
     // All cache tables should be prefixed with 'cache_', except for the
     // default 'cache' bin.
     $this->bin = ($bin == 'cache' ? 'cache' : 'cache_' . $bin);
 
-    $default_max_rows = settings_get('apc_storage_max_rows', self::MAXIMUM_NONE);
-    $this->maxRows = settings_get("apc_storage_max_rows_$this->bin", $default_max_rows);
+    $default_max_rows = settings_get('apc_storage.max_rows', self::MAXIMUM_NONE);
+    $this->maxRows = settings_get("apc_storage.max_rows_$this->bin", $default_max_rows);
 
     // Bootstrap the database if it is not yet available.
     if (!function_exists('db_query') || backdrop_get_bootstrap_phase() < BACKDROP_BOOTSTRAP_DATABASE) {
@@ -69,9 +96,9 @@ class DatabaseCache implements \BackdropCacheInterface {
    *
    * @throws \Exception
    */
-  protected function catchException(\Exception $e, \DatabaseConnection $connection, ?string $table_name = NULL): void {
+  protected function catchException(\Exception $e, ?string $table_name = NULL): void {
     try {
-      $database_schema = $connection->schema();
+      $database_schema = $this->connection->schema();
       if ($database_schema->tableExists($table_name ?: $this->bin)) {
         throw $e;
       }
@@ -203,12 +230,11 @@ class DatabaseCache implements \BackdropCacheInterface {
    */
   public function deleteMultiple(array $cids): void {
     $cids = array_values(array_map([$this, 'normalizeCid'], $cids));
-    $connection = \Database::getConnection();
 
     try {
       // Delete in chunks when a large array is passed.
       do {
-        $connection->delete($this->bin)
+        $this->connection->delete($this->bin)
           ->condition('cid', array_splice($cids, 0, 1000), 'IN')
           ->execute();
       } while (count($cids));
@@ -217,7 +243,7 @@ class DatabaseCache implements \BackdropCacheInterface {
       // Create the cache table, which will be empty. This fixes cases where a
       // cache table is cleared before it is set.
       if (!$this->ensureBinExists()) {
-        $this->catchException($e, $connection);
+        $this->catchException($e);
       }
     }
   }
@@ -230,10 +256,9 @@ class DatabaseCache implements \BackdropCacheInterface {
       $prefix = mb_substr($prefix, 0, 253);
     }
 
-    $connection = \Database::getConnection();
-    $prefix = $connection->escapeLike($prefix) . '%';
+    $prefix = $this->connection->escapeLike($prefix) . '%';
 
-    $connection->delete($this->bin)
+    $this->connection->delete($this->bin)
       ->condition('cid', $prefix, 'LIKE')
       ->execute();
   }
@@ -251,11 +276,9 @@ class DatabaseCache implements \BackdropCacheInterface {
    */
   public function garbageCollection(): void {
     try {
-      $connection = \Database::getConnection();
-
       // Bounded size cache bin, using FIFO.
       if ($this->maxRows !== static::MAXIMUM_NONE) {
-        $first_invalid_create_time = $connection->select($this->bin)
+        $first_invalid_create_time = $this->connection->select($this->bin)
           ->fields($this->bin, [
             'created',
           ])
@@ -265,13 +288,13 @@ class DatabaseCache implements \BackdropCacheInterface {
           ->fetchField();
 
         if ($first_invalid_create_time) {
-          $connection->delete($this->bin)
+          $this->connection->delete($this->bin)
             ->condition('created', $first_invalid_create_time, '<=')
             ->execute();
         }
       }
 
-      $connection->delete($this->bin)
+      $this->connection->delete($this->bin)
         ->condition('expire', CACHE_PERMANENT, '<>')
         ->condition('expire', REQUEST_TIME, '<')
         ->execute();
@@ -300,7 +323,6 @@ class DatabaseCache implements \BackdropCacheInterface {
     try {
       $cache = [];
       $cid_mapping = [];
-      $connection = \Database::getConnection();
 
       foreach ($cids as $cid) {
         $cid_mapping[$this->normalizeCid($cid)] = $cid;
@@ -312,8 +334,8 @@ class DatabaseCache implements \BackdropCacheInterface {
       // used here only due to the performance overhead it would otherwise
       // incur. It is necessary to pass the table name, one of the concatenated
       // string, to ::escapeTable() to sanitize it.
-      $table = $connection->escapeTable($this->bin);
-      $result = $connection->query(
+      $table = $this->connection->escapeTable($this->bin);
+      $result = $this->connection->query(
         sprintf(
           "SELECT cid, data, created, expire, serialized FROM {%s} WHERE cid IN (:cids)",
           $table

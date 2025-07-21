@@ -15,7 +15,26 @@ namespace apc_storage\cache;
  */
 class DatabaseCache implements \BackdropCacheInterface {
 
+  /**
+   * Indicates that an infinite number of rows is allowed for the cache backend.
+   *
+   * @var int
+   */
+  const int MAXIMUM_NONE = -1;
+
+  /**
+   * The bin name.
+   *
+   * @var string
+   */
   protected string $bin;
+
+  /**
+   * The maximum number of rows that this cache bin table is allowed to store.
+   *
+   * @var int
+   */
+  protected int $maxRows = self::MAXIMUM_NONE;
 
   public function __construct($bin) {
     // All cache tables should be prefixed with 'cache_', except for the
@@ -23,7 +42,11 @@ class DatabaseCache implements \BackdropCacheInterface {
     if ($bin != 'cache') {
       $bin = 'cache_' . $bin;
     }
+
     $this->bin = $bin;
+
+    $default_max_rows = settings_get('apc_storage_max_rows', self::MAXIMUM_NONE);
+    $this->maxRows = settings_get("apc_storage_max_rows_$bin", $default_max_rows);
 
     // Bootstrap the database if it is not yet available.
     if (!function_exists('db_query') || backdrop_get_bootstrap_phase() < BACKDROP_BOOTSTRAP_DATABASE) {
@@ -50,9 +73,9 @@ class DatabaseCache implements \BackdropCacheInterface {
    *
    * @throws \Exception
    */
-  protected function catchException(\Exception $e, ?string $table_name = NULL): void {
+  protected function catchException(\Exception $e, \DatabaseConnection $connection, ?string $table_name = NULL): void {
     try {
-      $database_schema = \Database::getConnection(key: 'default')->schema();
+      $database_schema = $connection->schema();
       if ($database_schema->tableExists($table_name ?: $this->bin)) {
         throw $e;
       }
@@ -184,10 +207,9 @@ class DatabaseCache implements \BackdropCacheInterface {
    */
   public function deleteMultiple(array $cids): void {
     $cids = array_values(array_map([$this, 'normalizeCid'], $cids));
+    $connection = \Database::getConnection(key: 'default');
 
     try {
-      $connection = \Database::getConnection(key: 'default');
-
       // Delete in chunks when a large array is passed.
       do {
         $connection->delete($this->bin)
@@ -199,7 +221,7 @@ class DatabaseCache implements \BackdropCacheInterface {
       // Create the cache table, which will be empty. This fixes cases where a
       // cache table is cleared before it is set.
       if (!$this->ensureBinExists()) {
-        $this->catchException($e);
+        $this->catchException($e, $connection);
       }
     }
   }
@@ -233,7 +255,27 @@ class DatabaseCache implements \BackdropCacheInterface {
    */
   public function garbageCollection(): void {
     try {
-      db_delete($this->bin)
+      $connection = \Database::getConnection(key: 'default');
+
+      // Bounded size cache bin, using FIFO.
+      if ($this->maxRows !== static::MAXIMUM_NONE) {
+        $first_invalid_create_time = $connection->select($this->bin)
+          ->fields($this->bin, [
+            'created',
+          ])
+          ->orderBy("$this->bin.created", 'DESC')
+          ->range($this->maxRows, 1)
+          ->execute()
+          ->fetchField();
+
+        if ($first_invalid_create_time) {
+          $connection->delete($this->bin)
+            ->condition('created', $first_invalid_create_time, '<=')
+            ->execute();
+        }
+      }
+
+      $connection->delete($this->bin)
         ->condition('expire', CACHE_PERMANENT, '<>')
         ->condition('expire', REQUEST_TIME, '<')
         ->execute();

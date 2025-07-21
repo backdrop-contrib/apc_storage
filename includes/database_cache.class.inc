@@ -39,14 +39,10 @@ class DatabaseCache implements \BackdropCacheInterface {
   public function __construct($bin) {
     // All cache tables should be prefixed with 'cache_', except for the
     // default 'cache' bin.
-    if ($bin != 'cache') {
-      $bin = 'cache_' . $bin;
-    }
-
-    $this->bin = $bin;
+    $this->bin = ($bin == 'cache' ? 'cache' : 'cache_' . $bin);
 
     $default_max_rows = settings_get('apc_storage_max_rows', self::MAXIMUM_NONE);
-    $this->maxRows = settings_get("apc_storage_max_rows_$bin", $default_max_rows);
+    $this->maxRows = settings_get("apc_storage_max_rows_$this->bin", $default_max_rows);
 
     // Bootstrap the database if it is not yet available.
     if (!function_exists('db_query') || backdrop_get_bootstrap_phase() < BACKDROP_BOOTSTRAP_DATABASE) {

@@ -119,11 +119,7 @@ function apc_storage_admin_reports(): string {
     }
   }
 
-  if (!$item_list) {
-    return '';
-  }
-
-  return theme(
+  return !$item_list ? '' : theme(
     'details',
     [
       '#open' => TRUE,

@@ -94,21 +94,24 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    */
   protected function assertIsValidCacheObject(string $cid, mixed $data, int $expire = CACHE_PERMANENT): bool {
     $is_cache_object = is_object($data) &&
+      isset($data->cid) &&
       isset($data->data) &&
       isset($data->created) &&
       isset($data->expire);
     $message_args = ['@cid' => $cid];
     $messages = [
       format_string('Item @cid is a cache object.', $message_args),
+      format_string('The cache ID for @cid is correct.', $message_args),
       format_string('The creation time of @cid is correct.', $message_args),
       format_string('The expiration time of @cid is correct.', $message_args),
     ];
     $now = round(microtime(TRUE));
 
     if ($this->assertTrue($is_cache_object, $messages[0])) {
-      $result = $this->assertTrue($data->created >= $now - 1 && $data->created <= $now + 1, $messages[1]);
+      $result = $this->assertTrue($data->cid === $cid, $messages[1]);
+      $result = $result && $this->assertTrue($data->created >= $now - 1 && $data->created <= $now + 1, $messages[2]);
 
-      return $result && $this->assertTrue($data->expire == $expire, $messages[2]);
+      return $result && $this->assertTrue($data->expire == $expire, $messages[3]);
     }
 
     return FALSE;

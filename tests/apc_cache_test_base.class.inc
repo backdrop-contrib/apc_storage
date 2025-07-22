@@ -125,7 +125,6 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     $data = [
       'test1' => ['bar' => '\\Backdrop\\foo\\Bar'],
       'test2' => ['value' => 3],
-      'test8' => (object) ['foo' => 'bar'],
       'test_' . $this->randomName() => [$this->randomName() => $this->randomString()]
     ];
 

@@ -189,10 +189,14 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     $cached = $backend->get($cid);
 
     if ($this->assertIsValidCacheObject($cid, $cached)) {
-      $cid = 'test8';
-      $message = format_string('Item @cid has not been retrieved from the cache.', ['@cid' => $cid]);
+      $message = format_string('Item @id has the correct cache ID (@cid).', ['@id' => $cid, '@cid' => $cached->cid]);
 
-      $this->assertTrue(empty($backend->get($cid)), $message);
+      if ($this->assertTrue($cached->cid === $cid, $message)) {
+        $cid = 'test8';
+        $message = format_string('Item @cid has not been retrieved from the cache.', ['@cid' => $cid]);
+
+        $this->assertTrue(empty($backend->get($cid)), $message);
+      }
     }
 
     // Verify that a cache ID with a trailing space and a cache ID without a

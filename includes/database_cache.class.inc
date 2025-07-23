@@ -166,17 +166,24 @@ class DatabaseCache implements \BackdropCacheInterface {
    *   The normalized cache ID.
    */
   protected function normalizeCid(string $cid): string {
-    if (mb_strlen($cid, '8bit') <= 255 && !str_ends_with($cid, ' ')) {
+    $needle = ' ';
+    $needle_length = mb_strlen($needle, '8bit');
+    $with_trailing_spaces = mb_substr($cid, -$needle_length, $needle_length, '8bit') == $needle;
+
+    if (mb_strlen($cid, '8bit') <= 255 && !$with_trailing_spaces) {
       return $cid;
+    }
+
+    $hash = backdrop_hash_base64($cid);
+
+    if ($with_trailing_spaces) {
+      $cid = mb_rtrim($cid, $needle, '8bit');
     }
 
     // Return a string that uses as much as possible of the original cache ID
     // with the hash appended.
-    $hash = backdrop_hash_base64($cid);
-
-    return mb_substr($cid, 0, 253 - mb_strlen($hash, '8bit')) . '%_' . $hash;
+    return mb_substr($cid, 0, 253 - mb_strlen($hash, '8bit')) . '::' . $hash;
   }
-
 
   /**
    * Prepares a cached item.

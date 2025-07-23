@@ -39,7 +39,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    * @return BackdropCacheInterface
    *   The cache backend instance.
    */
-  protected function getCacheBackend(string $bin = NULL): BackdropCacheInterface {
+  protected function getCacheBackend(?string $bin = NULL): BackdropCacheInterface {
     $bin = $bin ?? $this->cacheBin;
 
     if (!isset($this->cacheBackends[$bin])) {

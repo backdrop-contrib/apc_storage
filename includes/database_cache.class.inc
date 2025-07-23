@@ -166,11 +166,12 @@ class DatabaseCache implements \BackdropCacheInterface {
    *   The normalized cache ID.
    */
   protected function normalizeCid(string $cid): string {
+    $lower_case = mb_strtolower($cid, '8bit') === $cid;
     $needle = ' ';
     $needle_length = mb_strlen($needle, '8bit');
     $with_trailing_spaces = mb_substr($cid, -$needle_length, $needle_length, '8bit') == $needle;
 
-    if (mb_strlen($cid, '8bit') <= 255 && !$with_trailing_spaces) {
+    if (mb_strlen($cid, '8bit') <= 255 && $lower_case && !$with_trailing_spaces) {
       return $cid;
     }
 
@@ -180,9 +181,13 @@ class DatabaseCache implements \BackdropCacheInterface {
       $cid = mb_rtrim($cid, $needle, '8bit');
     }
 
+    if (!$lower_case) {
+      $cid = mb_strtolower($cid, '8bit');
+    }
+
     // Return a string that uses as much as possible of the original cache ID
     // with the hash appended.
-    return mb_substr($cid, 0, 253 - mb_strlen($hash, '8bit')) . '::' . $hash;
+    return mb_substr($cid, 0, 255 - mb_strlen('::' . $hash, '8bit')) . '::' . $hash;
   }
 
   /**

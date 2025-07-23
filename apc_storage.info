@@ -2,7 +2,7 @@ name = APC Storage
 description = Integrates the APCu extension with Backdrop.
 package = Development
 backdrop = 1.x
-php = 8.3
+php = 8.4
 type = module
 dependencies[] = system (>=1.30.0)
 maintainers[avpaderno] = Alberto Paderno

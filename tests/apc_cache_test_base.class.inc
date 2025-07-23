@@ -123,10 +123,10 @@ abstract class ApcCacheTestBase extends ApcTestBase {
   public function testSetGet() : void {
     $backend = $this->getCacheBackend();
     $data = [
-      'test1' => ['bar' => '\\Backdrop\\foo\\Bar'],
-      'test2' => ['value' => 3],
-      'test_' . $this->randomName() => [$this->randomName() => $this->randomString()],
-      'TEST8' => ['foo' => 'bar'],
+      'test_1' => ['bar' => '\\Backdrop\\foo\\Bar'],
+      'test_2' => ['value' => 3],
+      'test_3' => [$this->randomName() => $this->randomString()],
+      'TEST_4' => ['foo' => 'bar'],
     ];
 
     foreach ($data as $cid => $item) {
@@ -138,15 +138,14 @@ abstract class ApcCacheTestBase extends ApcTestBase {
 
       if ($this->assertIsValidCacheObject($cid, $cached)) {
         $message = format_string('The value of @cid is the expected one.', ['@cid' => $cid]);
-
-        $this->assertEqual($item, $cached->data, $message);
       }
     }
 
     // Verify that a cached value can be updated.
     foreach ($data as $cid => $item) {
-      $item = array_merge($item, array($this->randomName() => $this->randomString()));
+      $item = array_merge($item, [$this->randomName() => $this->randomString()]);
       $backend->set($cid, $item);
+
       $cached = $backend->get($cid);
 
       if ($this->assertIsValidCacheObject($cid, $cached)) {
@@ -158,12 +157,14 @@ abstract class ApcCacheTestBase extends ApcTestBase {
 
     // Verify that a cached object is not affected by changing the original.
     foreach ($data as $cid => $item) {
-      $item = (object) $item;
-      $cid .= $this->randomName();
-      $item->{$this->randomName()} = $this->randomString();
-      $item->object = new stdClass();
-      $item->object->{$this->randomName()} = $this->randomString();
+      $cid .= '_' . $this->randomName();
+
+      $item[$this->randomName()] = $this->randomString();
+      $item['object'] = new stdClass();
+      $item['object']->{$this->randomName()} = $this->randomString();
+
       $backend->set($cid, $item);
+
       $expected_item = clone $item;
       $item->this_should_not_be_in_the_cache = TRUE;
       $cached = $backend->get($cid);

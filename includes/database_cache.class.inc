@@ -274,15 +274,17 @@ class DatabaseCache implements \BackdropCacheInterface {
    *   The cache bin table exists, but writing the database failed.
    */
   public function deletePrefix($prefix): void {
+    // Trailing spaces in cache IDs are not stored; remove them from the passed
+    // $prefix.
+    $prefix = mb_rtrim($prefix, ' ', '8bit');
+
     if (mb_strlen($prefix, '8bit') > 255) {
       $prefix = mb_substr($prefix, 0, 253);
     }
 
-    $prefix = $this->connection->escapeLike($prefix) . '%';
-
     try {
       $this->connection->delete($this->bin)
-        ->condition('cid', $prefix, 'LIKE')
+        ->condition('cid', $this->connection->escapeLike($prefix) . '%', 'LIKE')
         ->execute();
     }
     catch (\Exception $e) {

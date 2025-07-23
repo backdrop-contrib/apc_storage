@@ -125,11 +125,15 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     $data = [
       'test1' => ['bar' => '\\Backdrop\\foo\\Bar'],
       'test2' => ['value' => 3],
-      'test_' . $this->randomName() => [$this->randomName() => $this->randomString()]
+      'test_' . $this->randomName() => [$this->randomName() => $this->randomString()],
+      'TEST8' => ['foo' => 'bar'],
     ];
 
     foreach ($data as $cid => $item) {
       $backend->set($cid, $item);
+    }
+
+    foreach ($data as $cid => $item) {
       $cached = $backend->get($cid);
 
       if ($this->assertIsValidCacheObject($cid, $cached)) {

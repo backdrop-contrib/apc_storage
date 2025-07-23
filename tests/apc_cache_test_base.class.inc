@@ -199,7 +199,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       $obj_item->object = new stdClass();
       $obj_item->object->{$this->randomName()} = $this->randomString();
       $backend->set($cid, $obj_item);
-      $expected_item = clone $item;
+      $expected_item = clone $obj_item;
       $obj_item->this_should_not_be_in_the_cache = TRUE;
       $cached = $backend->get($cid);
 

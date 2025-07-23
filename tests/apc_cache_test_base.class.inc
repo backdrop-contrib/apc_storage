@@ -118,17 +118,57 @@ abstract class ApcCacheTestBase extends ApcTestBase {
   }
 
   /**
+   * Tests flushing the cache.
+   */
+  public function testFlush(): void {
+    $first_backend = $this->getCacheBackend();
+    $second_backend = $this->getCacheBackend('apc_storage_cache_flush_test');
+
+    $data = array(
+      'test1' => 2,
+      'test3' => 4,
+      'test5' => 8,
+    );
+
+    foreach ($data as $cid => $item) {
+      $first_backend->set($cid, $item);
+      $second_backend->set($cid, $item);
+    }
+
+    $first_backend->flush();
+
+    foreach ($data as $cid => $item) {
+      $message_args = ['@bin' => 'apc_storage_cache_test', '@cid' => $cid];
+      $message = format_string(
+        'Backend for @bin does not contain data for @cid after flushing the cache.',
+        $message_args
+      );
+
+      $this->assertTrue(empty($first_backend->get($cid)), $message);
+
+      $message_args['@bin'] = 'apc_storage_cache_flush_test';
+      $message = format_string(
+        'Backend for @bin still contains data for @cid after flushing the cache.',
+        $message_args
+      );
+
+      $this->assertFalse(empty($second_backend->get($cid)), $message);
+    }
+  }
+
+  /**
    * Tests setting and getting cache items.
    */
   public function testSetGet() : void {
     $backend = $this->getCacheBackend();
     $data = [
-      'test_1' => (object) ['bar' => '\\Backdrop\\foo\\Bar'],
-      'test_2' => (object) ['value' => 3],
-      'test_3' => (object) [$this->randomName() => $this->randomString()],
-      'TEST_4' => (object) ['foo' => 'bar'],
+      'test_1' => ['bar' => '\\Backdrop\\foo\\Bar'],
+      'test_2' => ['value' => 3],
+      'test_3' => [$this->randomName() => $this->randomString()],
+      'TEST_4' => ['foo' => 'bar'],
     ];
 
+    // Verify that a cached value can be updated.
     foreach ($data as $cid => $item) {
       $backend->set($cid, $item);
       $cached = $backend->get($cid);
@@ -136,13 +176,10 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       if ($this->assertIsValidCacheObject($cid, $cached)) {
         $message = format_string('The value of @cid is the expected one.', ['@cid' => $cid]);
 
-        $this->assertEqual($item, $cached->data, $message);
+        $this->assertIdentical($item, $cached->data, $message);
       }
-    }
 
-    // Verify that a cached value can be updated.
-    foreach ($data as $cid => $item) {
-      $item->{$this->randomName()} = $this->randomString();
+      $item[$this->randomName()] = $this->randomString();
       $backend->set($cid, $item);
       $updated_item = $backend->get($cid);
 
@@ -153,15 +190,17 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       }
     }
 
-    // Verify that a cached object is not affected by changing the original.
+    $backend->flush();
+
+    // Verify that a cached item is not affected by changing the original.
     foreach ($data as $cid => $item) {
-      $cid .= '_' . $this->randomName();
-      $item->{$this->randomName()} = $this->randomString();
-      $item->object = new stdClass();
-      $item->object->{$this->randomName()} = $this->randomString();
-      $backend->set($cid, $item);
+      $obj_item = (object) $item;
+      $obj_item->{$this->randomName()} = $this->randomString();
+      $obj_item->object = new stdClass();
+      $obj_item->object->{$this->randomName()} = $this->randomString();
+      $backend->set($cid, $obj_item);
       $expected_item = clone $item;
-      $item->this_should_not_be_in_the_cache = TRUE;
+      $obj_item->this_should_not_be_in_the_cache = TRUE;
       $cached = $backend->get($cid);
 
       if ($this->assertIsValidCacheObject($cid, $cached)) {
@@ -272,13 +311,13 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     $first_backend = $this->getCacheBackend();
     $second_backend = $this->getCacheBackend('apc_storage_cache_delete_prefix_test');
 
-    $data = array(
+    $data = [
       'test1' => 1,
       'test2' => 3,
       'test3' => 5,
       $this->randomName() => 'test',
       $this->randomName() => 7,
-    );
+    ];
 
     foreach ($data as $cid => $item) {
       $first_backend->set($cid, $item);
@@ -315,45 +354,6 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       $message = format_string(
         'Backend for @bin still contains data for @cid after deletion.',
         ['@bin' => 'apc_storage_cache_delete_prefix_test', '@cid' => $cid]
-      );
-
-      $this->assertFalse(empty($second_backend->get($cid)), $message);
-    }
-  }
-
-  /**
-   * Tests flushing the cache.
-   */
-  public function testFlush(): void {
-    $first_backend = $this->getCacheBackend();
-    $second_backend = $this->getCacheBackend('apc_storage_cache_flush_test');
-
-    $data = array(
-      'test1' => 2,
-      'test3' => 4,
-      'test5' => 8,
-    );
-
-    foreach ($data as $cid => $item) {
-      $first_backend->set($cid, $item);
-      $second_backend->set($cid, $item);
-    }
-
-    $first_backend->flush();
-
-    foreach ($data as $cid => $item) {
-      $message_args = ['@bin' => 'apc_storage_cache_test', '@cid' => $cid];
-      $message = format_string(
-        'Backend for @bin does not contain data for @cid after flushing the cache.',
-        $message_args
-      );
-
-      $this->assertTrue(empty($first_backend->get($cid)), $message);
-
-      $message_args['@bin'] = 'apc_storage_cache_flush_test';
-      $message = format_string(
-        'Backend for @bin still contains data for @cid after flushing the cache.',
-        $message_args
       );
 
       $this->assertFalse(empty($second_backend->get($cid)), $message);

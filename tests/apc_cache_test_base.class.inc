@@ -123,48 +123,43 @@ abstract class ApcCacheTestBase extends ApcTestBase {
   public function testSetGet() : void {
     $backend = $this->getCacheBackend();
     $data = [
-      'test_1' => ['bar' => '\\Backdrop\\foo\\Bar'],
-      'test_2' => ['value' => 3],
-      'test_3' => [$this->randomName() => $this->randomString()],
-      'TEST_4' => ['foo' => 'bar'],
+      'test_1' => (object) ['bar' => '\\Backdrop\\foo\\Bar'],
+      'test_2' => (object) ['value' => 3],
+      'test_3' => (object) [$this->randomName() => $this->randomString()],
+      'TEST_4' => (object) ['foo' => 'bar'],
     ];
 
     foreach ($data as $cid => $item) {
       $backend->set($cid, $item);
-    }
-
-    foreach ($data as $cid => $item) {
       $cached = $backend->get($cid);
 
       if ($this->assertIsValidCacheObject($cid, $cached)) {
         $message = format_string('The value of @cid is the expected one.', ['@cid' => $cid]);
+
+        $this->assertEqual($item, $cached->data, $message);
       }
     }
 
     // Verify that a cached value can be updated.
     foreach ($data as $cid => $item) {
-      $item = array_merge($item, [$this->randomName() => $this->randomString()]);
+      $item->{$this->randomName()} = $this->randomString();
       $backend->set($cid, $item);
+      $updated_item = $backend->get($cid);
 
-      $cached = $backend->get($cid);
-
-      if ($this->assertIsValidCacheObject($cid, $cached)) {
+      if ($this->assertIsValidCacheObject($cid, $updated_item)) {
         $message = format_string('The value of @cid has been updated.', ['@cid' => $cid]);
 
-        $this->assertIdentical($item, $cached->data, $message);
+        $this->assertIdentical($item, $updated_item->data, $message);
       }
     }
 
     // Verify that a cached object is not affected by changing the original.
     foreach ($data as $cid => $item) {
       $cid .= '_' . $this->randomName();
-
-      $item[$this->randomName()] = $this->randomString();
-      $item['object'] = new stdClass();
-      $item['object']->{$this->randomName()} = $this->randomString();
-
+      $item->{$this->randomName()} = $this->randomString();
+      $item->object = new stdClass();
+      $item->object->{$this->randomName()} = $this->randomString();
       $backend->set($cid, $item);
-
       $expected_item = clone $item;
       $item->this_should_not_be_in_the_cache = TRUE;
       $cached = $backend->get($cid);

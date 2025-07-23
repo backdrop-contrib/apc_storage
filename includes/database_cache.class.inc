@@ -287,6 +287,10 @@ class DatabaseCache implements \BackdropCacheInterface {
       $prefix = mb_substr($prefix, 0, 253);
     }
 
+    // Cache IDs are stored in lower-case characters; make $prefix lower case
+    // too.
+    $prefix = mb_strtolower($prefix, '8bit');
+
     try {
       $this->connection->delete($this->bin)
         ->condition('cid', $this->connection->escapeLike($prefix) . '%', 'LIKE')

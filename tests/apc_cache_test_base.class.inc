@@ -212,7 +212,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       if ($this->assertIsValidCacheObject($cid, $cached, full_check: TRUE)) {
         $message = format_string('The value of @cid is the expected one.', ['@cid' => $cid]);
 
-        $this->assertIdentical($item, $cached->data, $message);
+        $this->assertEqual($item, $cached->data, $message);
       }
 
       $item[$this->randomName()] = $this->randomString();
@@ -222,7 +222,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       if ($this->assertIsValidCacheObject($cid, $updated_item)) {
         $message = format_string('The value of @cid has been updated.', ['@cid' => $cid]);
 
-        $this->assertIdentical($item, $updated_item->data, $message);
+        $this->assertEqual($item, $updated_item->data, $message);
       }
     }
 
@@ -234,8 +234,8 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       $obj_item->{$this->randomName()} = $this->randomString();
       $obj_item->object = new stdClass();
       $obj_item->object->{$this->randomName()} = $this->randomString();
-      $backend->set($cid, $obj_item);
       $expected_item = clone $obj_item;
+      $backend->set($cid, $obj_item);
       $obj_item->this_should_not_be_in_the_cache = TRUE;
       $cached = $backend->get($cid);
 
@@ -249,7 +249,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
           ),
         ];
 
-        $this->assertIdentical($expected_item, $cached->data, $messages[0]);
+        $this->assertEqual($expected_item, $cached->data, $messages[0]);
         $this->assertFalse(isset($cached->data->this_should_not_be_in_the_cache), $messages[1]);
 
         $cached->data->this_should_not_be_in_the_cache = TRUE;
@@ -283,7 +283,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       if ($this->assertIsValidCacheObject($cid, $cached)) {
         $message = format_string('Data type for @cid was preserved.', ['@cid' => $cid]);
 
-        $this->assertIdentical($item, $cached->data, $message);
+        $this->assertEqual($item, $cached->data, $message);
       }
     }
   }
@@ -441,7 +441,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
 
       $this->assertTrue(!empty($return[$cid]), $messages[0]);
       $this->assertIsValidCacheObject($cid, $return[$cid]);
-      $this->assertIdentical($return[$cid]->data, $data[$cid], $messages[1]);
+      $this->assertEqual($return[$cid]->data, $data[$cid], $messages[1]);
 
       $this->assertFalse(in_array($cid, $cids), $messages[2]);
     }
@@ -470,7 +470,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
 
     $this->assertTrue(isset($return[$key]), $messages[0]);
     $this->assertIsValidCacheObject($key, $return[$key]);
-    $this->assertIdentical($return[$key]->data, $data[$key], $messages[1]);
+    $this->assertEqual($return[$key]->data, $data[$key], $messages[1]);
 
     // Test a second time after deleting and setting new keys.
     $keys = array_keys($data);
@@ -499,7 +499,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
 
       $this->assertTrue(isset($return[$cid]), $messages[0]);
       $this->assertIsValidCacheObject($cid, $return[$cid]);
-      $this->assertIdentical($return[$cid]->data, $data[$cid], $messages[1]);
+      $this->assertEqual($return[$cid]->data, $data[$cid], $messages[1]);
       $this->assertFalse(in_array($cid, $cids), $messages[2]);
     }
 

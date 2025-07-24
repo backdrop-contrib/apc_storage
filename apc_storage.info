@@ -1,6 +1,6 @@
 name = APC Storage
 description = Integrates the APCu extension with Backdrop.
-package = Development
+package = Cache
 backdrop = 1.x
 php = 8.4
 type = module

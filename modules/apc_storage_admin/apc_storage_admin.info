@@ -1,6 +1,6 @@
 name = APC Storage Admin Pages
 description = Administration pages for the APC Storage module.
-package = Development
+package = Cache
 backdrop = 1.x
 php = 8.4
 type = module

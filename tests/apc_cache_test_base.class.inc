@@ -283,7 +283,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       if ($this->assertIsValidCacheObject($cid, $cached)) {
         $message = format_string('Data type for @cid was preserved.', ['@cid' => $cid]);
 
-        $this->assertEqual($item, $cached->data, $message);
+        $this->assertTrue(vartype($item) === vartype($cached->data), $message);
       }
     }
   }

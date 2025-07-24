@@ -53,14 +53,14 @@ class ChainedCache extends Cache {
   /**
    * {@inheritdoc}
    */
-  protected string $sitePrefix = 'apc_storage_cache::';
+  protected string $sitePrefix = 'apc_storage_chained_cache::';
 
   /**
    * The database cache backend.
    *
-   * @var \BackdropCacheInterface
+   * @var CacheInterface
    */
-  protected \BackdropCacheInterface $databaseBackend;
+  protected CacheInterface $databaseBackend;
 
   public function __construct($bin) {
     parent::__construct($bin);

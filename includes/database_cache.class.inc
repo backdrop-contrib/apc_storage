@@ -13,7 +13,7 @@ namespace apc_storage\cache;
  * Defines a database cache implementation.
  *
  */
-class DatabaseCache implements \BackdropCacheInterface {
+class DatabaseCache implements CacheInterface {
 
   /**
    * Indicates that an infinite number of rows is allowed for the cache backend.
@@ -76,6 +76,7 @@ class DatabaseCache implements \BackdropCacheInterface {
     if (!function_exists('db_query') || backdrop_get_bootstrap_phase() < BACKDROP_BOOTSTRAP_DATABASE) {
       try {
         backdrop_bootstrap(BACKDROP_BOOTSTRAP_DATABASE, FALSE);
+        $this->ensureBinExists();
       }
       catch (\Exception) {
         // Bootstrapping the database was not possible. The database functions
@@ -138,65 +139,6 @@ class DatabaseCache implements \BackdropCacheInterface {
     catch (\Exception) {
       return FALSE;
     }
-  }
-
-  /**
-   * Normalizes a cache ID to avoid database limitations.
-   *
-   * @param string $cid
-   *   The cache ID.
-   *
-   * @return string
-   *   The normalized cache ID.
-   */
-  protected function normalizeCid(string $cid): string {
-    $lower_case = mb_strtolower($cid, '8bit') === $cid;
-    $needle = ' ';
-    $needle_length = mb_strlen($needle, '8bit');
-    $with_trailing_spaces = mb_substr($cid, -$needle_length, $needle_length, '8bit') == $needle;
-
-    if (mb_strlen($cid, '8bit') <= 255 && $lower_case && !$with_trailing_spaces) {
-      return $cid;
-    }
-
-    $hash = backdrop_hash_base64($cid);
-
-    if ($with_trailing_spaces) {
-      $cid = mb_rtrim($cid, $needle, '8bit');
-    }
-
-    if (!$lower_case) {
-      $cid = mb_strtolower($cid, '8bit');
-    }
-
-    // Return a string that uses as much as possible of the original cache ID
-    // with the hash appended.
-    return mb_substr($cid, 0, 255 - mb_strlen('::' . $hash, '8bit')) . '::' . $hash;
-  }
-
-  /**
-   * Prepares a cached item.
-   *
-   * Checks that items are either permanent or did not expire, and unserializes
-   * data as appropriate.
-   *
-   * @param object $cache
-   *   An item loaded from self::get() or self::getMultiple().
-   *
-   * @return mixed|false
-   *   The item with data unserialized as appropriate, or FALSE if there is no
-   *   valid item to load.
-   */
-  protected function prepareItem(object $cache): object|false {
-    if (!isset($cache->data)) {
-      return FALSE;
-    }
-
-    if ($cache->serialized) {
-      $cache->data = unserialize($cache->data);
-    }
-
-    return $cache;
   }
 
   /**
@@ -426,6 +368,49 @@ class DatabaseCache implements \BackdropCacheInterface {
         throw $e;
       }
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function normalizeCid(string $cid): string {
+    $lower_case = mb_strtolower($cid, '8bit') === $cid;
+    $needle = ' ';
+    $needle_length = mb_strlen($needle, '8bit');
+    $with_trailing_spaces = mb_substr($cid, -$needle_length, $needle_length, '8bit') == $needle;
+
+    if (mb_strlen($cid, '8bit') <= 255 && $lower_case && !$with_trailing_spaces) {
+      return $cid;
+    }
+
+    $hash = backdrop_hash_base64($cid);
+
+    if ($with_trailing_spaces) {
+      $cid = mb_rtrim($cid, $needle, '8bit');
+    }
+
+    if (!$lower_case) {
+      $cid = mb_strtolower($cid, '8bit');
+    }
+
+    // Return a string that uses as much as possible of the original cache ID
+    // with the hash appended.
+    return mb_substr($cid, 0, 255 - mb_strlen('::' . $hash, '8bit')) . '::' . $hash;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function prepareItem(object $cache): object|false {
+    if (!isset($cache->data)) {
+      return FALSE;
+    }
+
+    if ($cache->serialized) {
+      $cache->data = unserialize($cache->data);
+    }
+
+    return $cache;
   }
 
   /**

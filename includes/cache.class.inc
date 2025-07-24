@@ -12,7 +12,7 @@ namespace apc_storage\cache;
 /**
  * The APCu cache implementation.
  */
-class Cache implements \BackdropCacheInterface {
+class Cache implements CacheInterface {
 
   /**
    * The setting name for cache lifetime configuration.
@@ -130,22 +130,6 @@ class Cache implements \BackdropCacheInterface {
   }
 
   /**
-   * Prepares a cached item.
-   *
-   * Checks that items are either permanent or did not expire.
-   *
-   * @param object $cache
-   *   An item loaded from cache_get() or cache_get_multiple().
-   *
-   * @return false|object
-   *   The item with unserialized data, or FALSE if there is no valid item to
-   *   load.
-   */
-  protected function prepareItem(object $cache): object|false {
-    return isset($cache->data) ? $cache : FALSE;
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function delete($cid): void {
@@ -234,6 +218,20 @@ class Cache implements \BackdropCacheInterface {
       return $iterator->getTotalCount() === 0;
     }
     return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function normalizeCid(string $cid): string {
+    return $cid;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function prepareItem(object $cache): object|false {
+    return isset($cache->data) ? $cache : FALSE;
   }
 
   /**

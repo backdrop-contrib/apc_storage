@@ -13,6 +13,8 @@
 function apc_storage_autoload_info(): array {
   return [
     'apc_storage\cache\Cache' => 'includes/cache.class.inc',
+    'apc_storage\cache\CacheBase' => 'includes/cache_base.class.inc',
+    'apc_storage\cache\CacheInterface' => 'includes/cache_interface.class.inc',
     'apc_storage\cache\ChainedCache' => 'includes/chained_cache.class.inc',
     'apc_storage\cache\DatabaseCache' => 'includes/database_cache.class.inc',
     'apc_storage\lock\Lock' => 'includes/lock.class.inc',

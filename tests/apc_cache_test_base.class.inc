@@ -26,12 +26,12 @@ abstract class ApcCacheTestBase extends ApcTestBase {
   protected array $cacheBackends = [];
 
   /**
-   * Gets a cache backend instance.
+   * Gets a previously created cache backend instance, or creates a new one.
    *
    * @param string $bin
    *   The cache bin.
    *
-   * @return BackdropCacheInterface
+   * @return CacheInterface
    *   The cache backend instance.
    */
   protected function getCacheBackend(string $bin): CacheInterface {
@@ -49,10 +49,10 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    * @param string $bin
    *   The cache bin.
    *
-   * @return BackdropCacheInterface
+   * @return CacheInterface
    *   The cache backend instance.
    */
-  abstract protected function createCacheBackend(string $bin): BackdropCacheInterface;
+  abstract protected function createCacheBackend(string $bin): CacheInterface;
 
   /**
    * {@inheritdoc}
@@ -89,7 +89,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     try {
       $backend->flush();
 
-      $this->assertFalse(
+      $this->assertTrue(
         $backend->isEmpty(),
         format_string('The cache bin @bin is empty after flushing.', ['@bin' => $bin])
       );

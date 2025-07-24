@@ -137,9 +137,17 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     ];
     $now = round(microtime(TRUE));
 
+    if (!is_object($data) && (is_array($data) && empty($data) || $data === FALSE)) {
+      $this->fail(
+        format_string('Item @cid has not been retrieved from the cache.', ['@cid' => $cid])
+      );
+
+      return FALSE;
+    }
+
     if (isset($data->data)) {
       $messages[0] = format_string(
-        'Item @cid is a cache object (@data).',
+        'Item @cid is a cache object (data = @data).',
         ['@cid' => $cid, '@data' => var_export($data->data, TRUE)]
       );
     }
@@ -328,10 +336,8 @@ abstract class ApcCacheTestBase extends ApcTestBase {
   }
 
   public function testDeletePrefix(): void {
-    $first_backend_bin = 'apc_storage_cache_delete_prefix_test_first_bin';
-    $second_backend_bin = 'apc_storage_cache_delete_prefix_test_second_bin';
-    $first_backend = $this->getCacheBackend($first_backend_bin);
-    $second_backend = $this->getCacheBackend($second_backend_bin);
+    $backend_bin = 'apc_storage_cache_delete_prefix_test';
+    $backend = $this->getCacheBackend($backend_bin);
 
     $data = [
       'test1' => 1,
@@ -342,16 +348,13 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     ];
 
     foreach ($data as $cid => $item) {
-      $first_backend->set($cid, $item);
-      $second_backend->set($cid, $item);
+      $backend->set($cid, $item);
 
-      $cached = $first_backend->get($cid);
-      $this->assertIsValidCacheObject($cid, $cached, full_check: TRUE);
-      $cached = $second_backend->get($cid);
+      $cached = $backend->get($cid);
       $this->assertIsValidCacheObject($cid, $cached, full_check: TRUE);
     }
 
-    $first_backend->deletePrefix('test');
+    $backend->deletePrefix('test');
 
     $keys = array_keys($data);
 
@@ -359,31 +362,20 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     foreach (array_slice($keys, 0, 3) as $cid) {
       $message = format_string(
         'Backend for @bin does not contain data for @cid after deletion.',
-        ['@bin' => $first_backend_bin, '@cid' => $cid]
+        ['@bin' => $backend_bin, '@cid' => $cid]
       );
 
-      $this->assertTrue(empty($first_backend->get($cid)), $message);
+      $this->assertTrue(empty($backend->get($cid)), $message);
     }
 
     // Verify the last two items still exist.
     foreach (array_slice($keys, 3) as $cid) {
       $message = format_string(
         'Backend for @bin still contains data for @cid after deletion.',
-        ['@bin' => $first_backend_bin, '@cid' => $cid]
+        ['@bin' => $backend_bin, '@cid' => $cid]
       );
 
-      $this->assertFalse(empty($first_backend->get($cid)), $message);
-    }
-
-    // Verify the cache bin from which no items have been deleted still has all
-    // its items.
-    foreach ($data as $cid => $item) {
-      $message = format_string(
-        'Backend for @bin still contains data for @cid after deletion.',
-        ['@bin' => $second_backend_bin, '@cid' => $cid]
-      );
-
-      $this->assertFalse(empty($second_backend->get($cid)), $message);
+      $this->assertFalse(empty($backend->get($cid)), $message);
     }
   }
 

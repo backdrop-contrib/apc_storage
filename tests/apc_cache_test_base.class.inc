@@ -266,7 +266,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    * Verifies the data types are preserved.
    */
   public function testValueTypeIsKept() : void {
-    $backend = $this->getCacheBackend();
+    $backend = $this->getCacheBackend('apc_storage_cache_value_type_test');
     $data = [
       'test1' => 1,
       'test2' => '0',
@@ -292,7 +292,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    * Tests deleting cache items.
    */
   public function testDelete() : void {
-    $backend = $this->getCacheBackend();
+    $backend = $this->getCacheBackend('apc_storage_cache_delete_test');
     $data = [
       'test1' => 1,
       'test2' => 3,
@@ -317,7 +317,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    * Tests deleting multiple cache items.
    */
   public function testDeleteMultiple(): void {
-    $backend = $this->getCacheBackend();
+    $backend = $this->getCacheBackend('apc_storage_cache_delete_multiple_test');
     $data = array(
       'test1' => 2,
       'test2' => 4,
@@ -402,7 +402,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
   }
 
   public function testGetMultiple(): void {
-    $backend = $this->getCacheBackend();
+    $backend = $this->getCacheBackend('apc_storage_cache_get_multiple_test');
     $data = array(
       'test1' => 2,
       'test2' => 4,

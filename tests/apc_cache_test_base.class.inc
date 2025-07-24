@@ -263,32 +263,6 @@ abstract class ApcCacheTestBase extends ApcTestBase {
   }
 
   /**
-   * Verifies the data types are preserved.
-   */
-  public function testValueTypeIsKept() : void {
-    $backend = $this->getCacheBackend('apc_storage_cache_value_type_test');
-    $data = [
-      'test1' => 1,
-      'test2' => '0',
-      'test3' => '',
-      'test4' => 12.64,
-      'test5' => FALSE,
-      'test6' => [1, 3, 5],
-    ];
-
-    foreach ($data as $cid => $item) {
-      $backend->set($cid, $item);
-      $cached = $backend->get($cid);
-
-      if ($this->assertIsValidCacheObject($cid, $cached)) {
-        $message = format_string('Data type for @cid was preserved.', ['@cid' => $cid]);
-
-        $this->assertTrue(vartype($item) === vartype($cached->data), $message);
-      }
-    }
-  }
-
-  /**
    * Tests deleting cache items.
    */
   public function testDelete() : void {

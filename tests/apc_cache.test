@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 use apc_storage\cache\Cache;
+use apc_storage\cache\CacheInterface;
 
 require_once __DIR__ . '/apc_cache_test_base.class.inc';
 
@@ -21,7 +22,7 @@ class ApcCacheTestCase extends ApcCacheTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function createCacheBackend(string $bin): BackdropCacheInterface {
+  protected function createCacheBackend(string $bin): CacheInterface {
     return new Cache($bin);
   }
 

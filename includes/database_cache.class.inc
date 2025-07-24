@@ -85,29 +85,6 @@ class DatabaseCache implements \BackdropCacheInterface {
   }
 
   /**
-   * Acts on an exception when the cache might be stale.
-   *
-   * If the table exists and yet the query failed, then the cache is stale and
-   * the exception needs to propagate.
-   *
-   * @param \Exception $e
-   *   The exception.
-   * @param ?string $table_name
-   *   The table name. It defaults to $this->bin.
-   *
-   * @throws \Exception
-   *   The cache bin table exists, but accessing the database failed.
-   */
-  protected function catchException(\Exception $e, ?string $table_name = NULL): void {
-    $database_schema = $this->connection->schema();
-    if ($database_schema->tableExists($table_name ?: $this->bin)) {
-      // The exception was not caused by the table that did not exist; rethrow
-      // the exception.
-      throw $e;
-    }
-  }
-
-  /**
    * Stores data in the cache.
    *
    * @param string $cid
@@ -133,22 +110,29 @@ class DatabaseCache implements \BackdropCacheInterface {
    *   TRUE if the cache bin exists, or it has been created, FALSE otherwise.
    */
   protected function ensureBinExists(): bool {
+    $database_schema = NULL;
+
     try {
-      $database_schema = \Database::getConnection()->schema();
+      $database_schema = $this->connection->schema();
 
       if ($database_schema->tableExists($this->bin)) {
         return TRUE;
       }
+    }
+    catch (\Exception $e) {
+      // The connection failed. Assume the bin does not exist.
+      return FALSE;
+    }
 
-      $schema_definition = $this->schemaDefinition();
-      $database_schema->createTable($this->bin, $schema_definition);
+    try {
+      $database_schema->createTable($this->bin, $this->schemaDefinition());
 
       return TRUE;
     }
-    // If another process has already created the cache table, attempting to
-    // recreate it will throw an exception. In this case just catch the
-    // exception and do nothing.
     catch (\DatabaseSchemaObjectExistsException) {
+      // If another process has already created the cache table, attempting to
+      // recreate it will throw an exception. In this case just catch the
+      // exception and do nothing.
       return TRUE;
     }
     catch (\Exception) {
@@ -241,8 +225,10 @@ class DatabaseCache implements \BackdropCacheInterface {
         ->execute();
     }
     catch (\Exception $e) {
-      if (!$this->ensureBinExists()) {
-        $this->catchException($e);
+      if ($this->ensureBinExists()) {
+        // The cache bin exists, but the database failed to write.
+        // Rethrow the exception.
+        throw $e;
       }
     }
   }
@@ -265,10 +251,10 @@ class DatabaseCache implements \BackdropCacheInterface {
       } while (count($cids));
     }
     catch (\Exception $e) {
-      // Create the cache table, which will be empty. This fixes cases where a
-      // cache table is cleared before it is set.
-      if (!$this->ensureBinExists()) {
-        $this->catchException($e);
+      if ($this->ensureBinExists()) {
+        // The cache bin exists, but the database failed to write.
+        // Rethrow the exception.
+        throw $e;
       }
     }
   }
@@ -297,10 +283,10 @@ class DatabaseCache implements \BackdropCacheInterface {
         ->execute();
     }
     catch (\Exception $e) {
-      // Create the cache table, which will be empty. This fixes cases where a
-      // cache table is cleared before it is set.
-      if (!$this->ensureBinExists()) {
-        $this->catchException($e);
+      if ($this->ensureBinExists()) {
+        // The cache bin exists, but the database failed to write.
+        // Rethrow the exception.
+        throw $e;
       }
     }
   }
@@ -317,8 +303,10 @@ class DatabaseCache implements \BackdropCacheInterface {
         ->execute();
     }
     catch (\Exception $e) {
-      if (!$this->ensureBinExists()) {
-        $this->catchException($e);
+      if ($this->ensureBinExists()) {
+        // The cache bin exists, but the database failed to write.
+        // Rethrow the exception.
+        throw $e;
       }
     }
   }
@@ -432,13 +420,11 @@ class DatabaseCache implements \BackdropCacheInterface {
       return empty($result);
     }
     catch (\Exception $e) {
-      if (!$this->ensureBinExists()) {
-        $this->catchException($e);
-
-        return FALSE;
+      if ($this->ensureBinExists()) {
+        // The cache bin exists, but the database failed to write.
+        // Rethrow the exception.
+        throw $e;
       }
-
-      return TRUE;
     }
   }
 

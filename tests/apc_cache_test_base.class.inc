@@ -128,9 +128,9 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       isset($data->data) &&
       isset($data->created) &&
       isset($data->expire);
-    $message_args = ['@cid' => $cid];
+    $message_args = ['@cid' => $cid, '@data' => var_export($data, TRUE)];
     $messages = [
-      format_string('Item @cid is a cache object.', $message_args),
+      format_string('Item @cid is a cache object (@data).', $message_args),
       format_string('The cache ID for @cid is correct.', $message_args),
       format_string('The creation time of @cid is correct.', $message_args),
       format_string('The expiration time of @cid is correct.', $message_args),
@@ -318,8 +318,10 @@ abstract class ApcCacheTestBase extends ApcTestBase {
   }
 
   public function testDeletePrefix(): void {
-    $first_backend = $this->getCacheBackend('apc_storage_cache_delete_prefix_test');
-    $second_backend = $this->getCacheBackend('apc_storage_cache_delete_prefix_test');
+    $first_backend_bin = 'apc_storage_cache_delete_prefix_test_first_bin';
+    $second_backend_bin = 'apc_storage_cache_delete_prefix_test_second_bin';
+    $first_backend = $this->getCacheBackend($first_backend_bin);
+    $second_backend = $this->getCacheBackend($second_backend_bin);
 
     $data = [
       'test1' => 1,
@@ -347,7 +349,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     foreach (array_slice($keys, 0, 3) as $cid) {
       $message = format_string(
         'Backend for @bin does not contain data for @cid after deletion.',
-        ['@bin' => 'apc_storage_cache_delete_prefix_test', '@cid' => $cid]
+        ['@bin' => $first_backend_bin, '@cid' => $cid]
       );
 
       $this->assertTrue(empty($first_backend->get($cid)), $message);
@@ -357,7 +359,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     foreach (array_slice($keys, 3) as $cid) {
       $message = format_string(
         'Backend for @bin still contains data for @cid after deletion.',
-        ['@bin' => 'apc_storage_cache_test', '@cid' => $cid]
+        ['@bin' => $first_backend_bin, '@cid' => $cid]
       );
 
       $this->assertFalse(empty($first_backend->get($cid)), $message);
@@ -368,7 +370,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     foreach ($data as $cid => $item) {
       $message = format_string(
         'Backend for @bin still contains data for @cid after deletion.',
-        ['@bin' => 'apc_storage_cache_delete_prefix_test', '@cid' => $cid]
+        ['@bin' => $second_backend_bin, '@cid' => $cid]
       );
 
       $this->assertFalse(empty($second_backend->get($cid)), $message);

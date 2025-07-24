@@ -43,9 +43,16 @@ class DatabaseCache extends CacheBase {
    */
   protected int $maxRows = self::MAXIMUM_NONE;
 
+  /**
+   * Constructs a new \apc_storage\cache\DatabaseCache instance.
+   *
+   * @throws \Exception
+   *   An exception was thrown when bootstrapping the database.
+   */
   public function __construct($bin) {
     try {
       $connection_info = settings_get('apc_storage.connection_info', []);
+
       if (!empty($connection_info) && is_array($connection_info) && count($connection_info) == 2) {
         $connection = \Database::getConnection($connection_info[1], $connection_info[0]);
 
@@ -74,15 +81,10 @@ class DatabaseCache extends CacheBase {
 
     // Bootstrap the database if it is not yet available.
     if (!function_exists('db_query') || backdrop_get_bootstrap_phase() < BACKDROP_BOOTSTRAP_DATABASE) {
-      try {
-        backdrop_bootstrap(BACKDROP_BOOTSTRAP_DATABASE, FALSE);
-        $this->ensureBinExists();
-      }
-      catch (\Exception) {
-        // Bootstrapping the database was not possible. The database functions
-        // will not be available.
-      }
+      backdrop_bootstrap(BACKDROP_BOOTSTRAP_DATABASE, FALSE);
     }
+
+    $this->ensureBinExists($this->bin);
   }
 
   /**

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains ApcChainedCacheTestCase.
+ * Contains ApcDatabaseCacheTestCase.
  */
 
 declare(strict_types=1);

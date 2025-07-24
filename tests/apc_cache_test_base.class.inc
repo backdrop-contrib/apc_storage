@@ -7,6 +7,8 @@
 
 declare(strict_types=1);
 
+use apc_storage\cache\CacheInterface;
+
 require_once __DIR__ . '/apc_test_base.class.inc';
 
 /**
@@ -17,31 +19,22 @@ require_once __DIR__ . '/apc_test_base.class.inc';
 abstract class ApcCacheTestBase extends ApcTestBase {
 
   /**
-   * The default cache bin used for the tests.
+   * An array of objects implementing \apc_storage\cache\CacheInterface.
    *
-   * @var string
-   */
-  protected string $cacheBin = 'apc_storage_cache_test';
-
-  /**
-   * An array of objects implementing BackdropCacheInterface.
-   *
-   * @var BackdropCacheInterface[]
+   * @var \apc_storage\cache\CacheInterface[]
    */
   protected array $cacheBackends = [];
 
   /**
    * Gets a cache backend instance.
    *
-   * @param ?string $bin
+   * @param string $bin
    *   The cache bin.
    *
    * @return BackdropCacheInterface
    *   The cache backend instance.
    */
-  protected function getCacheBackend(?string $bin = NULL): BackdropCacheInterface {
-    $bin = $bin ?? $this->cacheBin;
-
+  protected function getCacheBackend(string $bin): CacheInterface {
     if (!isset($this->cacheBackends[$bin])) {
       $this->cacheBackends[$bin] = $this->createCacheBackend($bin);
       $this->cacheBackends[$bin]->flush();

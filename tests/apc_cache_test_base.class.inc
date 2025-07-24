@@ -130,7 +130,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       isset($data->expire);
     $message_args = ['@cid' => $cid];
     $messages = [
-      '',
+      format_string('Item @cid is a cache object.', $message_args),
       format_string('The cache ID for @cid is correct.', $message_args),
       format_string('The creation time of @cid is correct.', $message_args),
       format_string('The expiration time of @cid is correct.', $message_args),
@@ -139,20 +139,10 @@ abstract class ApcCacheTestBase extends ApcTestBase {
 
     if (!is_object($data) && (is_array($data) && empty($data) || $data === FALSE)) {
       $this->fail(
-        format_string('Item @cid has not been retrieved from the cache.', ['@cid' => $cid])
+        format_string('Item @cid has been retrieved from the cache.', ['@cid' => $cid])
       );
 
       return FALSE;
-    }
-
-    if (isset($data->data)) {
-      $messages[0] = format_string(
-        'Item @cid is a cache object (data = @data).',
-        ['@cid' => $cid, '@data' => var_export($data->data, TRUE)]
-      );
-    }
-    else {
-      $messages[0] = format_string('Item @cid is a cache object.', ['@cid' => $cid]);
     }
 
     if ($this->assertTrue($is_cache_object, $messages[0])) {

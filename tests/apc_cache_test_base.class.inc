@@ -128,14 +128,24 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       isset($data->data) &&
       isset($data->created) &&
       isset($data->expire);
-    $message_args = ['@cid' => $cid, '@data' => var_export($data, TRUE)];
+    $message_args = ['@cid' => $cid];
     $messages = [
-      format_string('Item @cid is a cache object (@data).', $message_args),
+      '',
       format_string('The cache ID for @cid is correct.', $message_args),
       format_string('The creation time of @cid is correct.', $message_args),
       format_string('The expiration time of @cid is correct.', $message_args),
     ];
     $now = round(microtime(TRUE));
+
+    if (isset($data->data)) {
+      $messages[0] = format_string(
+        'Item @cid is a cache object (@data).',
+        ['@cid' => $cid, '@data' => var_export($data->data, TRUE)]
+      );
+    }
+    else {
+      $messages[0] = format_string('Item @cid is a cache object.', ['@cid' => $cid]);
+    }
 
     if ($this->assertTrue($is_cache_object, $messages[0])) {
       if (!$full_check) {

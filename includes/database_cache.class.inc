@@ -434,9 +434,11 @@ class DatabaseCache implements \BackdropCacheInterface {
     catch (\Exception $e) {
       if (!$this->ensureBinExists()) {
         $this->catchException($e);
+
+        return FALSE;
       }
 
-      return FALSE;
+      return TRUE;
     }
   }
 

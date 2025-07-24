@@ -13,7 +13,7 @@ namespace apc_storage\cache;
  * Defines a database cache implementation.
  *
  */
-class DatabaseCache implements CacheInterface {
+class DatabaseCache extends CacheBase {
 
   /**
    * Indicates that an infinite number of rows is allowed for the cache backend.
@@ -396,21 +396,6 @@ class DatabaseCache implements CacheInterface {
     // Return a string that uses as much as possible of the original cache ID
     // with the hash appended.
     return mb_substr($cid, 0, 255 - mb_strlen('::' . $hash, '8bit')) . '::' . $hash;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function prepareItem(object $cache): object|false {
-    if (!isset($cache->data)) {
-      return FALSE;
-    }
-
-    if ($cache->serialized) {
-      $cache->data = unserialize($cache->data);
-    }
-
-    return $cache;
   }
 
   /**

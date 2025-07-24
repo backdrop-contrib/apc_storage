@@ -12,7 +12,7 @@ namespace apc_storage\cache;
 /**
  * The APCu cache implementation.
  */
-class Cache implements CacheInterface {
+class Cache extends CacheBase {
 
   /**
    * The setting name for cache lifetime configuration.
@@ -170,13 +170,6 @@ class Cache implements CacheInterface {
   /**
    * {@inheritdoc}
    */
-  public function garbageCollection(): void {
-    // Expired items are automatically deleted by the APCu extension.
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function get($cid): mixed {
     if ($this->isApcuAvailable()) {
       $item = apcu_fetch($this->getApcuKey($cid), $success);
@@ -218,20 +211,6 @@ class Cache implements CacheInterface {
       return $iterator->getTotalCount() === 0;
     }
     return TRUE;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function normalizeCid(string $cid): string {
-    return $cid;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function prepareItem(object $cache): object|false {
-    return isset($cache->data) ? $cache : FALSE;
   }
 
   /**

@@ -16,6 +16,19 @@ abstract class CacheBase implements CacheInterface {
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Exception
+   *   An error happened when deleting the cache items.
+   */
+  public function delete($cid): void {
+    $this->deleteMultiple([$cid]);
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * @throws \Exception
+   *   An error happened while performing garbage collection.
    */
   public function garbageCollection(): void {
     // The default implementation does nothing.
@@ -26,7 +39,7 @@ abstract class CacheBase implements CacheInterface {
    * {@inheritdoc}
    */
   public function normalizeCid(string $cid): string {
-    // The default implementation does not normalize the cache ID.
+    // The base implementation does not normalize the cache ID.
     return $cid;
   }
 

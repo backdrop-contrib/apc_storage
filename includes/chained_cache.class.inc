@@ -119,17 +119,6 @@ class ChainedCache extends Cache {
    * @throws \Exception
    *   Writing the database failed.
    */
-  public function delete($cid): void {
-    $this->databaseBackend->deleteMultiple([$cid]);
-    $this->markAsOutdated();
-  }
-
-  /**
-   * {@inheritdoc}
-   *
-   * @throws \Exception
-   *   Writing the database failed.
-   */
   public function deleteMultiple(array $cids): void {
     $this->databaseBackend->deleteMultiple($cids);
     $this->markAsOutdated();

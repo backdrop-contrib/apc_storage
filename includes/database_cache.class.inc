@@ -84,7 +84,7 @@ class DatabaseCache extends CacheBase {
       backdrop_bootstrap(BACKDROP_BOOTSTRAP_DATABASE, FALSE);
     }
 
-    $this->ensureBinExists($this->bin);
+    $this->ensureBinExists();
   }
 
   /**
@@ -113,8 +113,6 @@ class DatabaseCache extends CacheBase {
    *   TRUE if the cache bin exists, or it has been created, FALSE otherwise.
    */
   protected function ensureBinExists(): bool {
-    $database_schema = NULL;
-
     try {
       $database_schema = $this->connection->schema();
 
@@ -122,7 +120,7 @@ class DatabaseCache extends CacheBase {
         return TRUE;
       }
     }
-    catch (\Exception $e) {
+    catch (\Exception) {
       // The connection failed. Assume the bin does not exist.
       return FALSE;
     }
@@ -154,27 +152,6 @@ class DatabaseCache extends CacheBase {
     $cache_schema['description'] = 'Storage for the cache API.';
 
     return $cache_schema;
-  }
-
-  /**
-   * {@inheritdoc}
-   *
-   * @throws \Exception
-   *   The cache bin table exists, but writing the database failed.
-   */
-  public function delete($cid): void {
-    try {
-      db_delete($this->bin)
-        ->condition('cid', $this->normalizeCid($cid))
-        ->execute();
-    }
-    catch (\Exception $e) {
-      if ($this->ensureBinExists()) {
-        // The cache bin exists, but the database failed to write.
-        // Rethrow the exception.
-        throw $e;
-      }
-    }
   }
 
   /**
@@ -369,6 +346,8 @@ class DatabaseCache extends CacheBase {
         // Rethrow the exception.
         throw $e;
       }
+
+      return TRUE;
     }
   }
 
@@ -376,6 +355,10 @@ class DatabaseCache extends CacheBase {
    * {@inheritdoc}
    */
   public function normalizeCid(string $cid): string {
+    // @todo Encode the hash in lower-case Base36. Base64 cannot be used in
+    // tables with a case-insensitive collation because it contains both
+    // upper-case and lower-case characters.
+
     $lower_case = mb_strtolower($cid, '8bit') === $cid;
     $needle = ' ';
     $needle_length = mb_strlen($needle, '8bit');

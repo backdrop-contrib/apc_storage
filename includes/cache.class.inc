@@ -132,15 +132,6 @@ class Cache extends CacheBase {
   /**
    * {@inheritdoc}
    */
-  public function delete($cid): void {
-    if ($this->isApcuAvailable()) {
-      apcu_delete($this->getApcuKey($cid));
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function deleteMultiple(array $cids): void {
     if ($this->isApcuAvailable()) {
       apcu_delete(array_map([$this, 'getApcuKey'], $cids));

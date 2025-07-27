@@ -138,10 +138,11 @@ class Queue implements \BackdropQueueInterface {
       return FALSE;
     }
 
-    $item = new \stdClass();
-    $item->data = $data;
-    $item->item_id = $this->uniqueId();
-    $item->expire = 0;
+    $item = (object) [
+      'data' => $data,
+      'item_id' => $this->uniqueId(),
+      'expire' => 0,
+    ];
 
     return apcu_store($this->keyName($item), $item);
   }

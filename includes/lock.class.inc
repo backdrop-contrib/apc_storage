@@ -58,6 +58,69 @@ class Lock {
   protected string $key;
 
   /**
+   * Generates a unique identifier for the lock system.
+   *
+   * @return string
+   *   A 32-byte unique identifier.
+   */
+  protected static function generateUniqueId(): string {
+    try {
+      return random_bytes(32);
+    }
+    catch (\RandomException) {
+      // Use a fallback in case random_bytes() fails.
+      try {
+        $engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_lock_' . hrtime(TRUE), TRUE));
+        $randomizer = new Randomizer($engine);
+
+        return $randomizer->getBytes(32);
+      }
+      catch (\ValueError) {
+        // This exception should never be thrown because the seed passed to
+        // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
+        // and those are not all zeros.
+        return '';
+      }
+    }
+  }
+
+  /**
+   * Checks if the APCu extension is available and enabled.
+   *
+   * @return bool
+   *   TRUE if APCu is available, FALSE otherwise.
+   */
+  protected static function isApcuAvailable(): bool {
+    return extension_loaded('apcu') && apcu_enabled();
+  }
+
+  /**
+   * Constructs a new \apc_storage\lock\Lock instance.
+   *
+   * The constructor is protected to ensure that locks can only be created
+   * through the static get() method.
+   *
+   * @param string $name
+   *   The name of the lock.
+   */
+  protected function __construct(string $name) {
+    $this->name = $name;
+    $this->key = $this->generateLockKey();
+  }
+
+  /**
+   * Generates the APCu key for the current lock.
+   *
+   * @return string
+   *   The generated APCu key for the lock.
+   */
+  protected function generateLockKey(): string {
+    return self::LOCK_KEY_PREFIX .
+      backdrop_base64_encode(self::$uniqueId) . '::' .
+      backdrop_base64_encode($this->name);
+  }
+
+  /**
    * Retrieves the lock with a given name.
    *
    * @param string $name
@@ -80,57 +143,15 @@ class Lock {
     return $lock;
   }
 
-   protected function __construct(string $name) {
-    $this->name = $name;
-    $this->key = $this->generateLockKey();
-  }
-
   /**
-   * Generates a unique identifier for the lock system.
-   *
-   * @return string
-   *   A 32-byte unique identifier.
+   * Releases all previously acquired locks.
    */
-  protected static function generateUniqueId(): string {
-    try {
-      return random_bytes(32);
+  public static function releaseAll(): void {
+    if (self::$uniqueId && self::isApcuAvailable()) {
+      $key = preg_quote(self::LOCK_KEY_PREFIX . backdrop_base64_encode(self::$uniqueId) . '::', '/');
+
+      apcu_delete(new \APCUIterator("/^" . $key . '[a-zA-Z0-9-_]+$/'));
     }
-    catch (RandomException) {
-      // Use a fallback in case random_bytes() fails.
-      try {
-        $engine = new Xoshiro256StarStar(hash('sha256', hrtime(TRUE) . 'apc_storage_lock_', TRUE));
-        $randomizer = new Randomizer($engine);
-        return $randomizer->getBytes(32);
-      }
-      catch (\ValueError) {
-        // This exception should never be thrown because the seed passed to
-        // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
-        // and those are not all zeros.
-        return '';
-      }
-    }
-  }
-
-  /**
-   * Generates the APCu key for the current lock.
-   *
-   * @return string
-   *   The generated APCu key for the lock.
-   */
-  protected function generateLockKey(): string {
-    return self::LOCK_KEY_PREFIX .
-      backdrop_base64_encode(self::$uniqueId) . '::' .
-      backdrop_base64_encode($this->name);
-  }
-
-  /**
-   * Gets the key name for the lock in APCu.
-   *
-   * @return string
-   *   The key name for the lock.
-   */
-  public function keyName(): string {
-    return $this->key;
   }
 
   /**
@@ -143,6 +164,11 @@ class Lock {
    *   TRUE if the lock was acquired, FALSE otherwise.
    */
   public function acquire(float $timeout = self::DEFAULT_TIMEOUT): bool {
+    if (!self::isApcuAvailable()) {
+      // APCu is not available, so the lock cannot be acquired.
+      return FALSE;
+    }
+
     $expire = microtime(TRUE) + $timeout;
 
     if (apcu_exists($this->keyName())) {
@@ -181,6 +207,16 @@ class Lock {
   }
 
   /**
+   * Gets the key name for the lock in APCu.
+   *
+   * @return string
+   *   The key name for the lock.
+   */
+  public function keyName(): string {
+    return $this->key;
+  }
+
+  /**
    * Checks if a lock acquired by a different process is available.
    *
    * If an existing lock has expired, it is removed.
@@ -189,17 +225,39 @@ class Lock {
    *   TRUE if the lock can be acquired, FALSE otherwise.
    */
   public function maybeAvailable(): bool {
+    if (!self::isApcuAvailable()) {
+      // APCu is not available, so the lock cannot be acquired.
+      return FALSE;
+    }
+
     if (!apcu_exists($this->keyName())) {
       return TRUE;
     }
 
     $data = apcu_fetch($this->keyName(), $success);
 
-    if (!$success || empty($data['expire']) || microtime(TRUE) > (float) $data['expire']) {
+    if ($success && (empty($data['expire']) || microtime(TRUE) > (float) $data['expire'])) {
       return apcu_delete($this->keyName());
     }
 
-    return FALSE;
+    return (bool) $success;
+  }
+
+  /**
+   * Releases a lock previously acquired by Lock::acquire().
+   *
+   * This will release the named lock if it is still held by the current
+   * request.
+   */
+  public function release(): void {
+    if (!self::isApcuAvailable()) {
+      // APCu is not available, so the lock cannot be released.
+      return;
+    }
+
+    // The lock is unconditionally removed, since the caller assumes the lock is
+    // released.
+    apcu_delete($this->keyName());
   }
 
   /**
@@ -212,6 +270,12 @@ class Lock {
    *   FALSE if the lock is available, TRUE otherwise.
    */
   public function wait(float $delay = self::DEFAULT_TIMEOUT): bool {
+    if (!self::isApcuAvailable()) {
+      // APCu is not available; return TRUE to mean that ::wait() should be
+      // called again.
+      return TRUE;
+    }
+
     $delay = (int) round($delay * 1000000);
     $sleep = 25000;
 
@@ -226,29 +290,6 @@ class Lock {
       }
     }
     return TRUE;
-  }
-
-  /**
-   * Releases a lock previously acquired by Lock::acquire().
-   *
-   * This will release the named lock if it is still held by the current
-   * request.
-   */
-  public function release(): void {
-    // The lock is unconditionally removed, since the caller assumes the lock is
-    // released.
-    apcu_delete($this->keyName());
-  }
-
-  /**
-   * Releases all previously acquired locks.
-   */
-  public static function releaseAll(): void {
-    if (self::$uniqueId && extension_loaded('apcu') && apcu_enabled()) {
-      $key = preg_quote(self::LOCK_KEY_PREFIX . backdrop_base64_encode(self::$uniqueId) . '::', '/');
-
-      apcu_delete(new \APCUIterator("/^" . $key . '[a-zA-Z0-9-_]+$/'));
-    }
   }
 
 }

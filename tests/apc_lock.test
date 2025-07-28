@@ -23,7 +23,7 @@ class ApcLockTestCase extends ApcTestBase {
    *
    * @var array
    */
-  protected array $lockNames = array();
+  protected array $lockNames = [];
 
   /**
    * {@inheritdoc}
@@ -44,20 +44,18 @@ class ApcLockTestCase extends ApcTestBase {
    */
   protected function initLocks(): bool {
     $this->lockNames = array();
+    $count = 0;
 
     for ($i = 0; $i < 4; $i++) {
       $this->lockNames[] = 'lock_' . $this->randomName();
     }
-
-    $count = 0;
 
     foreach ($this->lockNames as $name) {
       Lock::get($name);
       $count++;
     }
 
-    return $this->assertEqual($count, count($this->lockNames),
-      'All the locks have been created/retrieved.');
+    return $count == count($this->lockNames);
   }
 
   /**
@@ -65,55 +63,68 @@ class ApcLockTestCase extends ApcTestBase {
    *
    * @param float $timeout
    *   The timeout.
+   *
+   * @return bool
+   *   TRUE if all the locks have been acquired, FALSE otherwise.
    */
-  protected function acquireLocks(float $timeout): void {
+  protected function acquireLocks(float $timeout): bool {
+    $result = TRUE;
+
     foreach ($this->lockNames as $name) {
       $lock = Lock::get($name);
-      $message = format_string(
-        'The @name lock has been acquired for @timeout seconds.',
-        array('@name' => $name, '@timeout' => (int) round($timeout))
-      );
-      $this->assertTrue($lock->acquire($timeout), $message);
+      $acquired = $lock->acquire($timeout);
+      $result = $result && $acquired;
     }
+
+    return $result;
   }
 
   /**
    * Tests that locks are acquired and expire after the set timeout.
    */
   public function testAcquireLock(): void {
-    if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
-      $this->acquireLocks(8.0);
+    $messages = [
+      'All the locks have been created.',
+      'All the locks have been acquired.',
+      'Tests will be halted for @delay seconds.',
+      'The @name lock is not available after @delay seconds.',
+      'The @name lock is available after further @delay seconds.',
+      'All the acquired locks are available after they have been released.',
+    ];
+
+    if ($this->assertTrue($this->initLocks(), $messages[0])) {
       $delay = 2;
-      $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
-      sleep($delay);
 
-      foreach ($this->lockNames as $name) {
-        $lock = Lock::get($name);
-        $message = format_string(
-          'The @name lock is not available after @delay seconds.',
-          array('@name' => $name, '@delay' => $delay)
-        );
-        $this->assertFalse($lock->maybeAvailable(), $message);
-      }
+      if ($this->assertTrue($this->acquireLocks(8.0), $messages[1])) {
+        $this->pass(format_string($messages[2], ['@delay' => $delay]));
+        sleep($delay);
 
-      $delay = 7;
-      $this->pass(format_string('Tests will be halted for @delay seconds.', array('@delay' => $delay)));
-      sleep($delay);
+        foreach ($this->lockNames as $name) {
+          $lock = Lock::get($name);
 
-      $available_count = 0;
-      foreach ($this->lockNames as $name) {
-        $lock = Lock::get($name);
-        $message = format_string(
-          'The @name lock is available after further @delay seconds.',
-          array('@name' => $name, '@delay' => $delay)
-        );
-        if ($this->assertTrue($lock->maybeAvailable(), $message)) {
-          $available_count++;
+          $this->assertFalse(
+            $lock->maybeAvailable(),
+            format_string($messages[3], ['@name' => $name, '@delay' => $delay])
+          );
         }
-      }
 
-      $message = 'All the acquired locks are now available.';
-      $this->assertTrue(count($this->lockNames) == $available_count, $message);
+        $available_count = 0;
+        $delay = 7;
+
+        $this->pass(format_string($messages[2], ['@delay' => $delay]));
+        sleep($delay);
+
+        foreach ($this->lockNames as $name) {
+          $lock = Lock::get($name);
+          $message = format_string($messages[4], ['@name' => $name, '@delay' => $delay]);
+
+          if ($this->assertTrue($lock->maybeAvailable(), $message)) {
+            $available_count++;
+          }
+        }
+
+        $this->assertTrue(count($this->lockNames) == $available_count, $messages[5]);
+      }
     }
   }
 
@@ -121,14 +132,24 @@ class ApcLockTestCase extends ApcTestBase {
    * Tests that Lock::wait() works correctly.
    */
   public function testWait(): void {
-    if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
-      $this->acquireLocks(2.0);
-      $lock = Lock::get($this->lockNames[0]);
-      $message = format_string(
-        'The @name lock is available after waiting for @timeout seconds.',
-        array('@name' => $this->lockNames[0], '@timeout' => 2)
-      );
-      $this->assertFalse($lock->wait(2.0), $message);
+    $messages = [
+      'All the locks have been created.',
+      'All the locks have been acquired.',
+      'The @name lock is available after waiting for @timeout seconds.',
+      'All the acquired locks are available after @count seconds.',
+    ];
+    $timeout = 2.0;
+
+    if ($this->assertTrue($this->initLocks(), $messages[0])) {
+      $lock_name = $this->lockNames[0];
+
+      if ($this->assertTrue($this->acquireLocks($timeout), $messages[1])) {
+        $lock = Lock::get($lock_name);
+        $message = format_string($messages[2], ['@name' => $lock_name, '@timeout' => (int) $timeout + 1]);
+
+        // Lock::wait() returns FALSE when the lock is available.
+        $this->assertFalse($lock->wait($timeout + 1.0), $message);
+      }
     }
   }
 
@@ -139,50 +160,80 @@ class ApcLockTestCase extends ApcTestBase {
    * Lock::maybeAvailable() will return TRUE.
    */
   public function testRelease(): void {
-    if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
-      $this->acquireLocks(4.0);
-      foreach ($this->lockNames as $name) {
-        $lock = Lock::get($name);
-        $lock->release();
-      }
+    $messages = [
+      'All the locks have been created.',
+      'All the locks have been acquired',
+      'The @name lock is not available before it has been released.',
+      'None of the locks are available before they have been released.',
+      'The @name lock is available after it has been released.',
+      'All the acquired locks are available after they have been released.',
+    ];
+
+    if ($this->assertTrue($this->initLocks(), $messages[0])) {
       $count = 0;
-      foreach ($this->lockNames as $name) {
-        $lock = Lock::get($name);
-        $message = format_string(
-          'The @name lock is available after it has been released.',
-          array('@name' => $name)
-        );
-        if ($this->assertTrue($lock->maybeAvailable(), $message)) {
-          $count++;
+
+      if ($this->assertTrue($this->acquireLocks(4.0), $messages[1])) {
+        foreach ($this->lockNames as $name) {
+          $lock = Lock::get($name);
+          $message = format_string($messages[2], ['@name' => $name]);
+
+          if ($this->assertFalse($lock->maybeAvailable(), $message)) {
+            $count++;
+          }
         }
+
+        $this->assertTrue($count == count($this->lockNames), $messages[3]);
+
+        foreach ($this->lockNames as $name) {
+          $lock = Lock::get($name);
+          $lock->release();
+        }
+
+        $count = 0;
+
+        foreach ($this->lockNames as $name) {
+          $lock = Lock::get($name);
+          $message = format_string($messages[4], ['@name' => $name]);
+
+          if ($this->assertTrue($lock->maybeAvailable(), $message)) {
+            $count++;
+          }
+        }
+
+        $this->assertTrue($count == count($this->lockNames), $messages[5]);
       }
-      $message = 'All the acquired locks are available after they have been released.';
-      $this->assertTrue($count == count($this->lockNames), $message);
     }
   }
 
   /**
    * Tests that Lock::releaseAll() works correctly.
-   *
-   * After Lock::releaseAll() has been called,
-   * Lock::maybeAvailable() will return FALSE.
    */
   public function testReleaseAll(): void {
-    if ($this->assertTrue($this->initLocks(), 'All the locks have been created.')) {
-      $this->acquireLocks(4.0);
-      Lock::releaseAll();
-      $count = 0;
+    $count = 0;
+    $messages = [
+      'All the locks have been created.',
+      'All the locks have been acquired.',
+      'Lock::releaseAll() has been called.',
+      'The @name lock is available after it has been released.',
+      'All the acquired locks are available after they have been released.',
+    ];
 
-      foreach ($this->lockNames as $name) {
-        $lock = Lock::get($name);
-        $message = format_string("The @name lock is available.", array('@name' => $name));
-        if ($this->assertTrue($lock->maybeAvailable(), $message)) {
-          $count++;
+    if ($this->assertTrue($this->initLocks(), $messages[0])) {
+      if ($this->assertTrue($this->acquireLocks(4.0), $messages[1])) {
+        Lock::releaseAll();
+        $this->pass($messages[2]);
+
+        foreach ($this->lockNames as $name) {
+          $lock = Lock::get($name);
+          $message = format_string($messages[3], ['@name' => $name]);
+
+          if ($this->assertTrue($lock->maybeAvailable(), $message)) {
+            $count++;
+          }
         }
       }
 
-      $message = 'All the acquired locks are available after they have been released.';
-      $this->assertTrue($count == count($this->lockNames), $message);
+      $this->assertTrue($count == count($this->lockNames), $messages[4]);
     }
   }
 

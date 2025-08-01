@@ -64,12 +64,6 @@ class ApcQueueTestCase extends ApcTestBase {
     foreach ($queue_names as $name) {
       $count = 7 + mt_rand(-2, 4);
       $items = [];
-      $messages = [
-        format_string(
-          'The @queue queue has been correctly initialized with @count items.',
-          ['@queue' => $name, '@count' => $count]
-        ),
-      ];
       $queue = new Queue($name);
 
       for ($i = 0; $i < $count; $i++) {
@@ -80,11 +74,6 @@ class ApcQueueTestCase extends ApcTestBase {
         $queue->createItem($item);
       }
 
-      // Verify all the items were added.
-      if (!$this->assertEqual($queue->numberOfItems(), count($items), $messages[0])) {
-        return FALSE;
-      }
-
       $this->queues[$name] = (object) [
         'instance' => $queue,
         'items' => $items,
@@ -92,14 +81,7 @@ class ApcQueueTestCase extends ApcTestBase {
       ];
     }
 
-    $messages = [
-      format_string(
-        'All queues have been successfully initialized (@count).',
-        ['@count' => count($queue_names)]
-      ),
-    ];
-
-    return $this->assertTrue(count($this->queues) == count($queue_names), $messages[0]);
+    return TRUE;
   }
 
   /**

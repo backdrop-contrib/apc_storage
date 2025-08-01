@@ -48,14 +48,14 @@ class Lock {
    *
    * @var string
    */
-  protected string $name;
+  public protected(set) string $name;
 
   /**
    * The APCu key used for the lock.
    *
    * @var string
    */
-  protected string $key;
+  public protected(set) string $keyName;
 
   /**
    * Generates a unique identifier for the lock system.
@@ -105,7 +105,7 @@ class Lock {
    */
   protected function __construct(string $name) {
     $this->name = $name;
-    $this->key = $this->generateLockKey();
+    $this->keyName = $this->generateLockKey();
   }
 
   /**
@@ -170,12 +170,14 @@ class Lock {
     }
 
     $expire = microtime(TRUE) + $timeout;
+    $success = FALSE;
 
-    if (apcu_exists($this->keyName())) {
+    if (apcu_exists($this->keyName)) {
       // Try to extend the expiration of an already acquired lock.
-      if (!apcu_store($this->keyName(), ['expire' => $expire])) {
+      if (!apcu_store($this->keyName, ['expire' => $expire])) {
         // The lock was broken.
-        apcu_delete($this->keyName());
+        apcu_delete($this->keyName);
+
         // Return failure to acquire the lock, since we do not know what its
         // state is.
         return FALSE;
@@ -190,7 +192,7 @@ class Lock {
 
     // We always want to do this code at least once.
     do {
-      $success = apcu_store($this->keyName(), ['expire' => $expire]);
+      $success = apcu_store($this->keyName, ['expire' => $expire]);
 
       if (!$success) {
         // If this is our first pass through the loop, then $retry is FALSE.
@@ -203,17 +205,7 @@ class Lock {
     }
     while ($retry);
 
-    return apcu_exists($this->keyName());
-  }
-
-  /**
-   * Gets the key name for the lock in APCu.
-   *
-   * @return string
-   *   The key name for the lock.
-   */
-  public function keyName(): string {
-    return $this->key;
+    return $success;
   }
 
   /**
@@ -230,17 +222,15 @@ class Lock {
       return FALSE;
     }
 
-    if (!apcu_exists($this->keyName())) {
+    if (!apcu_exists($this->keyName)) {
       return TRUE;
     }
 
-    $data = apcu_fetch($this->keyName(), $success);
+    $data = apcu_fetch($this->keyName, $success);
 
-    if ($success && (empty($data['expire']) || microtime(TRUE) > (float) $data['expire'])) {
-      return apcu_delete($this->keyName());
-    }
+    $result = ($success && (empty($data['expire']) || microtime(TRUE) >= (float) $data['expire']));
 
-    return (bool) $success;
+    return $result;
   }
 
   /**
@@ -257,7 +247,7 @@ class Lock {
 
     // The lock is unconditionally removed, since the caller assumes the lock is
     // released.
-    apcu_delete($this->keyName());
+    apcu_delete($this->keyName);
   }
 
   /**
@@ -267,7 +257,8 @@ class Lock {
    *   The maximum number of seconds to wait, as an integer.
    *
    * @return bool
-   *   FALSE if the lock is available, TRUE otherwise.
+   *   FALSE if the lock is available, TRUE if ::wait() still needs to be
+   *   called.
    */
   public function wait(float $delay = self::DEFAULT_TIMEOUT): bool {
     if (!self::isApcuAvailable()) {

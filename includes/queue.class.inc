@@ -47,64 +47,52 @@ class Queue implements \BackdropQueueInterface {
   protected string $name;
 
   /**
-   * Creates an APCu iterator for the current queue.
+   * The APCu iterator to find all the queue keys stored in the APCu store.
    *
-   * @return \APCUIterator
-   *   An APCu iterator to iterate over items in the current queue.
+   * @val \APCUIterator
    */
-  protected function createQueueIterator(): \APCUIterator {
-    $pattern = '/^' . preg_quote(self::QUEUE_PREFIX . backdrop_base64_encode($this->name) . '::', '/') . '[a-zA-Z0-9-_]+$/';
-    return new \APCUIterator($pattern);
+  protected \APCUIterator $queueIterator {
+    get {
+      $prefixed_name = self::QUEUE_PREFIX . backdrop_base64_encode($this->name) . '::';
+      $pattern = '/^' . preg_quote($prefixed_name, '/') . '[a-zA-Z0-9-_]+$/';
+      return new \APCUIterator($pattern);
+    }
   }
 
   /**
-   * Generates a unique identifier.
+   * The unique ID used for the APCu keys used to store queue data.
    *
-   * This method attempts to generate a 32-byte random identifier using
-   * random_bytes(). If random_bytes() fails, the Xoshiro256StarStar engine is
-   * used.
-   *
-   * @param int $length
-   *   The length of the string to generate. If not provided, the default value
-   *   of 32 bytes is used. If the length is negative, the absolute value is
-   *   used; if the length is 0, an empty string is returned.
-   *
-   * @return string
-   *   A unique $length-byte string.
+   * @var string
    */
-  protected static function uniqueId(int $length = 32): string {
-    if ($length < 0) {
-      $length = abs($length);
-    }
-    elseif ($length === 0) {
-      return '';
-    }
+  protected string $uniqueId {
+    get {
+      if (!isset(self::$randomizer)) {
+        try {
+          $engine = new Xoshiro256StarStar(hash('sha256', hrtime(TRUE) . 'apc_storage_queue_', TRUE));
+          self::$randomizer = new Randomizer($engine);
+        }
+        catch (\ValueError) {
+          // This exception should never be thrown because the seed passed to
+          // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
+          // and those are not all zeros.
+        }
+      }
 
-    if (!isset(self::$randomizer)) {
       try {
-        $engine = new Xoshiro256StarStar(hash('sha256', hrtime(TRUE) . 'apc_storage_queue_', TRUE));
-        self::$randomizer = new Randomizer($engine);
+        return random_bytes($length);
       }
-      catch (\ValueError) {
-        // This exception should never be thrown because the seed passed to
-        // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
-        // and those are not all zeros.
+      catch (RandomException) {
+        try {
+          // Use a fallback in case random_bytes() fails.
+          return self::$randomizer->getBytes($length);
+        }
+        catch (\ValueError) {
+          // This exception should never be thrown because the seed passed to
+          // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
+          // and those are not all zeros.
+        }
       }
-    }
 
-    try {
-      return random_bytes($length);
-    }
-    catch (RandomException) {
-      try {
-        // Use a fallback in case random_bytes() fails.
-        return self::$randomizer->getBytes($length);
-      }
-      catch (\ValueError) {
-        // This exception should never be thrown because the seed passed to
-        // Random\Engine\Xoshiro256StarStar::__construct() is surely 32 bytes
-        // and those are not all zeros.
-      }
     }
   }
 
@@ -139,7 +127,7 @@ class Queue implements \BackdropQueueInterface {
 
     $item = (object) [
       'data' => $data,
-      'item_id' => $this->uniqueId(),
+      'item_id' => $this->uniqueId,
       'expire' => 0,
     ];
 
@@ -154,7 +142,7 @@ class Queue implements \BackdropQueueInterface {
       return 0;
     }
 
-    return $this->createQueueIterator()->getTotalCount();
+    return $this->queueIterator->getTotalCount();
   }
 
   /**
@@ -165,7 +153,7 @@ class Queue implements \BackdropQueueInterface {
       return NULL;
     }
 
-    foreach ($this->createQueueIterator() as $item) {
+    foreach ($this->queueIterator as $item) {
       $item['value']->expire ??= 0;
 
       // If the previously set lease time has expired, reset the expiration time.
@@ -220,7 +208,7 @@ class Queue implements \BackdropQueueInterface {
    */
   public function deleteQueue(): void {
     if ($this->apcuAvailable) {
-      apcu_delete($this->createQueueIterator());
+      apcu_delete($this->queueIterator);
     }
   }
 

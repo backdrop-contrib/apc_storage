@@ -57,7 +57,29 @@ class Cache extends CacheBase {
    *
    * @var string
    */
-  protected string $binPrefix;
+  protected string $binPrefix = '' {
+    get {
+      if ($this->binPrefix === '') {
+        $prefix = $this->identifier . '.backdrop.' . BACKDROP_VERSION . '.';
+        $prefix .= settings_get(self::DEPLOYMENT_IDENTIFIER, '') . '.';
+
+        $site_path = conf_path();
+        $hash_salt = backdrop_get_hash_salt() . '.' . BACKDROP_ROOT . '/' . $site_path;
+
+        if (settings_get(self::ENSURE_UNIQUE_PREFIX, TRUE)) {
+          $prefix .= hash_hmac('sha256', $this->identifier, $hash_salt, TRUE);
+        }
+        else {
+          $prefix .= hash('sha256', BACKDROP_ROOT . '/' . $site_path, TRUE);
+        }
+
+        $this->binPrefix = $this->sitePrefix . backdrop_base64_encode($prefix) . '::' .
+          backdrop_base64_encode($this->bin) . '::';
+      }
+
+      return $this->binPrefix;
+    }
+  }
 
   /**
    * Prefix for all keys in the storage that belong to this site.
@@ -71,35 +93,6 @@ class Cache extends CacheBase {
    */
   public function __construct($bin) {
     $this->bin = $bin;
-    $this->binPrefix = $this->generatePrefix();
-  }
-
-  /**
-   * Generates a unique prefix for cache keys.
-   *
-   * Combines various elements including the identifier, Backdrop version,
-   * deployment identifier, and site-specific information to create a unique
-   * prefix for cache keys.
-   *
-   * @return string
-   *   The generated unique prefix.
-   */
-  protected function generatePrefix(): string {
-    $prefix = $this->identifier . '.backdrop.' . BACKDROP_VERSION . '.';
-    $prefix .= settings_get(self::DEPLOYMENT_IDENTIFIER, '') . '.';
-
-    $site_path = conf_path();
-    $hash_salt = backdrop_get_hash_salt() . '.' . BACKDROP_ROOT . '/' . $site_path;
-
-    if (settings_get(self::ENSURE_UNIQUE_PREFIX, TRUE)) {
-      $prefix .= hash_hmac('sha256', $this->identifier, $hash_salt, TRUE);
-    }
-    else {
-      $prefix .= hash('sha256', BACKDROP_ROOT . '/' . $site_path, TRUE);
-    }
-
-    return $this->sitePrefix . backdrop_base64_encode($prefix) . '::' .
-      backdrop_base64_encode($this->bin) . '::';
   }
 
   /**

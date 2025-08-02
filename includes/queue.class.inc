@@ -31,21 +31,20 @@ class Queue implements \BackdropQueueInterface {
   protected static Randomizer $randomizer;
 
   /**
+   * Whether the APCu extension is available and enabled.
+   *
+   * @var bool
+   */
+  protected bool $apcuAvailable {
+    get => extension_loaded('apcu') && apcu_enabled();
+  }
+
+  /**
    * The name of the queue this instance is working with.
    *
    * @var string
    */
   protected string $name;
-
-  /**
-   * Checks if APCu extension is loaded and enabled.
-   *
-   * @return bool
-   *   TRUE if APCu is available and enabled, FALSE otherwise.
-   */
-  protected function isApcuAvailable(): bool {
-    return extension_loaded('apcu') && apcu_enabled();
-  }
 
   /**
    * Creates an APCu iterator for the current queue.
@@ -134,7 +133,7 @@ class Queue implements \BackdropQueueInterface {
    * {@inheritdoc}
    */
   public function createItem(mixed $data): bool {
-    if (!$this->isApcuAvailable()) {
+    if (!$this->apcuAvailable) {
       return FALSE;
     }
 
@@ -151,7 +150,7 @@ class Queue implements \BackdropQueueInterface {
    * {@inheritdoc}
    */
   public function numberOfItems(): int {
-    if (!$this->isApcuAvailable()) {
+    if (!$this->apcuAvailable) {
       return 0;
     }
 
@@ -162,7 +161,7 @@ class Queue implements \BackdropQueueInterface {
    * {@inheritdoc}
    */
   public function claimItem($lease_time = 30): ?object {
-    if (!$this->isApcuAvailable()) {
+    if (!$this->apcuAvailable) {
       return NULL;
     }
 
@@ -191,7 +190,7 @@ class Queue implements \BackdropQueueInterface {
    * {@inheritdoc}
    */
   public function deleteItem($item): void {
-    if ($this->isApcuAvailable()) {
+    if ($this->apcuAvailable) {
       apcu_delete($this->keyName($item));
     }
   }
@@ -202,7 +201,7 @@ class Queue implements \BackdropQueueInterface {
   public function releaseItem($item): bool {
     $item->expire = 0;
 
-    if ($this->isApcuAvailable()) {
+    if ($this->apcuAvailable) {
       return apcu_store($this->keyName($item), $item);
     }
 
@@ -220,7 +219,7 @@ class Queue implements \BackdropQueueInterface {
    * {@inheritdoc}
    */
   public function deleteQueue(): void {
-    if ($this->isApcuAvailable()) {
+    if ($this->apcuAvailable) {
       apcu_delete($this->createQueueIterator());
     }
   }

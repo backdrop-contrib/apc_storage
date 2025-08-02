@@ -70,43 +70,21 @@ class ApcLockTestCase extends ApcTestBase {
     return $result;
   }
 
-  protected function assertLockAcquired(Lock $lock, string $message) {
-
-  }
-
-  protected function assertLockAvailable(Lock $lock, string $message): bool {
+  protected function assertLockAcquired(Lock $lock, string $message): bool {
     $result = TRUE;
 
     if (!apcu_exists($lock->keyName)) {
-      return TRUE;
-    }
-
-    $data = apcu_fetch($lock->keyName, $success);
-
-    if ($success) {
-      $result = (empty($data['expire']) || microtime(TRUE) >= (float) $data['expire']);
-    }
-    else {
       $result = FALSE;
     }
-
-    $this->assertTrue($result, $message);
-
-    return $result;
-  }
-
-  protected function lockNotAvailable(Lock $lock, string $message) {
-    if (!apcu_exists($lock->keyName)) {
-      return FALSE;
-    }
-
-    $data = apcu_fetch($lock->keyName, $success);
-
-    if ($success) {
-      $result = (!empty($data['expire']) && microtime(TRUE) < (float) $data['expire']);
-    }
     else {
-      $result = TRUE;
+      $data = apcu_fetch($lock->keyName, $success);
+
+      if ($success) {
+        $result = (!empty($data['expire']) && microtime(TRUE) < (float) $data['expire']);
+      }
+      else {
+        $result = FALSE;
+      }
     }
 
     $this->assertTrue($result, $message);
@@ -114,61 +92,12 @@ class ApcLockTestCase extends ApcTestBase {
     return $result;
   }
 
-  public function testMaybeAvailable(): void {
-    $delay = 2;
-    $messages = [
-      'All the locks have been acquired with a timeout of @timeout seconds.',
-      'Tests will be halted for @delay seconds.',
-      'The @name lock is not available after @delay seconds.',
-      'Lock::maybeAvailable() returned the correct value for the @name lock (@result).',
-      'The @name lock is not available after further @delay seconds.',
-    ];
-    $result = FALSE;
-    $timeout = 8.0;
+  protected function assertLockAvailable(Lock $lock, string $message): bool {
+    return $this->assertTrue($lock->maybeAvailable(), $message);
+  }
 
-    $this->initLocks();
-
-    if ($this->assertTrue($this->acquireLocks(), format_string($messages[0], ['@timeout' => (int) $timeout]))) {
-      $this->pass(format_string($messages[1], ['@delay' => $delay]));
-      sleep($delay);
-
-      // Verify the locks are not available before the acquire timeout expires.
-      foreach ($this->locks as $lock) {
-        $message = format_string(
-          $messages[2],
-          ['@name' => $lock->name, '@delay' => $delay]
-        );
-
-        $result = $this->assertLockAvailable($lock, $message);
-        $message = format_string(
-          $messages[3],
-          ['@name' => $lock->name, '@result' => $result ? 'TRUE' : 'FALSE']
-        );
-
-        $this->assertTrue($result == $lock->maybeAvailable(), $message);
-      }
-
-      $delay = (int) ($timeout - $delay) + 1;
-
-      $this->pass(format_string($messages[1], ['@delay' => $delay]));
-      sleep($delay);
-
-      // Verify the locks are available after the acquire timeout expires.
-      foreach ($this->locks as $lock) {
-        $message = format_string(
-          $messages[4],
-          ['@name' => $lock->name, '@delay' => $delay]
-        );
-
-        $result = $this->assertLockAvailable($lock, $message);
-        $message = format_string(
-          $messages[3],
-          ['@name' => $lock->name, '@result' => $result ? 'TRUE' : 'FALSE']
-        );
-
-        $this->assertTrue($result == $lock->maybeAvailable(), $message);
-      }
-    }
+  protected function assertLockNotAvailable(Lock $lock, string $message): bool {
+    return $this->assertTrue($lock->maybeAvailable() == FALSE, $message);
   }
 
   /**
@@ -224,6 +153,52 @@ class ApcLockTestCase extends ApcTestBase {
       }
 
       $this->assertTrue($count == count($this->locks), $messages[5]);
+    }
+  }
+
+  public function testMaybeAvailable(): void {
+    $delay = 2;
+    $messages = [
+      'All the locks have been acquired with a timeout of @timeout seconds.',
+      'Tests will be halted for @delay seconds.',
+      'The @name lock is not available after @delay seconds.',
+      'The @name lock is available after further @delay seconds.',
+    ];
+    $result = FALSE;
+    $timeout = 8.0;
+
+    $this->initLocks();
+
+    $message = format_string($messages[0], ['@timeout' => (int) $timeout]);
+
+    if ($this->assertTrue($this->acquireLocks($timeout), $message)) {
+      $this->pass(format_string($messages[1], ['@delay' => $delay]));
+      sleep($delay);
+
+      // Verify the locks are not available before the acquire timeout expires.
+      foreach ($this->locks as $lock) {
+        $message = format_string(
+          $messages[2],
+          ['@name' => $lock->name, '@delay' => $delay]
+        );
+
+        $this->assertLockNotAvailable($lock, $message);
+      }
+
+      $delay = (int) ($timeout - $delay) + 1;
+
+      $this->pass(format_string($messages[1], ['@delay' => $delay]));
+      sleep($delay);
+
+      // Verify the locks are available after the acquire timeout expires.
+      foreach ($this->locks as $lock) {
+        $message = format_string(
+          $messages[3],
+          ['@name' => $lock->name, '@delay' => $delay]
+        );
+
+        $this->assertLockAvailable($lock, $message);
+      }
     }
   }
 

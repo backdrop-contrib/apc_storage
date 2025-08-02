@@ -84,6 +84,11 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    *   TRUE if the bin was flushed successfully, FALSE otherwise.
    */
   public function assertFlushedBin(string $bin): bool {
+    $messages = [
+      'The cache bin @bin is empty after flushing it.',
+      'Failed to flush the cache bin @bin or check it was flushed: @message',
+    ];
+
     $backend = $this->getCacheBackend($bin);
 
     try {
@@ -91,14 +96,15 @@ abstract class ApcCacheTestBase extends ApcTestBase {
 
       $this->assertTrue(
         $backend->isEmpty(),
-        format_string('The cache bin @bin is empty after flushing.', ['@bin' => $bin])
+        format_string($messages[0], ['@bin' => $bin])
       );
 
       return TRUE;
     } catch (Exception $e) {
-      $this->fail(
+      $this->assert(
+        'exception',
         format_string(
-          'Failed to flush the cache bin @bin or check it was flushed: @message',
+          $messages[1],
           ['@bin' => $bin, '@message' => $e->getMessage()]
         )
       );
@@ -124,25 +130,29 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    *   FALSE otherwise.
    */
   protected function assertIsValidCacheObject(string $cid, mixed $data, mixed $expected_value = NULL, int $expire = CACHE_PERMANENT): bool {
+    $args = ['@cid' => $cid];
     $is_cache_object = is_object($data) && isset($data->cid) &&
       isset($data->data) && isset($data->created) && isset($data->expire);
-    $message_args = ['@cid' => $cid];
     $messages = [
-      format_string('@cid is a cache object.', $message_args),
-      format_string('The cache ID for @cid is correct.', $message_args),
-      format_string('The creation time of @cid is correct.', $message_args),
-      format_string('The expiration time of @cid is correct.', $message_args),
-      format_string('The data for @cid is the expected one.', $message_args),
+      '@cid is a cache object.',
+      'The cache ID for @cid is correct.',
+      'The creation time of @cid is correct.',
+      'The expiration time of @cid is correct.',
+      'The data for @cid is the expected one.',
     ];
     $now = round(microtime(TRUE));
 
     if ($this->assertTrue($is_cache_object, $messages[0])) {
-      $result = $this->assertTrue($data->cid === $cid, $messages[1]);
-      $result = $result && $this->assertTrue($data->created >= $now - 1 && $data->created <= $now + 1, $messages[2]);
-      $result = $result && $this->assertTrue($data->expire == $expire, $messages[3]);
+      $message = format_string($messages[1], $args);
+      $result = $this->assertTrue($data->cid === $cid, $message);
+      $message = format_string($message[2], $args);
+      $result = $result && $this->assertTrue($data->created >= $now - 1 && $data->created <= $now + 1, $message);
+      $message = format_string($messages[3], $args);
+      $result = $result && $this->assertTrue($data->expire == $expire, $message);
 
       if (!is_null($expected_value)) {
-        $result = $result && $this->assertEqual($data->data, $expected_value, $messages[4]);
+        $message = format_string($messages[4], $args);
+        $result = $result && $this->assertEqual($data->data, $expected_value, $message);
       }
 
       return $result;
@@ -164,15 +174,13 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    */
   public function testFlush(): void {
     $first_backend_bin = 'apc_storage_cache_flush_test_1';
+    $messages = [
+      'Backend for @bin does not contain data for @cid after flushing the cache.',
+      'Backend for @bin still contains data for @cid after flushing the cache.',
+    ];
     $second_backend_bin = 'apc_storage_cache_flush_test_2';
     $first_backend = $this->getCacheBackend($first_backend_bin);
     $second_backend = $this->getCacheBackend($second_backend_bin);
-
-    $data = array(
-      'test1' => 2,
-      'test3' => 8,
-      'test5' => 32,
-    );
 
     foreach ($data as $cid => $item) {
       $first_backend->set($cid, $item);
@@ -182,18 +190,15 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     $this->assertFlushedBin($first_backend_bin);
 
     foreach ($data as $cid => $item) {
-      $message_args = ['@bin' => $first_backend_bin, '@cid' => $cid];
-      $message = format_string(
-        'Backend for @bin does not contain data for @cid after flushing the cache.',
-        $message_args
-      );
+      $args = ['@bin' => $first_backend_bin, '@cid' => $cid];
+      $message = format_string($messages[0], $args);
 
       $this->assertTrue(empty($first_backend->get($cid)), $message);
 
-      $message_args['@bin'] = $second_backend_bin;
+      $args['@bin'] = $second_backend_bin;
       $message = format_string(
-        'Backend for @bin still contains data for @cid after flushing the cache.',
-        $message_args
+        $messages[1],
+        $args
       );
 
       $this->assertFalse(empty($second_backend->get($cid)), $message);
@@ -220,11 +225,16 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       // @todo Verify why the next item is not correctly stored.
       // 'test_' . $this->randomName() => ['baz' => 'qux'],
     ];
+    $messages = [
+      '@cid has been added to the cache.',
+      'All the @total items were retrieved from @bin.',
+      '@cid has been updated.'
+    ];
     $retrieved_data = [];
 
     foreach ($data as $cid => $item) {
       $backend->set($cid, $item);
-      $this->pass(format_string('@cid has been added to the cache.', ['@cid' => $cid]));
+      $this->pass(format_string($messages[0], ['@cid' => $cid]));
     }
 
     foreach ($data as $cid => $item) {
@@ -238,7 +248,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     }
 
     $message = format_string(
-      'All the @total items were retrieved from @bin.',
+      $messages[1],
       ['@total' => count($data), '@bin' => $backend_bin]
     );
     $this->assertTrue(count($retrieved_data) == count($data), $message);
@@ -253,7 +263,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
         $updated_data[$cid] += ['new_value' => 'foo'];
 
         $backend->set($cid, $updated_data[$cid]);
-        $this->pass(format_string('@cid has been updated.', ['@cid' => $cid]));
+        $this->pass(format_string($messages[2], ['@cid' => $cid]));
       }
 
       // Verify that a cached value can be updated.
@@ -277,11 +287,17 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       'test3' => 8,
     );
     $keys = array_keys($data);
+    $messages = [
+      '@cid has been added to the cache.',
+      'All the @total items were retrieved from @bin.',
+      'Items have been deleted from @bin.',
+      'Backend does not contain data for @cid after deletion.',
+    ];
     $retrieved_data = [];
 
     foreach ($data as $cid => $item) {
       $backend->set($cid, $item);
-      $this->pass(format_string('@cid has been added to the cache.', ['@cid' => $cid]));
+      $this->pass(format_string($messages[0], ['@cid' => $cid]));
     }
 
     foreach ($data as $cid => $item) {
@@ -295,27 +311,20 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       $this->assertIsValidCacheObject($cid, $cached, $item);
     }
 
-    $message = format_string(
-      'All the @total items were retrieved from @bin.',
-      ['@total' => count($data), '@bin' => $backend_bin]
-    );
+    $message = format_string($messages[1], ['@total' => count($data), '@bin' => $backend_bin]);
     $this->assertTrue(count($retrieved_data) == count($data), $message);
 
     // Avoid the next steps if no item was retrieved.
     if (count($retrieved_data)) {
       $backend->deleteMultiple($keys);
-      $this->pass(format_string('Items have been deleted from @bin.', ['@bin' => $backend_bin]));
+      $this->pass(format_string($messages[2], ['@bin' => $backend_bin]));
 
       foreach ($keys as $cid) {
         if (!isset($retrieved_data[$cid])) {
           continue;
         }
 
-        $message = format_string(
-          'Backend does not contain data for @cid after deletion.',
-          ['@cid' => $cid]
-        );
-
+        $message = format_string($messages[3], ['@cid' => $cid]);
         $this->assertTrue(empty($backend->get($cid)), $message);
       }
     }
@@ -331,11 +340,17 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       'not_test_1' => 'test',
       'not_test_2' => 7,
     ];
+    $messages = [
+      '@cid has been added to the cache.',
+      'All the @total items were retrieved from @bin.',
+      'Backend for @bin does not contain data for @cid after deletion.',
+      'Backend for @bin still contains data for @cid after deletion.',
+    ];
     $retrieved_data = [];
 
     foreach ($data as $cid => $item) {
       $backend->set($cid, $item);
-      $this->pass(format_string('@cid has been added to the cache.', ['@cid' => $cid]));
+      $this->pass(format_string($messages[0], ['@cid' => $cid]));
     }
 
     foreach ($data as $cid => $item) {
@@ -348,10 +363,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       $this->assertIsValidCacheObject($cid, $cached, $item);
     }
 
-    $message = format_string(
-      'All the @total items were retrieved from @bin.',
-      ['@total' => count($data), '@bin' => $backend_bin]
-    );
+    $message = format_string($messages[1], ['@total' => count($data), '@bin' => $backend_bin]);
     $this->assertTrue(count($retrieved_data) == count($data), $message);
 
     // Avoid the next steps if no item was retrieved.
@@ -366,11 +378,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
           continue;
         }
 
-        $message = format_string(
-          'Backend for @bin does not contain data for @cid after deletion.',
-          ['@bin' => $backend_bin, '@cid' => $cid]
-        );
-
+        $message = format_string($messages[2], ['@bin' => $backend_bin, '@cid' => $cid]);
         $this->assertTrue(empty($backend->get($cid)), $message);
       }
 
@@ -380,11 +388,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
           continue;
         }
 
-        $message = format_string(
-          'Backend for @bin still contains data for @cid after deletion.',
-          ['@bin' => $backend_bin, '@cid' => $cid]
-        );
-
+        $message = format_string($messages[3], ['@bin' => $backend_bin, '@cid' => $cid]);
         $this->assertFalse(empty($backend->get($cid)), $message);
       }
     }
@@ -403,11 +407,19 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       'test7' => 128,
       'test8' => '256',
     );
+    $messages = [
+      '@cid has been added to the cache.',
+      'All the @total items were retrieved from @bin.',
+      'Backend returned data for @cid.',
+      '$cids does not contain @cid.',
+      'Backend did not return data for @cid.',
+      '$cids contains @cid.',
+    ];
     $retrieved_data = [];
 
     foreach ($data as $cid => $item) {
       $backend->set($cid, $item);
-      $this->pass(format_string('@cid has been added to the cache.', ['@cid' => $cid]));
+      $this->pass(format_string($messages[0], ['@cid' => $cid]));
     }
 
     foreach ($data as $cid => $item) {
@@ -417,14 +429,10 @@ abstract class ApcCacheTestBase extends ApcTestBase {
         $retrieved_data[$cid] = TRUE;
       }
 
-
       $this->assertIsValidCacheObject($cid, $cached, $item);
     }
 
-    $message = format_string(
-      'All the @total items were retrieved from @bin.',
-      ['@total' => count($data), '@bin' => $backend_bin]
-    );
+    $message = format_string($messages[1], ['@total' => count($data), '@bin' => $backend_bin]);
     $this->assertTrue(count($retrieved_data) == count($data), $message);
 
     // Avoid the next steps if no item was retrieved.
@@ -443,26 +451,16 @@ abstract class ApcCacheTestBase extends ApcTestBase {
           continue;
         }
 
-        $message_args = ['@cid' => $cid];
-        $messages = [
-          format_string('Backend returned data for @cid.', $message_args),
-          format_string('$cids does not contain @cid.', $message_args),
-        ];
-
-        $this->assertTrue(isset($return[$cid]), $messages[0]);
+        $args = ['@cid' => $cid];
+        $this->assertTrue(isset($return[$cid]), format_string($messages[2], $args));
         $this->assertIsValidCacheObject($cid, $return[$cid]);
-        $this->assertFalse(in_array($cid, $cids), $messages[1]);
+        $this->assertFalse(in_array($cid, $cids), format_string($messages[3], $args));
       }
 
       foreach ($unexisting_keys as $cid) {
-        $message_args = ['@cid' => $cid];
-        $messages = [
-          format_string('Backend did not return data for @cid.', $message_args),
-          format_string('$cids contains @cid.', $message_args),
-        ];
-
-        $this->assertFalse(isset($return[$cid]), $messages[0]);
-        $this->assertTrue(in_array($cid, $cids), $messages[1]);
+        $args = ['@cid' => $cid];
+        $this->assertFalse(isset($return[$cid]), format_string($messages[4], $args));
+        $this->assertTrue(in_array($cid, $cids), format_string($messages[5], $args));
       }
     }
 
@@ -480,26 +478,16 @@ abstract class ApcCacheTestBase extends ApcTestBase {
         continue;
       }
 
-      $message_args = ['@cid' => $cid];
-      $messages = [
-        format_string('Backend returned data for @cid.', $message_args),
-        format_string('$cids does not contain @cid.', $message_args),
-      ];
-
-      $this->assertTrue(!empty($return[$cid]), $messages[0]);
+      $args = ['@cid' => $cid];
+      $this->assertTrue(!empty($return[$cid]), format_string($messages[2], $args));
       $this->assertIsValidCacheObject($cid, $return[$cid]);
-      $this->assertFalse(in_array($cid, $cids), $messages[1]);
+      $this->assertFalse(in_array($cid, $cids), format_string($messages[3], $args));
     }
 
     foreach ($unexisting_keys as $cid) {
-      $message_args = ['@cid' => $cid];
-      $messages = [
-        format_string('Backend did not return data for @cid.', $message_args),
-        format_string('$cids contains @cid.', $message_args),
-      ];
-
-      $this->assertFalse(isset($return[$cid]), $messages[0]);
-      $this->assertTrue(in_array($cid, $cids), $messages[1]);
+      $args = ['@cid' => $cid];
+      $this->assertFalse(isset($return[$cid]), format_string($messages[0], $args));
+      $this->assertTrue(in_array($cid, $cids), format_string($messages[1], $args));
     }
 
     // Verify that passing an indexed array of cache IDs works as well.
@@ -507,12 +495,7 @@ abstract class ApcCacheTestBase extends ApcTestBase {
     $cids = array('cache:key' => $key);
     $return = $backend->getMultiple($cids);
 
-    $message_args = ['@cid' => $key];
-    $messages = [
-      format_string('Backend returned data for @cid.', $message_args),
-    ];
-
-    $this->assertTrue(isset($return[$key]), $messages[0]);
+    $this->assertTrue(isset($return[$key]), format_string($messages[2], ['@cid' => $key]));
     $this->assertIsValidCacheObject($key, $return[$key]);
   }
 

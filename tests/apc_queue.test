@@ -90,33 +90,28 @@ class ApcQueueTestCase extends ApcTestBase {
    * This test uses a lease time lower than the default one.
    */
   public function testClaimItem(): void {
+    $messages = [
+      'An item was claimed from the @queue queue.',
+      'All items have been claimed from the @queue queue (@count).',
+      'It was not possible to claim further items from the @queue queue after the last one.',
+    ];
+
     if ($this->initQueues()) {
       foreach ($this->queues as $name => $data) {
         $claimed = 0;
         $count = count($data->items);
         $lease_time = 5;
-        $messages = [
-          format_string('An item was claimed from the @queue queue.', ['@queue' => $name]),
-          format_string(
-            'All items have been claimed from the @queue queue (@count).',
-            ['@queue' => $name, '@count' => $count]
-          ),
-          format_string(
-            'It was not possible to claim further items from the @queue queue after the last one.',
-            ['@queue' => $name]
-          ),
-        ];
 
         for ($i = 0; $i < $count; $i++) {
           $obj = $data->instance->claimItem($lease_time);
-
-          if ($this->assertTrue($obj instanceof stdClass, $messages[0])) {
+          $message = format_string($messages[0], ['@queue' => $name]);
+          if ($this->assertTrue($obj instanceof stdClass, $message)) {
             $claimed++;
           }
         }
 
-        $this->assertTrue($claimed == $count, $messages[1]);
-        $this->assertNull($data->instance->claimItem(), $messages[2]);
+        $this->assertTrue($claimed == $count, format_string($messages[1], ['@queue' => $name, '@count' => $count]));
+        $this->assertNull($data->instance->claimItem(), format_string($messages[2], ['@queue' => $name]));
       }
     }
   }
@@ -125,23 +120,21 @@ class ApcQueueTestCase extends ApcTestBase {
    * Tests that items can be immediately claimed after they are released.
    */
   public function testReleaseItem(): void {
+    $messages = [
+      'An item was claimed from the @queue queue.',
+      'All items have been claimed from the @queue queue (@count).',
+      'It was not possible to claim further items from the @queue queue after the last one.',
+      'An item was claimed from the @queue queue for the second time.',
+      '@count items have been claimed from the @queue queue for the second time.',
+    ];
+
     if ($this->initQueues()) {
       foreach ($this->queues as $name => $data) {
         $count = count($data->items);
-        $messages = [
-          format_string('An item was claimed from the @queue queue.', ['@queue' => $name]),
-          format_string(
-            'All items have been claimed from the @queue queue (@count).',
-            ['@queue' => $name, '@count' => $count]
-          ),
-          format_string(
-            'It was not possible to claim further items from the @queue queue after the last one.',
-            ['@queue' => $name]
-          ),
-        ];
         $data->claimedObjects = [];
 
         for ($i = 0; $i < $count; $i++) {
+          $message = format_string($messages[0], ['@queue' => $name]);
           $obj = $data->instance->claimItem();
 
           if ($this->assertNotNull($obj, $messages[0])) {
@@ -149,24 +142,16 @@ class ApcQueueTestCase extends ApcTestBase {
           }
         }
 
-        $this->assertTrue(count($data->claimedObjects) == $count, $messages[1]);
-        $this->assertNull($data->instance->claimItem(), $messages[2]);
+        $this->assertTrue(
+          count($data->claimedObjects) == $count,
+          format_string($messages[1], ['@queue' => $name, '@count' => $count])
+        );
+        $this->assertNull($data->instance->claimItem(), format_string($messages[2], ['@queue' => $name]));
       }
 
       // Release the claimed items and check if they can be claimed again.
       foreach ($this->queues as $name => $data) {
         $count = count($data->claimedObjects);
-        $messages = [
-          format_string('An item was claimed from the @queue queue for the second time.', ['@queue' => $name]),
-          format_string(
-            '@count items have been claimed from the @queue queue for the second time.',
-            ['@queue' => $name, '@count' => $count]
-          ),
-          format_string(
-            'It was not possible to claim further items from the @queue queue after the last one.',
-            ['@queue' => $name]
-          ),
-        ];
 
         foreach ($data->claimedObjects as $obj) {
           $data->instance->releaseItem($obj);
@@ -174,11 +159,14 @@ class ApcQueueTestCase extends ApcTestBase {
 
         for ($i = 0; $i < $count; $i++) {
           $obj = $data->instance->claimItem();
-          $this->assertNotNull($obj, $messages[0]);
+          $this->assertNotNull($obj, format_string($messages[3], ['@queue' => $name]));
         }
 
-        $this->assertTrue(count($data->claimedObjects) == $count, $messages[1]);
-        $this->assertNull($data->instance->claimItem(), $messages[2]);
+        $this->assertTrue(
+          count($data->claimedObjects) == $count,
+          format_string($messages[4], ['@queue' => $name, '@count' => $count])
+        );
+        $this->assertNull($data->instance->claimItem(), format_string($messages[2], ['@queue' => $name]));
       }
     }
   }
@@ -187,31 +175,30 @@ class ApcQueueTestCase extends ApcTestBase {
    * Tests that items cannot be claimed after the queue is deleted.
    */
   public function testDeleteQueue(): void {
+    $messages = [
+      'Claiming an item from the @queue queue after the queue was deleted failed.',
+      'No item was claimed from the @queue queue after the queue was deleted.',
+    ];
+
     if ($this->initQueues()) {
       foreach ($this->queues as $name => $data) {
         $claimed_items = 0;
         $count = count($data->items);
-        $messages = [
-          format_string(
-            'Claiming an item from the @queue queue after the queue was deleted failed.',
-            ['@queue' => $name]
-          ),
-          format_string('No item was claimed from the @queue queue after the queue was deleted.', ['@queue' => $name]),
-        ];
 
         $data->instance->deleteQueue();
 
         // Try to claim more items than the queue had; the last try should fail
         // too.
         for ($i = 0; $i < $count + 1; $i++) {
+          $message = format_string($messages[0], ['@queue' => $name]);
           $obj = $data->instance->claimItem();
 
-          if (!$this->assertNull($obj, $messages[0])) {
+          if (!$this->assertNull($obj, $message)) {
             $claimed_items++;
           }
         }
 
-        $this->assertTrue($claimed_items == 0, $messages[1]);
+        $this->assertTrue($claimed_items == 0, format_string($messages[1], ['@queue' => $name]));
       }
     }
   }

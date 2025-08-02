@@ -30,6 +30,15 @@ class Cache extends CacheBase {
   protected const string ENSURE_UNIQUE_PREFIX = 'apc_storage_ensure_unique_prefix';
 
   /**
+   * Whether the APCu extension is available and enabled.
+   *
+   * @var bool
+   */
+  protected bool $apcuAvailable {
+    get => extension_loaded('apcu') && apcu_enabled();
+  }
+
+  /**
    * The identifier used to generate unique APCu keys.
    *
    * @var string
@@ -94,16 +103,6 @@ class Cache extends CacheBase {
   }
 
   /**
-   * Checks if the APCu extension is loaded and enabled.
-   *
-   * @return bool
-   *   TRUE if APCu is available and enabled, FALSE otherwise.
-   */
-  protected function isApcuAvailable(): bool {
-    return extension_loaded('apcu') && apcu_enabled();
-  }
-
-  /**
    * Gets the key to use in APC calls.
    *
    * @param string $cid
@@ -133,7 +132,7 @@ class Cache extends CacheBase {
    * {@inheritdoc}
    */
   public function deleteMultiple(array $cids): void {
-    if ($this->isApcuAvailable()) {
+    if ($this->apcuAvailable) {
       apcu_delete(array_map([$this, 'getApcuKey'], $cids));
     }
   }
@@ -142,7 +141,7 @@ class Cache extends CacheBase {
    * {@inheritdoc}
    */
   public function deletePrefix($prefix): void {
-    if (is_string($prefix) && $this->isApcuAvailable()) {
+    if (is_string($prefix) && $this->apcuAvailable) {
       $key = $this->getApcuKey() . $prefix;
       apcu_delete(new \APCUIterator("/^" . preg_quote($key, '/') . "/"));
     }
@@ -152,7 +151,7 @@ class Cache extends CacheBase {
    * {@inheritdoc}
    */
   public function flush(): void {
-    if ($this->isApcuAvailable()) {
+    if ($this->apcuAvailable) {
       $key = preg_quote($this->getApcuKey(), '/');
       apcu_delete(new \APCUIterator("/^$key/"));
     }
@@ -162,7 +161,7 @@ class Cache extends CacheBase {
    * {@inheritdoc}
    */
   public function get($cid): mixed {
-    if ($this->isApcuAvailable()) {
+    if ($this->apcuAvailable) {
       $item = apcu_fetch($this->getApcuKey($cid), $success);
       return $success ? $this->prepareItem($item) : FALSE;
     }
@@ -173,7 +172,7 @@ class Cache extends CacheBase {
    * {@inheritdoc}
    */
   public function getMultiple(array &$cids): array {
-    if (!$cids || !$this->isApcuAvailable()) {
+    if (!$cids || !$this->apcuAvailable) {
       return [];
     }
 
@@ -197,7 +196,7 @@ class Cache extends CacheBase {
    * {@inheritdoc}
    */
   public function isEmpty(): bool {
-    if ($this->isApcuAvailable()) {
+    if ($this->apcuAvailable) {
       $iterator = new \APCUIterator('/^' . preg_quote($this->getApcuKey(), '/') . '/');
       return $iterator->getTotalCount() === 0;
     }
@@ -208,7 +207,7 @@ class Cache extends CacheBase {
    * {@inheritdoc}
    */
   public function set($cid, $data, $expire = CACHE_PERMANENT): void {
-    if ($this->isApcuAvailable()) {
+    if ($this->apcuAvailable) {
       $cache = (object) [
         'cid' => $cid,
         'created' => round(microtime(TRUE)),

@@ -173,6 +173,11 @@ abstract class ApcCacheTestBase extends ApcTestBase {
    * Tests flushing the cache.
    */
   public function testFlush(): void {
+    $data = [
+      'test_2' => 8,
+      'test_3' => '16',
+      'test_5' => 64.0,
+    ];
     $first_backend_bin = 'apc_storage_cache_flush_test_1';
     $messages = [
       'Backend for @bin does not contain data for @cid after flushing the cache.',

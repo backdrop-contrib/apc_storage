@@ -44,13 +44,6 @@ class Lock {
   protected static string $uniqueId = '';
 
   /**
-   * The name of the lock.
-   *
-   * @var string
-   */
-  public protected(set) string $name;
-
-  /**
    * The APCu key used for the lock.
    *
    * @var string
@@ -59,6 +52,9 @@ class Lock {
 
   /**
    * Generates a unique identifier for the lock system.
+   *
+   * A property hook cannot be used in this case, since the unique ID is unique
+   * for all the class instance created.
    *
    * @return string
    *   A 32-byte unique identifier.
@@ -103,8 +99,7 @@ class Lock {
    * @param string $name
    *   The name of the lock.
    */
-  protected function __construct(string $name) {
-    $this->name = $name;
+  protected function __construct(public protected(set) string $name) {
     $this->keyName = $this->generateLockKey();
   }
 

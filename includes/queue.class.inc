@@ -40,13 +40,6 @@ class Queue implements \BackdropQueueInterface {
   }
 
   /**
-   * The name of the queue this instance is working with.
-   *
-   * @var string
-   */
-  protected string $name;
-
-  /**
    * The APCu iterator to find all the queue keys stored in the APCu store.
    *
    * @val \APCUIterator
@@ -79,12 +72,12 @@ class Queue implements \BackdropQueueInterface {
       }
 
       try {
-        return random_bytes($length);
+        return random_bytes(32);
       }
       catch (RandomException) {
         try {
           // Use a fallback in case random_bytes() fails.
-          return self::$randomizer->getBytes($length);
+          return self::$randomizer->getBytes(32);
         }
         catch (\ValueError) {
           // This exception should never be thrown because the seed passed to
@@ -96,9 +89,13 @@ class Queue implements \BackdropQueueInterface {
     }
   }
 
-  public function __construct(string $name) {
-    $this->name = $name;
-  }
+  /**
+   * Constructs a new \apc_storage\queue\Queue instance.
+   *
+   * @param string $name
+   *   The queue name.
+   */
+  public function __construct(protected string $name) {}
 
   /**
    * Generates the key name for storing an item in the APCu queue.

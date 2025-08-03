@@ -87,17 +87,17 @@ class ApcLockTestCase extends ApcTestBase {
       }
     }
 
-    $this->assertTrue($result, $message);
+    $this->assert($result, $message);
 
     return $result;
   }
 
   protected function assertLockAvailable(Lock $lock, string $message): bool {
-    return $this->assertTrue($lock->maybeAvailable(), $message);
+    return $this->assert($lock->maybeAvailable(), $message);
   }
 
   protected function assertLockNotAvailable(Lock $lock, string $message): bool {
-    return $this->assertTrue($lock->maybeAvailable() == FALSE, $message);
+    return $this->assert($lock->maybeAvailable() == FALSE, $message);
   }
 
   /**

@@ -93,21 +93,11 @@ abstract class ApcCacheTestBase extends ApcTestBase {
 
     try {
       $backend->flush();
-
-      $this->assertTrue(
-        $backend->isEmpty(),
-        format_string($messages[0], ['@bin' => $bin])
-      );
+      $this->assert($backend->isEmpty(), format_string($messages[0], ['@bin' => $bin]));
 
       return TRUE;
     } catch (Exception $e) {
-      $this->assert(
-        'exception',
-        format_string(
-          $messages[1],
-          ['@bin' => $bin, '@message' => $e->getMessage()]
-        )
-      );
+      $this->assert('exception', format_string($messages[1], ['@bin' => $bin, '@message' => $e->getMessage()]));
 
       return FALSE;
     }
@@ -139,31 +129,27 @@ abstract class ApcCacheTestBase extends ApcTestBase {
       'The creation time of @cid is correct.',
       'The expiration time of @cid is correct.',
       'The data for @cid is the expected one.',
+      'Value obtained for @cid: @data',
     ];
     $now = round(microtime(TRUE));
 
-    if ($this->assertTrue($is_cache_object, $messages[0])) {
+    if ($this->assert($is_cache_object, $messages[0])) {
       $message = format_string($messages[1], $args);
-      $result = $this->assertTrue($data->cid === $cid, $message);
+      $result = $this->assert($data->cid === $cid, $message);
       $message = format_string($message[2], $args);
-      $result = $result && $this->assertTrue($data->created >= $now - 1 && $data->created <= $now + 1, $message);
+      $result = $result && $this->assert($data->created >= $now - 1 && $data->created <= $now + 1, $message);
       $message = format_string($messages[3], $args);
-      $result = $result && $this->assertTrue($data->expire == $expire, $message);
+      $result = $result && $this->assert($data->expire == $expire, $message);
 
       if (!is_null($expected_value)) {
         $message = format_string($messages[4], $args);
-        $result = $result && $this->assertEqual($data->data, $expected_value, $message);
+        $result = $result && $this->assert($data->data == $expected_value, $message);
       }
 
       return $result;
     }
     else {
-      $this->assert(
-        'debug',
-        format_string(
-          'Value obtained for @cid: @data', ['@cid' => $cid, '@data' => var_export($data, TRUE)]
-        )
-      );
+      $this->assert('debug', format_string($messages[5], ['@cid' => $cid, '@data' => var_export($data, TRUE)]));
 
       return FALSE;
     }

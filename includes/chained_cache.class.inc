@@ -46,9 +46,22 @@ class ChainedCache extends Cache {
   /**
    * The time at which the last writing to this cache bin happened.
    *
-   * @var ?float
+   * @var float
    */
-  protected ?float $lastWriteTimestamp = NULL;
+  protected float $lastWriteTimestamp = -1.0 {
+    get {
+      if ($this->lastWriteTimestamp === -1.0) {
+        $cache = $this->databaseBackend->get(self::LAST_WRITE_TIMESTAMP_KEY);
+        $this->lastWriteTimestamp = $cache ? $cache->data : 0;
+      }
+
+      return $this->lastWriteTimestamp;
+    }
+    set {
+      $this->databaseBackend->set(self::LAST_WRITE_TIMESTAMP_KEY, $value);
+      $this->lastWriteTimestamp = $value;
+    }
+  }
 
   /**
    * {@inheritdoc}
@@ -69,18 +82,6 @@ class ChainedCache extends Cache {
   }
 
   /**
-   * Gets the last writing timestamp.
-   */
-  protected function getLastWriteTimestamp(): float {
-    if (is_null($this->lastWriteTimestamp)) {
-      $cache = $this->databaseBackend->get(self::LAST_WRITE_TIMESTAMP_KEY);
-      $this->lastWriteTimestamp = $cache ? $cache->data : 0;
-    }
-
-    return $this->lastWriteTimestamp;
-  }
-
-  /**
    * Marks the APCu cache bins outdated because data has been written.
    *
    * @throws \Exception
@@ -93,24 +94,10 @@ class ChainedCache extends Cache {
     // ahead of the current time.
     $compare = round(microtime(TRUE) + self::TIMESTAMP_COMPARE_OFFSET, self::TIMESTAMP_PRECISION);
 
-    if ($compare > $this->getLastWriteTimestamp()) {
+    if ($compare > $this->lastWriteTimestamp) {
       $now = round(microtime(TRUE) + self::TIMESTAMP_SET_OFFSET, self::TIMESTAMP_PRECISION);
-      $this->setLastWriteTimestamp($now);
+      $this->lastWriteTimestamp = $now;
     }
-  }
-
-  /**
-   * Sets the last writing timestamp.
-   *
-   * @param float $timestamp
-   *   The new timestamp.
-   *
-   * @throws \Exception
-   *   Writing the database failed.
-   */
-  protected function setLastWriteTimestamp(float $timestamp): void {
-    $this->lastWriteTimestamp = $timestamp;
-    $this->databaseBackend->set(self::LAST_WRITE_TIMESTAMP_KEY, $this->lastWriteTimestamp);
   }
 
   /**
@@ -176,7 +163,7 @@ class ChainedCache extends Cache {
     $cids_copy = $cids;
     $cache = [];
     $now = round(microtime(TRUE), self::TIMESTAMP_PRECISION);
-    $last_write_timestamp = $this->getLastWriteTimestamp();
+    $last_write_timestamp = $this->lastWriteTimestamp;
 
     // Don't bother to either look up from or write to the APCu backend when the
     // $last_write_timestamp is in the future.

@@ -46,13 +46,6 @@ class Cache extends CacheBase {
   protected string $identifier = 'apc_storage_cache';
 
   /**
-   * The cache bin.
-   *
-   * @var string
-   */
-  protected string $bin;
-
-  /**
    * Prefix for all keys in this cache bin.
    *
    * @var string
@@ -87,13 +80,6 @@ class Cache extends CacheBase {
    * @var string
    */
   protected string $sitePrefix = 'apc_storage_cache::';
-
-  /**
-   * {@inheritdoc}
-   */
-  public function __construct($bin) {
-    $this->bin = $bin;
-  }
 
   /**
    * Gets the key to use in APC calls.

@@ -53,7 +53,7 @@ class Queue implements \BackdropQueueInterface {
   }
 
   /**
-   * The unique ID used for the APCu keys used to store queue data.
+   * The unique ID used for the queue item IDs.
    *
    * @var string
    */

@@ -53,9 +53,6 @@ class Lock {
   /**
    * Generates a unique identifier for the lock system.
    *
-   * A property hook cannot be used in this case, since the unique ID is unique
-   * for all the class instance created.
-   *
    * @return string
    *   A 32-byte unique identifier.
    */

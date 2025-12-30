@@ -15,12 +15,11 @@ namespace apc_storage\cache;
 abstract class CacheBase implements CacheInterface {
 
   /**
-   * Constructs a new \apc_storage\cache\Cache\CacheBase instance.
+   * The bin name.
    *
-   * @param string $bin
-   *   The cache bin handled by this instance.
+   * @var string
    */
-  public function __construct(protected string $bin) {}
+  protected string $bin;
 
   /**
    * {@inheritdoc}
@@ -41,7 +40,6 @@ abstract class CacheBase implements CacheInterface {
   public function garbageCollection(): void {
     // The default implementation does nothing.
   }
-
 
   /**
    * {@inheritdoc}

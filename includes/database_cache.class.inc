@@ -30,13 +30,6 @@ class DatabaseCache extends CacheBase {
   protected \DatabaseConnection $connection;
 
   /**
-   * The bin name.
-   *
-   * @var string
-   */
-  protected string $bin;
-
-  /**
    * The maximum number of rows that this cache bin table is allowed to store.
    *
    * @var int

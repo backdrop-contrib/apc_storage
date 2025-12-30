@@ -48,7 +48,7 @@ class Lock {
    *
    * @var string
    */
-  public protected(set) string $keyName;
+  protected(set) string $keyName;
 
   /**
    * Generates a unique identifier for the lock system.
@@ -60,7 +60,7 @@ class Lock {
     try {
       return random_bytes(32);
     }
-    catch (\RandomException) {
+    catch (RandomException) {
       // Use a fallback in case random_bytes() fails.
       try {
         $engine = new Xoshiro256StarStar(hash('sha256', 'apc_storage_lock_' . hrtime(TRUE), TRUE));
@@ -96,7 +96,7 @@ class Lock {
    * @param string $name
    *   The name of the lock.
    */
-  protected function __construct(public protected(set) string $name) {
+  protected function __construct(protected(set) string $name) {
     $this->keyName = $this->generateLockKey();
   }
 
@@ -162,7 +162,6 @@ class Lock {
     }
 
     $expire = microtime(TRUE) + $timeout;
-    $success = FALSE;
 
     if (apcu_exists($this->keyName)) {
       // Try to extend the expiration of an already acquired lock.
@@ -220,9 +219,7 @@ class Lock {
 
     $data = apcu_fetch($this->keyName, $success);
 
-    $result = ($success && (empty($data['expire']) || microtime(TRUE) >= (float) $data['expire']));
-
-    return $result;
+    return ($success && (empty($data['expire']) || microtime(TRUE) >= (float) $data['expire']));
   }
 
   /**

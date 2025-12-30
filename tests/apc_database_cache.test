@@ -21,6 +21,9 @@ class ApcDatabaseCacheTestCase extends ApcCacheTestBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Exception
+   *   An error happened when creating the cache backend.
    */
   protected function createCacheBackend(string $bin): CacheInterface {
     return new DatabaseCache($bin);

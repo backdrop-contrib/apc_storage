@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpUnused */
+
 /**
  * @file
  * Contains ApcLockTestCase.
@@ -71,8 +73,6 @@ class ApcLockTestCase extends ApcTestBase {
   }
 
   protected function assertLockAcquired(Lock $lock, string $message): bool {
-    $result = TRUE;
-
     if (!apcu_exists($lock->keyName)) {
       $result = FALSE;
     }
@@ -164,7 +164,6 @@ class ApcLockTestCase extends ApcTestBase {
       'The @name lock is not available after @delay seconds.',
       'The @name lock is available after further @delay seconds.',
     ];
-    $result = FALSE;
     $timeout = 8.0;
 
     $this->initLocks();

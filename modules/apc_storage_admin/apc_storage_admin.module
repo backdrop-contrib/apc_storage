@@ -102,16 +102,16 @@ function apc_storage_admin_reports(): string {
       $list[] = t('Number of hits: @count', array('@count' => $info['num_hits']));
       $list[] = t('Number of misses: @count', array('@count' => $info['num_misses']));
       $list[] = t('Cache items: @count',
-        array('@count' => (new APCUIterator('/^apc_storage_cache::/'))->getTotalCount())
+        array('@count' => new APCUIterator('/^apc_storage_cache::/')->getTotalCount())
       );
       $list[] = t('Chained cache items: @count',
-        array('@count' => (new APCUIterator('/^apc_storage_chained_cache::/'))->getTotalCount())
+        array('@count' => new APCUIterator('/^apc_storage_chained_cache::/')->getTotalCount())
       );
       $list[] = t('Lock items: @count',
-        array('@count' => (new APCUIterator('/^apc_storage_lock::/'))->getTotalCount())
+        array('@count' => new APCUIterator('/^apc_storage_lock::/')->getTotalCount())
       );
       $list[] = t('Queue items: @count',
-        array('@count' => (new APCUIterator('/^apc_storage_queue::/'))->getTotalCount())
+        array('@count' => new APCUIterator('/^apc_storage_queue::/')->getTotalCount())
       );
       $list[] = t('Used memory: @memory', array('@memory' => format_size($info['mem_size'])));
 

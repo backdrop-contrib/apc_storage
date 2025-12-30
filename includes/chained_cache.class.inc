@@ -75,6 +75,10 @@ class ChainedCache extends Cache {
    */
   protected CacheInterface $databaseBackend;
 
+  /**
+   * @throws \Exception
+   *   An error happened when creating the cache backend.
+   */
   public function __construct($bin) {
     parent::__construct($bin);
 
@@ -208,6 +212,9 @@ class ChainedCache extends Cache {
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Exception
+   *   An error happened when accessing the database backend.
    */
   public function isEmpty(): bool {
     return $this->databaseBackend->isEmpty();

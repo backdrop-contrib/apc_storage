@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpUnused */
+
 /**
  * @file
  * Contains ApcCacheTestBase.

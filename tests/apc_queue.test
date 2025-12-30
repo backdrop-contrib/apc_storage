@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUnused */
 
 /**
  * @file
@@ -137,7 +137,7 @@ class ApcQueueTestCase extends ApcTestBase {
           $message = format_string($messages[0], ['@queue' => $name]);
           $obj = $data->instance->claimItem();
 
-          if ($this->assertNotNull($obj, $messages[0])) {
+          if ($this->assertNotNull($obj, $message)) {
             $data->claimedObjects[] = $obj;
           }
         }
